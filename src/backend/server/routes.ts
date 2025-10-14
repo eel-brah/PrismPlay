@@ -1,0 +1,22 @@
+import type { FastifyInstance } from "fastify";
+import { authRoutes, userRoutes } from "../modules/user/user_route.ts";
+
+export function registerRoutes(
+  server: FastifyInstance,
+  http_server: FastifyInstance,
+) {
+  http_server.get("*", (req, rep) => {
+    const host = req.headers.host.replace(/:\d+$/, ":9443");
+    rep.redirect(`https://${host}${req.raw.url}`);
+  });
+
+  server.register(userRoutes, { prefix: "users" });
+  server.register(authRoutes, { prefix: "auth" });
+
+  server.get("/healthcheck", async () => {
+    return { status: "OK" };
+  });
+  server.get("/protected", { preHandler: [server.auth] }, async (req, rep) => {
+    return { user: req.user };
+  });
+}
