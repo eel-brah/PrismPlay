@@ -59,6 +59,8 @@ export async function authRoutes(server: FastifyInstance) {
 }
 
 export async function userRoutes(server: FastifyInstance) {
+  // server.addHook("preHandler", server.auth);
+
   server.get(
     "/",
     {

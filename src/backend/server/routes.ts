@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { authRoutes, userRoutes } from "../modules/user/user_route.ts";
+import { setTimeout } from "timers/promises";
 
 export function registerRoutes(
   server: FastifyInstance,

@@ -87,9 +87,17 @@ export function createResponseSchema(schema: any, codes: number[]) {
   );
 }
 
+export const authHeaderSchema = z.object({
+  authorization: z
+    .string()
+    .min(1, { message: "Authorization header is required" })
+    .regex(/^Bearer\s.+$/, { message: "Authorization must be a Bearer token" }),
+});
+
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UserResponse = z.infer<typeof userResponseSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type GetUserParams = z.infer<typeof getUserParamsSchema>;
 export type UpdateUserBody = z.infer<typeof updateUserSchema>;
 export type MessageResponse = z.infer<typeof messageResponseSchema>;
+export type AuthHeaderSchema = z.infer<typeof authHeaderSchema>;
