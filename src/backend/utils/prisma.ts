@@ -1,6 +1,10 @@
-import pkg from "@prisma/client";
-const { PrismaClient } = pkg;
+import { PrismaClient } from "@prisma/client";
+import server from "../server/server.ts";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
-export default prisma
+server.addHook('onClose', async () => {
+  await prisma.$disconnect();
+});
+
+export default prisma;

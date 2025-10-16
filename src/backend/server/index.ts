@@ -11,6 +11,7 @@ setGlobalErrorHandler(server);
 // Auth setup
 await setupAuth(server);
 
+// Logging
 await loggingHook(server);
 
 // Register routes
@@ -20,8 +21,6 @@ async function main() {
   try {
     await server.listen({ port: PORT, host: IP });
     await http_server.listen({ port: HTTP_PORT, host: IP });
-    // console.log(`Server started at ${IP}:${PORT}`);
-    // console.log(`HTTP server started at ${IP}:${HTTP_PORT}`);
   } catch (err) {
     server.log.error(err);
     process.exit(1);

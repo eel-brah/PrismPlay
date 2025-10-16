@@ -18,6 +18,8 @@ export default async function loggingHook(server: FastifyInstance) {
             : status >= 200
               ? "✅"
               : "";
-    server.log.info(`${statusEmoji} Responded with status: ${status}`);
+    server.log.info(
+      `${statusEmoji} Responded with status: ${status} (${rep.elapsedTime.toFixed(2)} ms)`,
+    );
   });
 }

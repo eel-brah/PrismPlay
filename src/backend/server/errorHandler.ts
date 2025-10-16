@@ -13,14 +13,18 @@ import {
 export function setGlobalErrorHandler(server: FastifyInstance) {
   server.setErrorHandler(
     (error: FastifyError, req: FastifyRequest, rep: FastifyReply) => {
+
+      if (error.code === 'FST_ERR_CTP_INVALID_MEDIA_TYPE') {
+        return rep.status(415).send({ message: error.message });
+      }
       if (error.code === 'FST_ERR_CTP_INVALID_JSON_BODY') {
-        return rep.status(400).send({ message: "Invalid json body" });
+        return rep.status(400).send({ message: error.message });
       }
       if (error.code === "FST_JWT_NO_AUTHORIZATION_IN_HEADER") {
-        return rep.status(401).send({ message: "Token missing" });
+        return rep.status(401).send({ message: error.message });
       }
       if (error.code === 'FST_JWT_AUTHORIZATION_TOKEN_INVALID') {
-        return rep.status(500).send({ message: "Token is invalid" });
+        return rep.status(500).send({ message: error.message });
       }
       if (hasZodFastifySchemaValidationErrors(error)) {
         let message = error.validation.map((v) => v.message).join(", ");

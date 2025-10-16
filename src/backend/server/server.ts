@@ -5,7 +5,7 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from "fastify-type-provider-zod";
-import { SSL_CERT_PATH, SSL_KEY_PATH } from "./config.ts";
+import { NODE_ENV, SSL_CERT_PATH, SSL_KEY_PATH } from "./config.ts";
 
 const logger = {
   transport: {
@@ -23,12 +23,12 @@ const server = Fastify({
     key: fs.readFileSync(SSL_KEY_PATH),
     cert: fs.readFileSync(SSL_CERT_PATH),
   },
-  logger,
+  logger: NODE_ENV === "development" ? logger : true,
   disableRequestLogging: true,
 }).withTypeProvider<ZodTypeProvider>();
 
 export const http_server = Fastify({
-  logger,
+  logger: NODE_ENV === "development" ? logger : true,
   disableRequestLogging: true,
 });
 
