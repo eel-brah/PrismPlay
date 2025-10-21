@@ -1,277 +1,313 @@
-// Select the canvas
-const canvas = document.getElementById("pong") as HTMLCanvasElement;
-const ctx = canvas.getContext("2d")!;
-// if (!ctx) throw new Error("2D context not available");
+(() => {
+  // Select the canvas
+  const canvas = document.getElementById("pong") as HTMLCanvasElement;
+  const ctx = canvas.getContext("2d")!;
+  // if (!ctx) throw new Error("2D context not available");
 
-// audio
-const hitSound = new Audio("/audio/hit.mp3");
-const lossSound = new Audio("/audio/loss.mp3");
-const scoreSound = new Audio("/audio/score.mp3");
-const winSound = new Audio("/audio/win.mp3");
+  const fpsCounter = document.getElementById("fpsCounter")!;
 
-hitSound.volume = 0.4;
-scoreSound.volume = 0.6;
-winSound.volume = 0.4;
+  // Colors & Fonts
+  const COLORS = {
+    background: "#181825",
+    paddle: "#89b4fa",
+    ball: "#f5e0dc",
+    line: "#cdd6f4",
+    text: "#cdd6f4",
+  };
+  const FONTS = {
+    main: "32px monospace",
+  };
 
-// Game States
-type GameState = "start" | "playing" | "paused" | "scored" | "gameover";
-let gameState: GameState = "start";
-let winner: "left" | "right" | null = null;
+  // Audio
+  const hitSound = new Audio("/audio/hit.mp3");
+  const lossSound = new Audio("/audio/loss.mp3");
+  const scoreSound = new Audio("/audio/score.mp3");
+  const winSound = new Audio("/audio/win.mp3");
 
-// Input Tracking
-const keys: Record<string, boolean> = {};
+  hitSound.volume = 0.4;
+  scoreSound.volume = 0.6;
+  winSound.volume = 0.4;
 
-document.addEventListener("keydown", (e) => {
-  keys[e.key] = true;
+  // Game state
+  type GameState = "start" | "playing" | "paused" | "scored" | "gameover";
+  let gameState: GameState = "start";
+  let winner: "left" | "right" | null = null;
 
-  // Start the game
-  if (gameState === "start" && e.key === " ") {
-    startGame();
+  // Input Tracking
+  const keys: Record<string, boolean> = {};
+
+  document.addEventListener("keydown", (e) => {
+    keys[e.key] = true;
+
+    // Start the game
+    if (gameState === "start" && e.key === " ") startGame();
+    // Pause / Resume
+    else if (gameState === "playing" && e.key === "p") gameState = "paused";
+    else if (gameState === "paused" && e.key === "p") gameState = "playing";
+    // Continue after scoring
+    else if (gameState === "scored" && e.key === " ") {
+      resetBall();
+      gameState = "playing";
+    } else if (gameState === "gameover" && e.key === " ") {
+      gameState = "start";
+      leftScore = 0;
+      rightScore = 0;
+      winner = null;
+    }
+  });
+  document.addEventListener("keyup", (e) => {
+    keys[e.key] = false;
+  });
+
+  // Interfaces
+  interface Paddle {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    speed: number;
   }
 
-  // Pause / Resume
-  else if (gameState === "playing" && e.key === "p") {
-    gameState = "paused";
-  } else if (gameState === "paused" && e.key === "p") {
-    gameState = "playing";
+  interface Ball {
+    x: number;
+    y: number;
+    radius: number;
+    speedX: number;
+    speedY: number;
   }
 
-  // Continue after scoring
-  else if (gameState === "scored" && e.key === " ") {
+  // Game objects
+  const leftPaddle: Paddle = { x: 20, y: 260, width: 10, height: 80, speed: 6 };
+  const rightPaddle: Paddle = {
+    x: 770,
+    y: 260,
+    width: 10,
+    height: 80,
+    speed: 6,
+  };
+  const ball: Ball = {
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    radius: 8,
+    speedX: 5,
+    speedY: 5,
+  };
+
+  let leftScore = 0;
+  let rightScore = 0;
+  const winScore = 5;
+
+  // Fixed timestep
+  const tickLength = 20;
+  let lastTick = performance.now();
+  let lastRender = lastTick;
+
+  // Helper Functions
+  function resetBall() {
+    ball.x = canvas.width / 2;
+    ball.y = canvas.height / 2;
+    const direction = Math.random() > 0.5 ? 1 : -1;
+    ball.speedX = 5 * direction;
+    ball.speedY = (Math.random() * 4 + 2) * (Math.random() > 0.5 ? 1 : -1);
+  }
+
+  function startGame() {
+    leftScore = 0;
+    rightScore = 0;
     resetBall();
     gameState = "playing";
-  } else if (gameState === "gameover" && e.key === " ") {
-    gameState = "start";
-    leftscore = 0;
-    rightscore = 0;
-    winner = null;
-  }
-});
-
-document.addEventListener("keyup", (e) => {
-  keys[e.key] = false;
-});
-
-// Interfaces
-interface Paddle {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  speed: number;
-}
-
-interface Ball {
-  x: number;
-  y: number;
-  radius: number;
-  speed_x: number;
-  speed_y: number;
-}
-
-// Game Objects
-const leftPaddle: Paddle = { x: 20, y: 260, width: 10, height: 80, speed: 6 };
-const rightPaddle: Paddle = { x: 770, y: 260, width: 10, height: 80, speed: 6 };
-
-const ball: Ball = {
-  x: canvas.width / 2,
-  y: canvas.height / 2,
-  radius: 8,
-  speed_x: 5,
-  speed_y: 5,
-};
-
-let leftscore = 0;
-let rightscore = 0;
-const win_score = 5;
-
-// Helper Functions
-
-function resetBall() {
-  ball.x = canvas.width / 2;
-  ball.y = canvas.height / 2;
-  const direction = Math.random() > 0.5 ? 1 : -1;
-  ball.speed_x = 5 * direction;
-  ball.speed_y = (Math.random() * 4 + 2) * (Math.random() > 0.5 ? 1 : -1);
-}
-
-function startGame() {
-  leftscore = 0;
-  rightscore = 0;
-  resetBall();
-  gameState = "playing";
-}
-
-function drawCenteredText(text: string, y: number) {
-  ctx.font = "32px monospace";
-  ctx.fillStyle = "#cdd6f4";
-  const textWidth = ctx.measureText(text).width;
-  ctx.fillText(text, (canvas.width - textWidth) / 2, y);
-}
-
-// Update
-function update() {
-  if (gameState !== "playing") return;
-
-  // Paddle controls
-  if (keys["w"]) leftPaddle.y -= leftPaddle.speed;
-  if (keys["s"]) leftPaddle.y += leftPaddle.speed;
-  if (keys["ArrowUp"]) rightPaddle.y -= rightPaddle.speed;
-  if (keys["ArrowDown"]) rightPaddle.y += rightPaddle.speed;
-
-  // Keep paddles on screen
-  leftPaddle.y = Math.max(
-    0,
-    Math.min(canvas.height - leftPaddle.height, leftPaddle.y)
-  );
-  rightPaddle.y = Math.max(
-    0,
-    Math.min(canvas.height - rightPaddle.height, rightPaddle.y)
-  );
-
-  // Move ball
-  ball.x += ball.speed_x;
-  ball.y += ball.speed_y;
-
-  // Bounce off top/bottom
-  if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
-    ball.speed_y = -ball.speed_y;
   }
 
-  // left right paddle collision
-  if (
-    ball.x - ball.radius < leftPaddle.x + leftPaddle.width &&
-    ball.y > leftPaddle.y &&
-    ball.y < leftPaddle.y + leftPaddle.height
-  ) {
-    const paddleCenter = leftPaddle.y + leftPaddle.height / 2;
-    const hitPosition = (ball.y - paddleCenter) / (leftPaddle.height / 2);
-    const angle = hitPosition * (Math.PI / 4);
-    const speed = Math.sqrt(ball.speed_x ** 2 + ball.speed_y ** 2);
-    ball.speed_x = Math.cos(angle) * speed;
-    ball.speed_y = Math.sin(angle) * speed;
-    ball.speed_x = Math.abs(ball.speed_x);
-    ball.x = leftPaddle.x + leftPaddle.width + ball.radius;
-    ball.speed_x *= 1.05;
-    ball.speed_y *= 1.05;
-    hitSound.currentTime = 0;
-    hitSound.play();
+  function drawCenteredText(text: string, y: number) {
+    ctx.font = FONTS.main;
+    ctx.fillStyle = COLORS.text;
+    const width = ctx.measureText(text).width;
+    ctx.fillText(text, (canvas.width - width) / 2, y);
   }
 
-  if (
-    ball.x + ball.radius > rightPaddle.x &&
-    ball.y > rightPaddle.y &&
-    ball.y < rightPaddle.y + rightPaddle.height
-  ) {
-    const paddleCenter = rightPaddle.y + rightPaddle.height / 2;
-    const hitPosition = (ball.y - paddleCenter) / (rightPaddle.height / 2);
-    const angle = hitPosition * (Math.PI / 4);
-    const speed = Math.sqrt(ball.speed_x ** 2 + ball.speed_y ** 2);
-    ball.speed_x = -Math.cos(angle) * speed;
-    ball.speed_y = Math.sin(angle) * speed;
-    ball.x = rightPaddle.x - ball.radius;
-    ball.speed_x *= 1.05;
-    ball.speed_y *= 1.05;
-    hitSound.currentTime = 0;
-    hitSound.play();
-  }
+  // Update
+  function update(tickTime: number) {
+    if (gameState !== "playing") return;
 
-  // Score check
-  if (ball.x + ball.radius < 0) {
-    rightscore++;
-    if (rightscore >= win_score) {
-      winner = "right";
-      winSound.currentTime = 0;
-      winSound.play();
-      gameState = "gameover";
-    } else {
-      gameState = "scored";
-      scoreSound.currentTime = 0;
-      scoreSound.play();
-    }
-  } else if (ball.x - ball.radius > canvas.width) {
-    leftscore++;
-    if (leftscore >= win_score) {
-      winner = "left";
-      winSound.currentTime = 0;
-      winSound.play();
-      gameState = "gameover";
-    } else {
-      gameState = "scored";
-      scoreSound.currentTime = 0;
-      scoreSound.play();
-    }
-  }
-}
+    // Paddle movement
+    if (keys["w"]) leftPaddle.y -= leftPaddle.speed;
+    if (keys["s"]) leftPaddle.y += leftPaddle.speed;
+    if (keys["ArrowUp"]) rightPaddle.y -= rightPaddle.speed;
+    if (keys["ArrowDown"]) rightPaddle.y += rightPaddle.speed;
 
-// Draw
-function draw() {
-  ctx.fillStyle = "#181825";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Draw center line ---
-  ctx.strokeStyle = "#cdd6f4";
-  ctx.lineWidth = 2;
-  ctx.setLineDash([10, 15]);
-  ctx.beginPath();
-  ctx.moveTo(canvas.width / 2, 0);
-  ctx.lineTo(canvas.width / 2, canvas.height);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Start screen
-  if (gameState === "start") {
-    drawCenteredText("Press SPACE to Start", canvas.height / 2);
-    return;
-  }
-
-  // Game over screen
-  if (gameState === "gameover") {
-    drawCenteredText(
-      `${winner === "left" ? "Left" : "Right"} Player Wins!`,
-      canvas.height / 2 - 20
+    // Keep paddles on screen
+    leftPaddle.y = Math.max(
+      0,
+      Math.min(canvas.height - leftPaddle.height, leftPaddle.y),
     );
-    drawCenteredText("Press SPACE to Restart", canvas.height / 2 + 30);
+    rightPaddle.y = Math.max(
+      0,
+      Math.min(canvas.height - rightPaddle.height, rightPaddle.y),
+    );
+
+    // Move ball
+    ball.x += ball.speedX;
+    ball.y += ball.speedY;
+
+    // Wall collision
+    if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
+      ball.speedY = -ball.speedY;
+    }
+
+    // Paddle collisions
+    checkPaddleCollision(leftPaddle, true);
+    checkPaddleCollision(rightPaddle, false);
+
+    // Score
+    if (ball.x + ball.radius < 0) handleScore("right");
+    else if (ball.x - ball.radius > canvas.width) handleScore("left");
   }
 
-  // Paused
-  if (gameState === "paused") {
-    drawCenteredText("Paused - Press P to Resume", canvas.height / 2);
+  function checkPaddleCollision(paddle: Paddle, isLeft: boolean) {
+    if (
+      ball.x + (isLeft ? -ball.radius : ball.radius) <
+        paddle.x + paddle.width &&
+      ball.x + (isLeft ? -ball.radius : ball.radius) > paddle.x &&
+      ball.y > paddle.y &&
+      ball.y < paddle.y + paddle.height
+    ) {
+      const center = paddle.y + paddle.height / 2;
+      const hitPos = (ball.y - center) / (paddle.height / 2);
+      const angle = hitPos * (Math.PI / 4);
+      const speed = Math.sqrt(ball.speedX ** 2 + ball.speedY ** 2);
+      ball.speedX = Math.cos(angle) * speed * (isLeft ? 1 : -1);
+      ball.speedY = Math.sin(angle) * speed;
+      if (isLeft) ball.speedX = Math.abs(ball.speedX);
+      else ball.speedX = -Math.abs(ball.speedX);
+      ball.speedX *= 1.05;
+      ball.speedY *= 1.05;
+      ball.x = isLeft
+        ? paddle.x + paddle.width + ball.radius
+        : paddle.x - ball.radius;
+      hitSound.currentTime = 0;
+      hitSound.play();
+    }
   }
 
-  // After scoring
-  if (gameState === "scored") {
-    drawCenteredText("Point! Press SPACE to Continue", canvas.height / 2);
+  function handleScore(player: "left" | "right") {
+    if (player === "left") leftScore++;
+    else rightScore++;
+
+    if (leftScore >= winScore || rightScore >= winScore) {
+      winner = leftScore >= winScore ? "left" : "right";
+      winSound.currentTime = 0;
+      winSound.play();
+      gameState = "gameover";
+    } else {
+      scoreSound.currentTime = 0;
+      scoreSound.play();
+      gameState = "scored";
+    }
   }
 
-  // Draw paddles
-  ctx.fillStyle = "#89b4fa";
-  ctx.fillRect(leftPaddle.x, leftPaddle.y, leftPaddle.width, leftPaddle.height);
-  ctx.fillRect(
-    rightPaddle.x,
-    rightPaddle.y,
-    rightPaddle.width,
-    rightPaddle.height
-  );
+  // Draw
+  function draw(interpolation: number) {
+    // ctx.fillStyle = COLORS.background;
+    // ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Draw ball
-  ctx.beginPath();
-  ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-  ctx.fillStyle = "#f5e0dc";
-  ctx.fill();
+    // Center line
+    ctx.strokeStyle = COLORS.line;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 15]);
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2, 0);
+    ctx.lineTo(canvas.width / 2, canvas.height);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
-  // Scores
-  ctx.font = "32px monospace";
-  ctx.fillStyle = "#cdd6f4";
-  ctx.fillText(leftscore.toString(), canvas.width / 4, 50);
-  ctx.fillText(rightscore.toString(), (canvas.width * 3) / 4, 50);
-}
+    // Start screen
+    if (gameState === "start")
+      drawCenteredText("Press SPACE to Start", canvas.height / 2);
+    if (gameState === "gameover") {
+      drawCenteredText(
+        `${winner === "left" ? "Left" : "Right"} Player Wins!`,
+        canvas.height / 2 - 20,
+      );
+      drawCenteredText("Press SPACE to Restart", canvas.height / 2 + 30);
+    }
+    if (gameState === "paused")
+      drawCenteredText("Paused - Press P to Resume", canvas.height / 2);
+    if (gameState === "scored")
+      drawCenteredText("Point! Press SPACE to Continue", canvas.height / 2);
 
-// Game Loop
-function gameLoop() {
-  update();
-  draw();
-  requestAnimationFrame(gameLoop);
-}
+    // Draw paddles
+    ctx.fillStyle = COLORS.paddle;
+    ctx.fillRect(
+      leftPaddle.x,
+      leftPaddle.y,
+      leftPaddle.width,
+      leftPaddle.height,
+    );
+    ctx.fillRect(
+      rightPaddle.x,
+      rightPaddle.y,
+      rightPaddle.width,
+      rightPaddle.height,
+    );
 
-gameLoop();
+    // Draw ball
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+    ctx.fillStyle = COLORS.ball;
+    ctx.fill();
+
+    // Draw scores
+    ctx.font = FONTS.main;
+    ctx.fillStyle = COLORS.text;
+    ctx.fillText(leftScore.toString(), canvas.width / 4, 50);
+    ctx.fillText(rightScore.toString(), (canvas.width * 3) / 4, 50);
+  }
+
+  let lastFrame = performance.now(),
+    frames = 0;
+  let fps = 0;
+  function updateFPS() {
+    const now = performance.now();
+    frames++;
+    if (now - lastFrame >= 1000) {
+      fps = frames;
+      frames = 0;
+      lastFrame = now;
+      fpsCounter.textContent = `FPS: ${fps}`;
+    }
+  }
+  let stopMain = 0;
+
+  // function mainLoop(tFrame: DOMHighResTimeStamp) {
+  //   stopMain = requestAnimationFrame(mainLoop);
+  //
+  //   let numTicks = 0;
+  //   if (tFrame > lastTick + tickLength) {
+  //     const timeSinceTick = tFrame - lastTick;
+  //     numTicks = Math.floor(timeSinceTick / tickLength);
+  //   }
+  //
+  //   for (let i = 0; i < numTicks; i++) {
+  //     lastTick += tickLength;
+  //     update(lastTick);
+  //     updateFPS();
+  //   }
+  //
+  //   const interpolation = (tFrame - lastTick) / tickLength;
+  //   draw(interpolation);
+  //
+  //   lastRender = tFrame;
+  // }
+
+  function mainLoop(tFrame: DOMHighResTimeStamp) {
+    requestAnimationFrame(mainLoop);
+
+    update(tFrame);
+    draw(1);
+
+    updateFPS();
+  }
+
+  mainLoop(performance.now());
+})();
