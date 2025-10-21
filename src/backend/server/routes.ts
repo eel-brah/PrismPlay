@@ -7,7 +7,10 @@ export function registerRoutes(
   http_server: FastifyInstance,
 ) {
   http_server.get("*", (req, rep) => {
-    const host = req.headers.host.replace(/:\d+$/, ":9443");
+    //TODO:
+    // const host = req.headers.host.replace(/:\d+$/, ":9443");
+    let host = req.headers.host ?? 'localuuuuuuhost';
+    host = host.replace(/:\d+$/, ":9443");
     rep.redirect(`https://${host}${req.raw.url}`);
   });
 

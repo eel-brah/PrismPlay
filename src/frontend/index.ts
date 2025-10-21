@@ -4,10 +4,10 @@ const ctx = canvas.getContext("2d")!;
 // if (!ctx) throw new Error("2D context not available");
 
 // audio
-const hitSound = new Audio("audio/hit.mp3");
-const lossSound = new Audio("audio/loss.mp3");
-const scoreSound = new Audio("audio/score.mp3");
-const winSound = new Audio("audio/win.mp3");
+const hitSound = new Audio("../../public/audio/hit.mp3");
+const lossSound = new Audio("../../public/audio/loss.mp3");
+const scoreSound = new Audio("../../public/audio/score.mp3");
+const winSound = new Audio("../../public/audio/win.mp3");
 
 hitSound.volume = 0.4;
 scoreSound.volume = 0.6;

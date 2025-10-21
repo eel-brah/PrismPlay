@@ -29,6 +29,9 @@ export default {
       {
         test: /\.tsx?$/,
         use: "ts-loader",
+        options: {
+          configFile: "tsconfig.frontend.json",
+        },
         exclude: /node_modules/,
       },
       {

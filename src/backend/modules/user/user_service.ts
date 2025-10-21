@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { hashPassword } from "../../utils/hash.ts";
 import prisma from "../../utils/prisma.ts";
 import type { UpdateUserBody, CreateUserInput } from "./user_schema.ts";
@@ -71,8 +72,13 @@ export async function deleteUserById(id: number) {
   try {
     await prisma.user.delete({ where: { id } });
     return true;
-  } catch (error) {
-    if (error.code === "P2025") return null;
+  } catch (error: unknown) {
+    // Prisma errors are instances of Prisma.PrismaClientKnownRequestError
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2025") return null; // record not found
+    }
+
+    // Re-throw for unhandled cases
     throw error;
   }
 }

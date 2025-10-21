@@ -17,7 +17,10 @@ const logger = {
     },
   },
 };
-
+//TODO:
+if (!SSL_KEY_PATH || !SSL_CERT_PATH) {
+  throw new Error("Missing SSL_KEY_PATH or SSL_CERT_PATH environment variable");
+}
 const server = Fastify({
   https: {
     key: fs.readFileSync(SSL_KEY_PATH),
