@@ -1,3 +1,5 @@
+import { AIOpponent } from "./ai";
+
 export interface Paddle {
   x: number;
   y: number;
@@ -17,4 +19,14 @@ export interface Ball {
 export interface CanvasSize {
   width: number;
   height: number;
+}
+
+export interface AIConfig {
+  enabled: boolean;
+  controls: "left" | "right" | "both";
+}
+
+export interface AIObject {
+  leftAI?: AIOpponent;
+  rightAI?: AIOpponent;
 }

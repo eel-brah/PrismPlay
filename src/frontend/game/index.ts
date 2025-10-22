@@ -1,6 +1,16 @@
-import createAIOpponent from "./ai";
-import { BALL_REDIUS, PADDLE_HEIGHT, PADDLE_SPEED, PADDLE_WIDTH, VELOCITY_X, VELOCITY_Y } from "./config";
-import { Paddle, Ball, CanvasSize } from "./types";
+import createAIOpponent, { AIOpponent } from "./ai";
+
+import {
+  BALL_REDIUS,
+  LEFT_PADDLE,
+  PADDLE_HEIGHT,
+  PADDLE_SPEED,
+  PADDLE_WIDTH,
+  RIGHT_PADDLE,
+  VELOCITY_X,
+  VELOCITY_Y,
+} from "./config";
+import { Paddle, Ball, CanvasSize, AIConfig, AIObject } from "./types";
 
 (() => {
   // Select the canvas
@@ -118,26 +128,29 @@ import { Paddle, Ball, CanvasSize } from "./types";
 
   const getBall = () => ball;
 
-  const ai = createAIOpponent({
-    paddle: leftPaddle,
-    isLeft: true,
-    canvas: { width: canvas.width, height: canvas.height },
-    getBall,
-  });
-
   // Update
-  function update(tickTime: number) {
+  function update(tickTime: number, aiConfig: AIConfig, ais: AIObject) {
     if (gameState !== "playing") return;
 
-    const aiKeys = ai.update();
-    if (aiKeys.up) leftPaddle.y -= leftPaddle.speed;
-    if (aiKeys.down) leftPaddle.y += leftPaddle.speed;
+    // LEFT SIDE (AI or player)
+    if (aiConfig.enabled && ais.leftAI) {
+      const aiKeys = ais.leftAI.update(tickTime);
+      if (aiKeys.up) leftPaddle.y -= leftPaddle.speed;
+      if (aiKeys.down) leftPaddle.y += leftPaddle.speed;
+    } else {
+      if (keys["w"]) leftPaddle.y -= leftPaddle.speed;
+      if (keys["s"]) leftPaddle.y += leftPaddle.speed;
+    }
 
-    // Paddle movement
-    // if (keys["w"]) leftPaddle.y -= leftPaddle.speed;
-    // if (keys["s"]) leftPaddle.y += leftPaddle.speed;
-    if (keys["ArrowUp"]) rightPaddle.y -= rightPaddle.speed;
-    if (keys["ArrowDown"]) rightPaddle.y += rightPaddle.speed;
+    // RIGHT SIDE (AI or player)
+    if (aiConfig.enabled && ais.rightAI) {
+      const aiKeys = ais.rightAI.update(tickTime);
+      if (aiKeys.up) rightPaddle.y -= rightPaddle.speed;
+      if (aiKeys.down) rightPaddle.y += rightPaddle.speed;
+    } else {
+      if (keys["ArrowUp"]) rightPaddle.y -= rightPaddle.speed;
+      if (keys["ArrowDown"]) rightPaddle.y += rightPaddle.speed;
+    }
 
     // Keep paddles on screen
     leftPaddle.y = Math.max(
@@ -281,6 +294,41 @@ import { Paddle, Ball, CanvasSize } from "./types";
       fpsCounter.textContent = `FPS: ${fps}`;
     }
   }
+
+  function configAiOpponent(aiConfig: AIConfig): AIObject {
+    if (!aiConfig.enabled) return {};
+
+    const aiObjects: { leftAI?: AIOpponent; rightAI?: AIOpponent } = {};
+
+    if (aiConfig.controls === "left" || aiConfig.controls === "both") {
+      aiObjects.leftAI = createAIOpponent({
+        paddle: leftPaddle,
+        isLeft: true,
+        canvas: { width: canvas.width, height: canvas.height },
+        getBall,
+      });
+    }
+
+    if (aiConfig.controls === "right" || aiConfig.controls === "both") {
+      aiObjects.rightAI = createAIOpponent({
+        paddle: rightPaddle,
+        isLeft: false,
+        canvas: { width: canvas.width, height: canvas.height },
+        getBall,
+      });
+    }
+
+    return aiObjects;
+  }
+
+  //TODO: add some ai opponent customization
+  const aiConfig: AIConfig = {
+    enabled: true,
+    controls: "both", // "left", "right", "both"
+  };
+
+  const ais = configAiOpponent(aiConfig);
+
   let stopMain = 0;
 
   // function mainLoop(tFrame: DOMHighResTimeStamp) {
@@ -294,7 +342,7 @@ import { Paddle, Ball, CanvasSize } from "./types";
   //
   //   for (let i = 0; i < numTicks; i++) {
   //     lastTick += tickLength;
-  //     update(lastTick);
+  //     update(tFrame, aiConfig, ais);
   //     updateFPS();
   //   }
   //
@@ -303,10 +351,11 @@ import { Paddle, Ball, CanvasSize } from "./types";
   //
   //   lastRender = tFrame;
   // }
+  //
   function mainLoop(tFrame: DOMHighResTimeStamp) {
-    requestAnimationFrame(mainLoop);
+    stopMain = requestAnimationFrame(mainLoop);
 
-    update(tFrame);
+    update(tFrame, aiConfig, ais);
     draw(1);
 
     updateFPS();
