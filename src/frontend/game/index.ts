@@ -1,3 +1,7 @@
+import createAIOpponent from "./ai";
+import { BALL_REDIUS, PADDLE_HEIGHT, PADDLE_SPEED, PADDLE_WIDTH, VELOCITY_X, VELOCITY_Y } from "./config";
+import { Paddle, Ball, CanvasSize } from "./types";
+
 (() => {
   // Select the canvas
   const canvas = document.getElementById("pong") as HTMLCanvasElement;
@@ -59,38 +63,25 @@
     keys[e.key] = false;
   });
 
-  // Interfaces
-  interface Paddle {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    speed: number;
-  }
-
-  interface Ball {
-    x: number;
-    y: number;
-    radius: number;
-    speedX: number;
-    speedY: number;
+  function createPaddle(x: number, y: number): Paddle {
+    return {
+      x,
+      y,
+      width: PADDLE_WIDTH,
+      height: PADDLE_HEIGHT,
+      speed: PADDLE_SPEED,
+    };
   }
 
   // Game objects
-  const leftPaddle: Paddle = { x: 20, y: 260, width: 10, height: 80, speed: 6 };
-  const rightPaddle: Paddle = {
-    x: 770,
-    y: 260,
-    width: 10,
-    height: 80,
-    speed: 6,
-  };
+  const leftPaddle: Paddle = createPaddle(20, 260);
+  const rightPaddle: Paddle = createPaddle(770, 260);
   const ball: Ball = {
     x: canvas.width / 2,
     y: canvas.height / 2,
-    radius: 8,
-    speedX: 5,
-    speedY: 5,
+    radius: BALL_REDIUS,
+    speedX: VELOCITY_X,
+    speedY: VELOCITY_Y,
   };
 
   let leftScore = 0;
@@ -125,13 +116,26 @@
     ctx.fillText(text, (canvas.width - width) / 2, y);
   }
 
+  const getBall = () => ball;
+
+  const ai = createAIOpponent({
+    paddle: leftPaddle,
+    isLeft: true,
+    canvas: { width: canvas.width, height: canvas.height },
+    getBall,
+  });
+
   // Update
   function update(tickTime: number) {
     if (gameState !== "playing") return;
 
+    const aiKeys = ai.update();
+    if (aiKeys.up) leftPaddle.y -= leftPaddle.speed;
+    if (aiKeys.down) leftPaddle.y += leftPaddle.speed;
+
     // Paddle movement
-    if (keys["w"]) leftPaddle.y -= leftPaddle.speed;
-    if (keys["s"]) leftPaddle.y += leftPaddle.speed;
+    // if (keys["w"]) leftPaddle.y -= leftPaddle.speed;
+    // if (keys["s"]) leftPaddle.y += leftPaddle.speed;
     if (keys["ArrowUp"]) rightPaddle.y -= rightPaddle.speed;
     if (keys["ArrowDown"]) rightPaddle.y += rightPaddle.speed;
 
@@ -299,7 +303,6 @@
   //
   //   lastRender = tFrame;
   // }
-
   function mainLoop(tFrame: DOMHighResTimeStamp) {
     requestAnimationFrame(mainLoop);
 

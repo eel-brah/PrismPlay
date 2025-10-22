@@ -21,22 +21,14 @@
     "@types/node": "^24.7.0",
     "autocannon": "^8.0.0",
     "concurrently": "^9.2.1",
-    "css-loader": "^7.1.2",
     "eslint": "^9.37.0",
     "globals": "^16.4.0",
-    "html-loader": "^5.1.0",
-    "html-webpack-plugin": "^5.6.4",
     "nodemon": "^3.1.10",
     "prisma": "^6.17.0",
-    "style-loader": "^4.0.0",
-    "ts-loader": "^9.5.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.0",
-    "vite": "^7.1.11",
-    "webpack": "^5.102.1",
-    "webpack-cli": "^6.0.1",
-    "webpack-dev-server": "^5.2.2"
+    "vite": "^7.1.11"
   },
   "dependencies": {
     "@fastify/jwt": "^10.0.0",
