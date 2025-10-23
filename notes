@@ -1,11 +1,11 @@
 pnpm install
-pnpm add fastify prisma @prisma/client @fastify/swagger zod bcrypt fastify-type-provider-zod @fastify/jwt
-
-npx prisma init --datasource-provider postgresql
-npx prisma migrate dev --name init
-
-
+pnpm prisma migrate 
 
 pnpm prisma migrate dev --name remove-salt
 
 pnpm prisma db push
+
+react
+prisma
+websoket
+solidity
