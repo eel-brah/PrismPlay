@@ -22,7 +22,7 @@ export function createPongGame(
 
   // Colors & Fonts
   const COLORS = {
-    background: "#181825",
+    background: "#010164ff",
     paddle: "#89b4fa",
     ball: "#f5e0dc",
     line: "#cdd6f4",
@@ -319,8 +319,8 @@ export function createPongGame(
 
   // AI config (overridable from React)
   const aiConfig: AIConfig = {
-    enabled: true,
-    controls: "both",
+    enabled: false,
+    controls: "right",
     ...aiConfigOverride,
   };
   const ais = configAiOpponent(aiConfig);
