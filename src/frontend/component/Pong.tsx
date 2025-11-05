@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 
-type Difficulty = "easy" | "medium" | "hard";
-type Status = "start" | "playing" | "paused" | "scored" | "gameover";
+// declaration
+type DifficultyKey = "easy" | "medium" | "hard";
+type Phase = "start" | "playing" | "paused" | "scored" | "gameover";
 type Winner = "left" | "right" | null;
 
 interface Paddle {
@@ -32,4 +33,4 @@ interface DifficultyPreset {
   aiReaction: number; // how fast the bot follows
   paddleHeight: number;
 }
-type Config = Record<Difficulty, DifficultyPreset>;
+type Config = Record<DifficultyKey, DifficultyPreset>;

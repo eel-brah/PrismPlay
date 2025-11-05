@@ -10,7 +10,11 @@ export default function App() {
         background: "#11131a",
       }}
     >
-      <Game width={800} height={520} ai={{ enabled: true, controls: "both" }} />
+      <Game
+        width={800}
+        height={520}
+        ai={{ enabled: true, controls: "right" }}
+      />
     </div>
   );
 }
