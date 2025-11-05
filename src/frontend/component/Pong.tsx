@@ -167,5 +167,11 @@ const Pong: React.FC = () => {
         (Math.random() * 160 + 120) * (Math.random() > 0.5 ? 1 : -1);
       combo = 0;
     }
+
+    //ai work fasi badl ila ola update l ai dyalk
+
+    function updateAI(dt: number) {
+      if (!isSingle || GameStutes !== "playing") return;
+    }
   }, []);
 };
