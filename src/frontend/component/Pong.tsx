@@ -58,13 +58,21 @@ class Particle {
     this.size = Math.random() * 3 + 2;
   }
 
+  // update(dt: number) {
+  //   this.x += this.vx * dt;
+  //   this.y += this.vy * dt;
+  //   // exponential-ish fade
+  //   this.life *= Math.pow(this.decay, dt * 60);
+  //   this.vx *= 1 - 0.2 * dt * 60;
+  //   this.vy *= 1 - 0.2 * dt * 60;
+  // }
+
   update(dt: number) {
     this.x += this.vx * dt;
-    this.y += this.vx * dt;
-    // exponential-ish fade
+    this.y += this.vy * dt; // fix
     this.life *= Math.pow(this.decay, dt * 60);
-    this.vx *= 1 - 0.2 * dt * 60;
-    this.vy *= 1 - 0.2 * dt * 60;
+    this.vx *= 1 - 0.02 * dt * 60; // softer damping
+    this.vy *= 1 - 0.02 * dt * 60;
   }
 
   draw(ctx: CanvasRenderingContext2D) {
@@ -180,13 +188,61 @@ const Pong: React.FC = () => {
       const maxStep = rightPaddle.speed * dt;
       const step = Math.max(-maxStep, Math.min(maxStep, desired));
       rightPaddle.y += step;
-      rightPaddle.y += Math.max(
+      rightPaddle.y = Math.max(
         0,
         Math.min(canvas.height - rightPaddle.height, rightPaddle.y)
       );
     }
 
     //Swept collision (segment vs. expanded AABB)to fix colision ball ma dozch mn wast l paddle
+
+    // function sweptPaddleHit(
+    //   bx: number,
+    //   by: number,
+    //   vx: number,
+    //   vy: number,
+    //   r: number,
+    //   p: Paddle
+    // ): number | null {
+    //   const x0 = bx,
+    //     y0 = by,
+    //     x1 = bx + vx,
+    //     y1 = by + vy;
+    //   const dx = x1 - x0,
+    //     dy = y1 - y0;
+    //   // To simplify, we grow the paddle by the ball’s radius.
+    //   // Now we can treat the ball as a point, not a circle.
+    //   // So, instead of checking circle-vs-rectangle,
+    //   // we check point-vs-rectangle (simpler math).
+    //   const minX = p.x - r;
+    //   const maxX = p.x + p.width + r;
+    //   const minY = p.y - r;
+    //   const maxY = p.y + p.height + r;
+
+    //   let t0 = 0,
+    //     t1 = 1;
+    //   // Liang–Barsky line clipping algorithm https://www.geeksforgeeks.org/computer-graphics/liang-barsky-algorithm/
+    //   const clip = (p_: number, q_: number) => {
+    //     if (p_ === 0) return q_ <= 0;
+    //     const r_ = q_ / p_;
+    //     if (p_ < 0) {
+    //       if (r_ > t1) return false;
+    //       if (r_ > t0) t0 = r_;
+    //     } else {
+    //       if (r_ < t0) return false;
+    //       if (r_ < t1) t1 = r_;
+    //     }
+    //     return true;
+    //   };
+    //   if (
+    //     clip(-dx, x0 - minX) &&
+    //     clip(dx, maxX - x0) &&
+    //     clip(-dy, y0 - minY) &&
+    //     clip(dy, maxY - y0)
+    //   )
+    //     return t0;
+    //   return null;
+    // }
 
     function sweptPaddleHit(
       bx: number,
@@ -202,18 +258,14 @@ const Pong: React.FC = () => {
         y1 = by + vy;
       const dx = x1 - x0,
         dy = y1 - y0;
-      // To simplify, we grow the paddle by the ball’s radius.
-      // Now we can treat the ball as a point, not a circle.
-      // So, instead of checking circle-vs-rectangle,
-      // we check point-vs-rectangle (simpler math).
+
       const minX = p.x - r,
-        maxX = p.x + r;
+        maxX = p.x + p.width + r;
       const minY = p.y - r,
-        maxY = p.y + r;
+        maxY = p.y + p.height + r;
 
       let t0 = 0,
         t1 = 1;
-      // Liang–Barsky line clipping algorithm https://www.geeksforgeeks.org/computer-graphics/liang-barsky-algorithm/
       const clip = (p_: number, q_: number) => {
         if (p_ === 0) return q_ <= 0;
         const r_ = q_ / p_;
@@ -226,6 +278,7 @@ const Pong: React.FC = () => {
         }
         return true;
       };
+
       if (
         clip(-dx, x0 - minX) &&
         clip(dx, maxX - x0) &&
@@ -278,6 +331,7 @@ const Pong: React.FC = () => {
 
     function update(dt: number) {
       if (phase !== "playing") return;
+
       let dyL = 0,
         dyR = 0;
       if (keys["w"]) dyL -= leftPaddle.speed * dt;
@@ -286,10 +340,8 @@ const Pong: React.FC = () => {
         if (keys["ArrowUp"]) dyR -= rightPaddle.speed * dt;
         if (keys["ArrowDown"]) dyR += rightPaddle.speed * dt;
       }
-      leftPaddle.y = dyL;
-      rightPaddle.y = dyR;
-
-      //Clamp paddles
+      leftPaddle.y += dyL; // += (not =)
+      rightPaddle.y += dyR; // +=
 
       leftPaddle.y = Math.max(
         0,
@@ -522,10 +574,16 @@ const Pong: React.FC = () => {
 
     //Game loop
     function gameLoop(now: number) {
-      const dt = lastTime ? (now - lastTime) / 1000 : 0;
-      lastTime = now;
-      update(dt);
-      draw();
+      try {
+        const dt = lastTime ? (now - lastTime) / 1000 : 0;
+        lastTime = now;
+        update(dt);
+        draw();
+      } catch (err) {
+        console.error("Game loop crashed:", err);
+        cancelAnimationFrame(animationId!);
+        return;
+      }
       animationId = requestAnimationFrame(gameLoop);
     }
 
@@ -582,7 +640,7 @@ const Pong: React.FC = () => {
       {gameMode === "menu" && (
         <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-8 shadow-2xl max-w-md w-full">
           <h1 className="text-5xl font-bold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-            Enhanced Pong
+            Pong Game
           </h1>
 
           <div className="space-y-4 mb-6">
