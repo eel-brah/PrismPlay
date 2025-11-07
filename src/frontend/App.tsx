@@ -1,20 +1,10 @@
-import Game from "./new_game/Game";
+import React from "react";
+import Pong from "./component/Pong";
 
 export default function App() {
   return (
-    <div
-      style={{
-        display: "grid",
-        placeItems: "center",
-        height: "100vh",
-        background: "#11131a",
-      }}
-    >
-      <Game
-        width={800}
-        height={520}
-        ai={{ enabled: true, controls: "right" }}
-      />
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
+      <Pong />
     </div>
   );
 }
