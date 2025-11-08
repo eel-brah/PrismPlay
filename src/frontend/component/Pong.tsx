@@ -194,56 +194,6 @@ const Pong: React.FC = () => {
       );
     }
 
-    //Swept collision (segment vs. expanded AABB)to fix colision ball ma dozch mn wast l paddle
-
-    // function sweptPaddleHit(
-    //   bx: number,
-    //   by: number,
-    //   vx: number,
-    //   vy: number,
-    //   r: number,
-    //   p: Paddle
-    // ): number | null {
-    //   const x0 = bx,
-    //     y0 = by,
-    //     x1 = bx + vx,
-    //     y1 = by + vy;
-    //   const dx = x1 - x0,
-    //     dy = y1 - y0;
-    //   // To simplify, we grow the paddle by the ball’s radius.
-    //   // Now we can treat the ball as a point, not a circle.
-    //   // So, instead of checking circle-vs-rectangle,
-    //   // we check point-vs-rectangle (simpler math).
-    //   const minX = p.x - r;
-    //   const maxX = p.x + p.width + r;
-    //   const minY = p.y - r;
-    //   const maxY = p.y + p.height + r;
-
-    //   let t0 = 0,
-    //     t1 = 1;
-    //   // Liang–Barsky line clipping algorithm https://www.geeksforgeeks.org/computer-graphics/liang-barsky-algorithm/
-    //   const clip = (p_: number, q_: number) => {
-    //     if (p_ === 0) return q_ <= 0;
-    //     const r_ = q_ / p_;
-    //     if (p_ < 0) {
-    //       if (r_ > t1) return false;
-    //       if (r_ > t0) t0 = r_;
-    //     } else {
-    //       if (r_ < t0) return false;
-    //       if (r_ < t1) t1 = r_;
-    //     }
-    //     return true;
-    //   };
-    //   if (
-    //     clip(-dx, x0 - minX) &&
-    //     clip(dx, maxX - x0) &&
-    //     clip(-dy, y0 - minY) &&
-    //     clip(dy, maxY - y0)
-    //   )
-    //     return t0;
-    //   return null;
-    // }
-
     function sweptPaddleHit(
       bx: number,
       by: number,
