@@ -1,4 +1,3 @@
-import { PADDLE_HEIGHT, VELOCITY_X } from "./config";
 import { Ball, Paddle, CanvasSize } from "./types";
 
 interface AIKeys {
@@ -25,6 +24,8 @@ interface CreateAIOpponentParams {
   paddle: Paddle;
   isLeft: boolean;
   canvas: CanvasSize;
+  reactionDelayMs: number;
+  paddleHeight: number,
   getBall: () => Ball;
 }
 
@@ -32,14 +33,16 @@ export default function createAIOpponent({
   paddle,
   isLeft,
   canvas,
+  reactionDelayMs,
+  paddleHeight,
   getBall,
 }: CreateAIOpponentParams): AIOpponent {
   const state: AIState = {
     targetY: canvas.height / 2,
     lastUpdate: 0,
     error: 10,
-    tolerance: PADDLE_HEIGHT / 10,
-    reactionDelayMs: 120,
+    tolerance: paddleHeight / 10,
+    reactionDelayMs: reactionDelayMs,
     decisionMadeAt: 0,
   };
 

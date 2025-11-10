@@ -1,40 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { beepSound } from "../utils/sound";
-// declaration
-type Difficulty = "easy" | "medium" | "hard";
-type GameStatus = "start" | "playing" | "paused" | "scored" | "gameover";
-type Winner = "left" | "right" | null;
-
-interface Paddle {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  speed: number;
-  score: number;
-}
-interface TrailPoint {
-  x: number;
-  y: number;
-}
-interface Ball {
-  x: number;
-  y: number;
-  radius: number;
-  speedX: number;
-  speedY: number;
-  trail: TrailPoint[];
-}
-
-interface DifficultyPreset {
-  ballSpeed: number; // pixels per second
-  paddleSpeed: number; // pixels per second
-  aiReaction: number; // how fast the bot follows
-  paddleHeight: number;
-}
-
-type Config = Record<Difficulty, DifficultyPreset>;
+import createAIOpponent, { AIOpponent } from "@/game/ai";
+import { AIConfig, AIObject, AiPos, Ball, Difficulty, DifficultyPreset, GameStatus, Paddle, Winner } from "@/game/types";
+import { CONFIG, INITIAL_Y, LEFT_X, MAX_SPEED, MIN_SPEED, PADDLE_WIDTH, RADIUS, RIGHT_X, WIN_SCORE } from "@/game/config";
 
 class Particle {
   x: number;
@@ -89,38 +58,20 @@ const Pong: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [gameMode, setGameMode] = useState<"menu" | "playing">("menu");
   const [isSingle, setIsSingle] = useState<boolean>(false);
+  const [isAI, setIsAI] = useState<boolean>(false);
   const [soundOn, setSoundOn] = useState<boolean>(true);
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
+  const [aiPos, setAiPos] = useState<AiPos>("left");
 
   useEffect(() => {
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
-    if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     //Config tuned for px/sec
+    const currentConfig = getConfig(difficulty);
 
-    const config: Config = {
-      easy: {
-        ballSpeed: 320,
-        paddleSpeed: 520,
-        aiReaction: 0.06,
-        paddleHeight: 120,
-      },
-      medium: {
-        ballSpeed: 380,
-        paddleSpeed: 640,
-        aiReaction: 0.09,
-        paddleHeight: 100,
-      },
-      hard: {
-        ballSpeed: 440,
-        paddleSpeed: 760,
-        aiReaction: 0.13,
-        paddleHeight: 80,
-      },
-    };
     //Game state (not React state)
     let phase: GameStatus = "start";
     let winner: Winner = null;
@@ -131,33 +82,43 @@ const Pong: React.FC = () => {
 
     const keys: Record<string, boolean> = {};
     const particles: Particle[] = [];
-    const leftPaddle: Paddle = {
-      x: 10,
-      y: 260,
-      width: 20,
-      height: config[difficulty].paddleHeight,
-      speed: config[difficulty].paddleSpeed,
-      score: 0,
-    };
-    const rightPaddle: Paddle = {
-      x: 780,
-      y: 260,
-      width: 20,
-      height: config[difficulty].paddleHeight,
-      speed: config[difficulty].paddleSpeed,
-      score: 0,
-    };
-    const ball: Ball = {
-      x: canvas.width / 2,
-      y: canvas.height / 2,
-      radius: 8,
-      speedX: (Math.random() > 0.5 ? 1 : -1) * config[difficulty].ballSpeed,
-      speedY: (Math.random() * 160 + 120) * (Math.random() > 0.5 ? 1 : -1), // 120..280 px/sec
-      trail: [],
-    };
+    const leftPaddle = createPaddle(
+      LEFT_X,
+      INITIAL_Y,
+      PADDLE_WIDTH,
+      currentConfig.paddleHeight,
+      currentConfig.paddleSpeed
+    );
+    const rightPaddle = createPaddle(
+      RIGHT_X,
+      INITIAL_Y,
+      PADDLE_WIDTH,
+      currentConfig.paddleHeight,
+      currentConfig.paddleSpeed
+    );
+    let ball: Ball = createBall(canvas, currentConfig.ballSpeed);
 
-    const WIN_SCORE = 5;
+    // helper functions
+    function getConfig(d: Difficulty): DifficultyPreset {
+      return CONFIG[d];
+    }
+    function randomDirection() { return (Math.random() > 0.5 ? 1 : -1) }
+    function randomSpeedY(min: number, max: number) {
+      return Math.random() * (max - min) + min;
+    }
+    function getBall() { return ball };
 
+
+    function createBall(canvas: HTMLCanvasElement, ballSpeed: number): Ball {
+      return {
+        x: canvas.width / 2,
+        y: canvas.height / 2,
+        radius: RADIUS,
+        speedX: randomDirection() * ballSpeed,
+        speedY: randomDirection() * randomSpeedY(MIN_SPEED, MAX_SPEED),
+        trail: [],
+      };
+    }
     function createParticles(
       x: number,
       y: number,
@@ -166,33 +127,40 @@ const Pong: React.FC = () => {
     ) {
       for (let i = 0; i < count; i++) particles.push(new Particle(x, y, color));
     }
+    function createPaddle(
+      x: number,
+      y: number,
+      width: number,
+      height: number,
+      speed: number
+    ): Paddle {
+      return {
+        x,
+        y,
+        width,
+        height,
+        speed,
+        score: 0,
+      };
+    }
     function resetBall() {
-      ball.x = canvas.width / 2;
-      ball.y = canvas.height / 2;
-      ball.trail = [];
-      const dir = Math.random() > 0.5 ? 1 : -1;
-      ball.speedX = dir * config[difficulty].ballSpeed;
-      ball.speedY =
-        (Math.random() * 160 + 120) * (Math.random() > 0.5 ? 1 : -1);
+      ball = createBall(canvas, currentConfig.ballSpeed);
       combo = 0;
     }
-
-    //ai work fasi badl ila ola update l ai dyalk
-
-    function updateAI(dt: number) {
-      if (!isSingle || phase !== "playing") return;
-      const paddleCenter = rightPaddle.y + rightPaddle.height / 2;
-      const diff = ball.y - paddleCenter;
-      const desired =
-        diff * config[difficulty].aiReaction * rightPaddle.speed * dt;
-      const maxStep = rightPaddle.speed * dt;
-      const step = Math.max(-maxStep, Math.min(maxStep, desired));
-      rightPaddle.y += step;
-      rightPaddle.y = Math.max(
-        0,
-        Math.min(canvas.height - rightPaddle.height, rightPaddle.y)
-      );
+    function getControls() {
+      if (isAI && isSingle)
+        return aiPos;
+      return "both";
     }
+
+    //TODO: add some ai opponent customization
+    const aiConfig: AIConfig = {
+      enabled: isAI || isSingle,
+      controls: getControls(),
+      reactionDelayMs: currentConfig.aiReactionDelayMs,
+    };
+
+    const ais = configAiOpponent(aiConfig);
 
     function sweptPaddleHit(
       bx: number,
@@ -277,21 +245,61 @@ const Pong: React.FC = () => {
       beepSound(soundOn, 440);
     }
 
-    // Update (dt in seconds)
+    function configAiOpponent(aiConfig: AIConfig): AIObject {
+      if (!aiConfig.enabled) return {};
 
-    function update(dt: number) {
+      const aiObjects: { leftAI?: AIOpponent; rightAI?: AIOpponent } = {};
+
+      if (aiConfig.controls === "left" || aiConfig.controls === "both") {
+        aiObjects.leftAI = createAIOpponent({
+          paddle: leftPaddle,
+          isLeft: true,
+          canvas: { width: canvas.width, height: canvas.height },
+          reactionDelayMs: aiConfig.reactionDelayMs,
+          paddleHeight: currentConfig.paddleHeight,
+          getBall,
+        });
+      }
+
+      if (aiConfig.controls === "right" || aiConfig.controls === "both") {
+        aiObjects.rightAI = createAIOpponent({
+          paddle: rightPaddle,
+          isLeft: false,
+          canvas: { width: canvas.width, height: canvas.height },
+          reactionDelayMs: aiConfig.reactionDelayMs,
+          paddleHeight: currentConfig.paddleHeight,
+          getBall,
+        });
+      }
+
+      return aiObjects;
+    }
+
+    function update(dt: number, tFrame: number) {
       if (phase !== "playing") return;
 
-      let dyL = 0,
-        dyR = 0;
-      if (keys["w"]) dyL -= leftPaddle.speed * dt;
-      if (keys["s"]) dyL += leftPaddle.speed * dt;
-      if (!isSingle) {
+      let dyL = 0;
+      let dyR = 0;
+
+      if (aiConfig.enabled && ais.leftAI) {
+        const aiKeys = ais.leftAI.update(tFrame);
+        if (aiKeys.up) dyL -= leftPaddle.speed * dt;
+        if (aiKeys.down) dyL += leftPaddle.speed * dt;
+      } else {
+        if (keys["w"]) dyL -= leftPaddle.speed * dt;
+        if (keys["s"]) dyL += leftPaddle.speed * dt;
+      }
+      if (aiConfig.enabled && ais.rightAI) {
+        const aiKeys = ais.rightAI.update(tFrame);
+        if (aiKeys.up) dyR -= rightPaddle.speed * dt;;
+        if (aiKeys.down) dyR += rightPaddle.speed * dt;;
+      } else {
         if (keys["ArrowUp"]) dyR -= rightPaddle.speed * dt;
         if (keys["ArrowDown"]) dyR += rightPaddle.speed * dt;
       }
-      leftPaddle.y += dyL; // += (not =)
-      rightPaddle.y += dyR; // +=
+
+      leftPaddle.y += dyL;
+      rightPaddle.y += dyR;
 
       leftPaddle.y = Math.max(
         0,
@@ -301,8 +309,6 @@ const Pong: React.FC = () => {
         0,
         Math.min(canvas.height - rightPaddle.height, rightPaddle.y)
       );
-
-      updateAI(dt);
 
       // Ball movement with swept collisions against paddles
       const vx = ball.speedX * dt;
@@ -527,7 +533,7 @@ const Pong: React.FC = () => {
       try {
         const dt = lastTime ? (now - lastTime) / 1000 : 0;
         lastTime = now;
-        update(dt);
+        update(dt, now);
         draw();
       } catch (err) {
         console.error("Game loop crashed:", err);
@@ -597,6 +603,7 @@ const Pong: React.FC = () => {
             <button
               onClick={() => {
                 setIsSingle(true);
+                setIsAI(true);
                 setGameMode("playing");
               }}
               className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
@@ -606,15 +613,40 @@ const Pong: React.FC = () => {
             <button
               onClick={() => {
                 setIsSingle(false);
+                setIsAI(false);
                 setGameMode("playing");
               }}
               className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
             >
               Two Players
             </button>
+            <button
+              onClick={() => {
+                setIsSingle(false);
+                setIsAI(true);
+                setGameMode("playing");
+              }}
+              className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
+            >
+              AIs
+            </button>
           </div>
 
           <div className="border-t border-gray-700 pt-6 space-y-4">
+
+            <div>
+              <label className="block text-gray-300 mb-2 font-medium">
+                Ai Position
+              </label>
+              <select
+                value={aiPos}
+                onChange={(e) => setAiPos(e.target.value as AiPos)}
+                className="w-full bg-gray-700 text-white p-3 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+              >
+                <option value="left">Left</option>
+                <option value="right">Right</option>
+              </select>
+            </div>
             <div>
               <label className="block text-gray-300 mb-2 font-medium">
                 Difficulty
