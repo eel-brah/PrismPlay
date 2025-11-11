@@ -1,4 +1,4 @@
-import { Config } from "./types";
+import { Config, Difficulty } from "./types";
 
 export const PADDLE_HEIGHT = 80;
 

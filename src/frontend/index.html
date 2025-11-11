@@ -1,42 +1,48 @@
-<!-- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pong Game</title>
-    <link rel="stylesheet" href="/style.css" />
-  </head>
-  <body>
-    <main id="game">
-      <canvas id="pong" width="800" height="600">
-        Ping Pong Game
-      </canvas>
-      <div id="fpsCounter">FPS: 0</div>
-    </main>
+    <title>ft_transcendence (dev)</title>
 
-    <script type="module" src="/game/index.ts"></script>
+    <link href="./style.css" rel="stylesheet" />
+
+    <!-- Vite HMR client (auto reloads when you change files) -->
+    <script type="module" src="/@vite/client"></script>
+
+    <!-- React Fast Refresh preamble (enables instant React updates) -->
+    <script type="module">
+      import RefreshRuntime from "/@react-refresh";
+      RefreshRuntime.injectIntoGlobalHook(window);
+      window.$RefreshReg$ = () => {};
+      window.$RefreshSig$ = () => (type) => type;
+      window.__vite_plugin_react_preamble_installed__ = true;
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <!-- Entry point for your React + TS app -->
+    <script type="module" src="/main.tsx"></script>
+  </body>
+</html>
+
+
+<!-- <!DOCTYPE html> 
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ft_transcendence</title>
+
+    The built CSS (hashed for cache busting)
+    <link rel="stylesheet" href="/assets/style-abc123.css" />
+  </head>
+
+  <body>
+    <div id="root"></div>
+
+    The bundled JavaScript (Vite output)
+    <script type="module" src="/assets/main-def456.js"></script>
   </body>
 </html> -->
-
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ft_transcendence</title>
-
-  <link href="./style.css" rel="stylesheet">
-  <!-- Vite HMR client -->
-  <script type="module" src="/@vite/client"></script>
-
-  <!-- React Refresh preamble (fix for the error) -->
-  <script type="module">
-    import RefreshRuntime from "/@react-refresh";
-    RefreshRuntime.injectIntoGlobalHook(window);
-    window.$RefreshReg$ = () => {};
-    window.$RefreshSig$ = () => (type) => type;
-    window.__vite_plugin_react_preamble_installed__ = true;
-  </script>
-</head>
-<body>
-  <div id="root"></div>
-  <script type="module" src="/main.tsx"></script>
-</body>

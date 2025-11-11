@@ -24,6 +24,7 @@ import {
   RIGHT_X,
   WIN_SCORE,
 } from "@/game/config";
+import DifficultySlider from "./DifficultySlider";
 
 class Particle {
   x: number;
@@ -600,7 +601,7 @@ const Pong: React.FC = () => {
       document.removeEventListener("keyup", handleKeyUp as any);
       if (animationId) cancelAnimationFrame(animationId);
     };
-  }, [isSingle, soundOn, difficulty, gameMode]);
+  }, [isSingle, soundOn, difficulty, gameMode, isAI, aiPos]);
 
   //return jsx
 
@@ -647,32 +648,23 @@ const Pong: React.FC = () => {
 
           <div className="border-t border-gray-700 pt-6 space-y-4">
             <div>
-              <label className="block text-gray-300 mb-2 font-medium">
-                Ai Position
-              </label>
-              <select
-                value={aiPos}
-                onChange={(e) => setAiPos(e.target.value as AiPos)}
-                className="w-full bg-gray-700 text-white p-3 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
-              >
-                <option value="left">Left</option>
-                <option value="right">Right</option>
-              </select>
+              <label className="block text-gray-300 mb-2 font-medium">AI Side</label>
+              <div className="flex gap-2">
+                {(["left", "right"] as const).map((pos) => (
+                  <button
+                    key={pos}
+                    onClick={() => setAiPos(pos)}
+                    className={`flex-1 py-2 rounded-lg border transition-colors ${aiPos === pos
+                      ? "bg-blue-600 border-blue-500 text-white"
+                      : "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
+                      }`}
+                  >
+                    {pos.charAt(0).toUpperCase() + pos.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div>
-              <label className="block text-gray-300 mb-2 font-medium">
-                Difficulty
-              </label>
-              <select
-                value={difficulty}
-                onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-                className="w-full bg-gray-700 text-white p-3 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
-              >
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
-              </select>
-            </div>
+            <DifficultySlider difficulty={difficulty} setDifficulty={setDifficulty} />
 
             <button
               onClick={() => setSoundOn(!soundOn)}
