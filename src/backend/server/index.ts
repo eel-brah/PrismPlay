@@ -4,6 +4,7 @@ import { registerRoutes } from "./routes.ts";
 import { setupAuth } from "./auth.ts";
 import { PORT, HTTP_PORT, IP } from "./config.ts";
 import loggingHook from "./loggingHook.ts";
+import socketPlugin from "./socket.ts";
 
 // Set up error handling
 setGlobalErrorHandler(server);
@@ -13,6 +14,9 @@ await setupAuth(server);
 
 // Logging
 await loggingHook(server);
+
+// Register Socket.IO
+server.register(socketPlugin);
 
 // Register routes
 registerRoutes(server, http_server);

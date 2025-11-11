@@ -28,3 +28,76 @@ canvas {
   font-family: monospace;
   font-size: 18px;
 } */
+
+/* Floating Chat Window */
+#chat-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 410px;
+  height: 360px;
+  background: #1f2937; /* gray-800 */
+  border: 1px solid #374151; /* gray-700 */
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1000;
+  font-family: sans-serif;
+}
+
+#messages {
+  list-style-type: none;
+  margin: 0;
+  padding: 8px;
+  flex: 1;
+  overflow-y: auto;
+  color: #f3f4f6; /* gray-100 */
+}
+
+#messages li {
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  border-radius: 6px;
+  background: #374151; /* gray-700 */
+  word-break: break-word;
+}
+
+#form {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  background: #111827; /* gray-900 */
+}
+
+#input {
+  flex: 1;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #4b5563; /* gray-600 */
+  background: #1f2937;
+  color: #fff;
+}
+
+#form button {
+  background: #2563eb; /* blue-600 */
+  border: none;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+#form button:hover {
+  background: #3b82f6; /* blue-500 */
+}
+
+/* Toggle button style */
+#toggle-btn {
+  background: #6b7280; /* gray-500 */
+}
+
+#toggle-btn:hover {
+  background: #9ca3af; /* gray-400 */
+}
