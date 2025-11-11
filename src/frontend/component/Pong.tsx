@@ -1,3 +1,4 @@
+// Pong.tsx
 import React, { useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { beepSound } from "@/utils/sound";
@@ -40,7 +41,6 @@ class Particle {
     this.y = y;
     this.vx = (Math.random() - 0.5) * 160;
     this.vy = (Math.random() - 0.5) * 160;
-    // px/sec
     this.life = 1;
     this.decay = 0.9;
     this.color = color;
@@ -49,9 +49,9 @@ class Particle {
 
   update(dt: number) {
     this.x += this.vx * dt;
-    this.y += this.vy * dt; // fix
+    this.y += this.vy * dt;
     this.life *= Math.pow(this.decay, dt * 60);
-    this.vx *= 1 - 0.02 * dt * 60; // softer damping
+    this.vx *= 1 - 0.02 * dt * 60;
     this.vy *= 1 - 0.02 * dt * 60;
   }
 
@@ -80,10 +80,8 @@ const Pong: React.FC = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    //Config tuned for px/sec
     const currentConfig = getConfig(difficulty);
 
-    //Game state (not React state)
     let phase: GameStatus = "start";
     let winner: Winner = null;
     let animationId: number | null = null;
@@ -109,7 +107,6 @@ const Pong: React.FC = () => {
     );
     let ball: Ball = createBall(canvas, currentConfig.ballSpeed);
 
-    // helper functions
     function getConfig(d: Difficulty): DifficultyPreset {
       return CONFIG[d];
     }
@@ -133,12 +130,7 @@ const Pong: React.FC = () => {
         trail: [],
       };
     }
-    function createParticles(
-      x: number,
-      y: number,
-      count: number,
-      color: string
-    ) {
+    function createParticles(x: number, y: number, count: number, color: string) {
       for (let i = 0; i < count; i++) particles.push(new Particle(x, y, color));
     }
     function createPaddle(
@@ -148,14 +140,7 @@ const Pong: React.FC = () => {
       height: number,
       speed: number
     ): Paddle {
-      return {
-        x,
-        y,
-        width,
-        height,
-        speed,
-        score: 0,
-      };
+      return { x, y, width, height, speed, score: 0 };
     }
     function resetBall() {
       ball = createBall(canvas, currentConfig.ballSpeed);
@@ -166,7 +151,6 @@ const Pong: React.FC = () => {
       return "both";
     }
 
-    //TODO: add some ai opponent customization
     const aiConfig: AIConfig = {
       enabled: isAI || isSingle,
       controls: getControls(),
@@ -183,20 +167,13 @@ const Pong: React.FC = () => {
       r: number,
       p: Paddle
     ): number | null {
-      const x0 = bx,
-        y0 = by,
-        x1 = bx + vx,
-        y1 = by + vy;
-      const dx = x1 - x0,
-        dy = y1 - y0;
+      const x0 = bx, y0 = by, x1 = bx + vx, y1 = by + vy;
+      const dx = x1 - x0, dy = y1 - y0;
 
-      const minX = p.x - r,
-        maxX = p.x + p.width + r;
-      const minY = p.y - r,
-        maxY = p.y + p.height + r;
+      const minX = p.x - r, maxX = p.x + p.width + r;
+      const minY = p.y - r, maxY = p.y + p.height + r;
 
-      let t0 = 0,
-        t1 = 1;
+      let t0 = 0, t1 = 1;
       const clip = (p_: number, q_: number) => {
         if (p_ === 0) return q_ <= 0;
         const r_ = q_ / p_;
@@ -222,14 +199,10 @@ const Pong: React.FC = () => {
 
     function handlePaddleCollision(paddle: Paddle, isLeft: boolean) {
       const paddleCenter = paddle.y + paddle.height / 2;
-      const hitPos = (ball.y - paddleCenter) / (paddle.height / 2); //-1 0 1
-      const maxBounce = Math.PI / 4; // 45°
-      const angle = Math.max(
-        -maxBounce,
-        Math.min(maxBounce, hitPos * maxBounce)
-      );
+      const hitPos = (ball.y - paddleCenter) / (paddle.height / 2);
+      const maxBounce = Math.PI / 4;
+      const angle = Math.max(-maxBounce, Math.min(maxBounce, hitPos * maxBounce));
 
-      //control speed
       const curSpeed = Math.hypot(ball.speedX, ball.speedY);
       const nextBase = Math.min(900, curSpeed * (1.05 + combo * 0.01));
 
@@ -240,7 +213,6 @@ const Pong: React.FC = () => {
       if (Math.abs(newVX) < minAbsx) {
         const sign = isLeft ? 1 : -1;
         const keepSpeed = Math.hypot(minAbsx, newVY);
-        // scale to maintain nextBase magnitude
         const scale = nextBase / keepSpeed;
         newVX = minAbsx * sign;
         newVY *= scale;
@@ -248,13 +220,11 @@ const Pong: React.FC = () => {
       ball.speedX = newVX;
       ball.speedY = newVY;
 
-      // Nudge ball outside paddle face to avoid sticking
       ball.x = isLeft
         ? paddle.x + paddle.width + ball.radius
         : paddle.x - ball.radius;
 
       combo++;
-      // createParticles(ball.x, ball.y, 10, "#89b4fa");
       beepSound(soundOn, 440);
     }
 
@@ -314,37 +284,16 @@ const Pong: React.FC = () => {
       leftPaddle.y += dyL;
       rightPaddle.y += dyR;
 
-      leftPaddle.y = Math.max(
-        0,
-        Math.min(canvas.height - leftPaddle.height, leftPaddle.y)
-      );
-      rightPaddle.y = Math.max(
-        0,
-        Math.min(canvas.height - rightPaddle.height, rightPaddle.y)
-      );
+      leftPaddle.y = Math.max(0, Math.min(canvas.height - leftPaddle.height, leftPaddle.y));
+      rightPaddle.y = Math.max(0, Math.min(canvas.height - rightPaddle.height, rightPaddle.y));
 
-      // Ball movement with swept collisions against paddles
       const vx = ball.speedX * dt;
       const vy = ball.speedY * dt;
 
-      let tHit = sweptPaddleHit(
-        ball.x,
-        ball.y,
-        vx,
-        vy,
-        ball.radius,
-        leftPaddle
-      );
+      let tHit = sweptPaddleHit(ball.x, ball.y, vx, vy, ball.radius, leftPaddle);
       let hitSide: "left" | "right" | null = tHit !== null ? "left" : null;
 
-      const tRight = sweptPaddleHit(
-        ball.x,
-        ball.y,
-        vx,
-        vy,
-        ball.radius,
-        rightPaddle
-      );
+      const tRight = sweptPaddleHit(ball.x, ball.y, vx, vy, ball.radius, rightPaddle);
       if (tRight !== null && (tHit === null || tRight < tHit)) {
         tHit = tRight;
         hitSide = "right";
@@ -352,21 +301,15 @@ const Pong: React.FC = () => {
       if (tHit !== null) {
         ball.x += vx * tHit;
         ball.y += vy * tHit;
-        handlePaddleCollision(
-          hitSide === "left" ? leftPaddle : rightPaddle,
-          hitSide === "left"
-        );
-        // move the remainder of the frame after bounce
+        handlePaddleCollision(hitSide === "left" ? leftPaddle : rightPaddle, hitSide === "left");
         const remain = 1 - tHit;
         ball.x += ball.speedX * dt * remain;
         ball.y += ball.speedY * dt * remain;
       } else {
-        //no paddle hit this frame
         ball.x += vx;
         ball.y += vy;
       }
 
-      //Top/Bottom walls collision
       if (ball.y - ball.radius < 0) {
         ball.y = ball.radius;
         ball.speedY = Math.abs(ball.speedY);
@@ -377,20 +320,12 @@ const Pong: React.FC = () => {
         beepSound(soundOn, 520, 0.05, 0.15);
       }
 
-      // trail traking (keep last 10)
       ball.trail.push({ x: ball.x, y: ball.y });
       if (ball.trail.length > 10) ball.trail.shift();
 
-      //scoring
       if (ball.x + ball.radius < 0) {
         rightPaddle.score++;
-        // createParticles(50, canvas.height / 2, 24, "#f38ba8");
-        beepSound(
-          soundOn,
-          rightPaddle.score >= WIN_SCORE ? 659 : 523,
-          0.12,
-          0.3
-        );
+        beepSound(soundOn, rightPaddle.score >= WIN_SCORE ? 659 : 523, 0.12, 0.3);
         if (rightPaddle.score >= WIN_SCORE) {
           winner = "right";
           phase = "gameover";
@@ -400,13 +335,7 @@ const Pong: React.FC = () => {
         }
       } else if (ball.x - ball.radius > canvas.width) {
         leftPaddle.score++;
-        // createParticles(canvas.width - 50, canvas.height / 2, 24, "#a6e3a1");
-        beepSound(
-          soundOn,
-          leftPaddle.score >= WIN_SCORE ? 659 : 523,
-          0.12,
-          0.3
-        );
+        beepSound(soundOn, leftPaddle.score >= WIN_SCORE ? 659 : 523, 0.12, 0.3);
         if (leftPaddle.score >= WIN_SCORE) {
           winner = "left";
           phase = "gameover";
@@ -416,27 +345,18 @@ const Pong: React.FC = () => {
         }
       }
 
-      //particles
       for (let i = particles.length - 1; i >= 0; i--) {
         particles[i].update(dt);
         if (particles[i].life <= 0.02) particles.splice(i, 1);
       }
     }
 
-    //draw
     function draw() {
       if (!ctx) return;
-      // Background
       ctx.fillStyle = "#1e1e2e";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Center line with glow
-      const gradient = ctx.createLinearGradient(
-        canvas.width / 2 - 2,
-        0,
-        canvas.width / 2 + 2,
-        0
-      );
+      const gradient = ctx.createLinearGradient(canvas.width / 2 - 2, 0, canvas.width / 2 + 2, 0);
       gradient.addColorStop(0, "rgba(137, 180, 250, 0)");
       gradient.addColorStop(0.5, "rgba(137, 180, 250, 0.5)");
       gradient.addColorStop(1, "rgba(137, 180, 250, 0)");
@@ -449,7 +369,6 @@ const Pong: React.FC = () => {
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Phase overlays
       const centered = (text: string, y: number) => {
         ctx.font = "32px monospace";
         ctx.fillStyle = "#cdd6f4";
@@ -464,10 +383,7 @@ const Pong: React.FC = () => {
       } else if (phase === "scored") {
         centered("Point! Press SPACE to Continue", canvas.height / 2);
       } else if (phase === "gameover") {
-        centered(
-          `${winner === "left" ? "Left" : "Right"} Player Wins!`,
-          canvas.height / 2 - 40
-        );
+        centered(`${winner === "left" ? "Left" : "Right"} Player Wins!`, canvas.height / 2 - 40);
         if (maxCombo > 0) {
           ctx.font = "20px monospace";
           ctx.fillStyle = "#f9e2af";
@@ -478,10 +394,8 @@ const Pong: React.FC = () => {
         centered("Press SPACE to Restart", canvas.height / 2 + 40);
       }
 
-      // Particles
       particles.forEach((p) => p.draw(ctx));
 
-      // Ball trail
       ctx.globalAlpha = 0.3;
       for (let i = 0; i < ball.trail.length; i++) {
         const t = ball.trail[i];
@@ -494,25 +408,13 @@ const Pong: React.FC = () => {
       }
       ctx.globalAlpha = 1;
 
-      // Paddles
       ctx.shadowBlur = 15;
       ctx.shadowColor = "#89b4fa";
       ctx.fillStyle = "#89b4fa";
-      ctx.fillRect(
-        leftPaddle.x,
-        leftPaddle.y,
-        leftPaddle.width,
-        leftPaddle.height
-      );
-      ctx.fillRect(
-        rightPaddle.x,
-        rightPaddle.y,
-        rightPaddle.width,
-        rightPaddle.height
-      );
+      ctx.fillRect(leftPaddle.x, leftPaddle.y, leftPaddle.width, leftPaddle.height);
+      ctx.fillRect(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height);
       ctx.shadowBlur = 0;
 
-      // Ball
       ctx.shadowBlur = 20;
       ctx.shadowColor = "#f5e0dc";
       ctx.beginPath();
@@ -521,17 +423,11 @@ const Pong: React.FC = () => {
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // Scores
       ctx.font = "bold 48px monospace";
       ctx.fillStyle = "#cdd6f4";
       ctx.fillText(leftPaddle.score.toString(), canvas.width / 4 - 12, 60);
-      ctx.fillText(
-        rightPaddle.score.toString(),
-        (canvas.width * 3) / 4 - 12,
-        60
-      );
+      ctx.fillText(rightPaddle.score.toString(), (canvas.width * 3) / 4 - 12, 60);
 
-      // Combo
       if (combo > 2 && phase === "playing") {
         ctx.font = "bold 24px monospace";
         ctx.fillStyle = "#f9e2af";
@@ -541,7 +437,6 @@ const Pong: React.FC = () => {
       }
     }
 
-    //Game loop
     function gameLoop(now: number) {
       try {
         const dt = lastTime ? (now - lastTime) / 1000 : 0;
@@ -556,7 +451,6 @@ const Pong: React.FC = () => {
       animationId = requestAnimationFrame(gameLoop);
     }
 
-    /** ===== Input (prevent page scroll) ===== */
     const controlKeys = new Set([" ", "ArrowUp", "ArrowDown", "w", "s", "p"]);
     function handleKeyDown(e: KeyboardEvent) {
       if (controlKeys.has(e.key)) e.preventDefault();
@@ -595,21 +489,40 @@ const Pong: React.FC = () => {
     document.addEventListener("keyup", handleKeyUp, { passive: false });
     animationId = requestAnimationFrame(gameLoop);
 
+    // Optional: Resize canvas to fit container while preserving aspect ratio
+    const resizeCanvas = () => {
+      if (!canvasRef.current?.parentElement) return;
+      const parent = canvasRef.current.parentElement;
+      const rect = parent.getBoundingClientRect();
+      const ratio = 810 / 600;
+      let w = rect.width;
+      let h = rect.height;
+      if (w / h > ratio) w = h * ratio;
+      else h = w / ratio;
+
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+    };
+
+    const observer = new ResizeObserver(resizeCanvas);
+    if (canvasRef.current.parentElement) observer.observe(canvasRef.current.parentElement);
+    resizeCanvas();
+
     return () => {
       document.removeEventListener("keydown", handleKeyDown as any);
       document.removeEventListener("keyup", handleKeyUp as any);
       if (animationId) cancelAnimationFrame(animationId);
+      observer.disconnect();
     };
   }, [isSingle, soundOn, difficulty, gameMode]);
 
-  //return jsx
-
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">
+    <>
+      {/* MENU - stays in the right 40% */}
       {gameMode === "menu" && (
         <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-8 shadow-2xl max-w-md w-full">
           <h1 className="text-5xl font-bold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-            Pong Game
+            Pinon Game
           </h1>
 
           <div className="space-y-4 mb-6">
@@ -647,9 +560,7 @@ const Pong: React.FC = () => {
 
           <div className="border-t border-gray-700 pt-6 space-y-4">
             <div>
-              <label className="block text-gray-300 mb-2 font-medium">
-                Ai Position
-              </label>
+              <label className="block text-gray-300 mb-2 font-medium">AI Position</label>
               <select
                 value={aiPos}
                 onChange={(e) => setAiPos(e.target.value as AiPos)}
@@ -660,9 +571,7 @@ const Pong: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block text-gray-300 mb-2 font-medium">
-                Difficulty
-              </label>
+              <label className="block text-gray-300 mb-2 font-medium">Difficulty</label>
               <select
                 value={difficulty}
                 onChange={(e) => setDifficulty(e.target.value as Difficulty)}
@@ -686,15 +595,17 @@ const Pong: React.FC = () => {
           <div className="mt-6 text-gray-400 text-sm space-y-2">
             <p className="font-semibold text-gray-300">Controls:</p>
             <p>Left Player: W / S</p>
-            <p>Right Player: ↑ / ↓</p>
+            <p>Right Player: Up/Down Arrows</p>
             <p>Pause: P • Start: SPACE</p>
           </div>
         </div>
       )}
 
+      {/* PLAYING - FULL SCREEN */}
       {gameMode === "playing" && (
-        <div className="relative">
-          <div className="absolute top-4 right-4 flex gap-2">
+        <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">
+          {/* Top-right controls */}
+          <div className="absolute top-4 right-4 flex gap-2 z-10">
             <button
               onClick={() => setSoundOn(!soundOn)}
               className="bg-gray-800/80 hover:bg-gray-800 text-white p-3 rounded-lg transition-all"
@@ -713,11 +624,12 @@ const Pong: React.FC = () => {
             ref={canvasRef}
             width={810}
             height={600}
-            className="border-4 border-gray-700 rounded-lg shadow-2xl"
+            className="max-w-full max-h-full w-auto h-auto border-4 border-gray-700 rounded-lg shadow-2xl"
+            style={{ imageRendering: "pixelated" }}
           />
         </div>
       )}
-    </div>
+    </>
   );
 };
 
