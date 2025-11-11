@@ -1,9 +1,29 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
-import { beepSound } from "../utils/sound";
+import { beepSound } from "@/utils/sound";
 import createAIOpponent, { AIOpponent } from "@/game/ai";
-import { AIConfig, AIObject, AiPos, Ball, Difficulty, DifficultyPreset, GameStatus, Paddle, Winner } from "@/game/types";
-import { CONFIG, INITIAL_Y, LEFT_X, MAX_SPEED, MIN_SPEED, PADDLE_WIDTH, RADIUS, RIGHT_X, WIN_SCORE } from "@/game/config";
+import {
+  AIConfig,
+  AIObject,
+  AiPos,
+  Ball,
+  Difficulty,
+  DifficultyPreset,
+  GameStatus,
+  Paddle,
+  Winner,
+} from "@/game/types";
+import {
+  CONFIG,
+  INITIAL_Y,
+  LEFT_X,
+  MAX_SPEED,
+  MIN_SPEED,
+  PADDLE_WIDTH,
+  RADIUS,
+  RIGHT_X,
+  WIN_SCORE,
+} from "@/game/config";
 
 class Particle {
   x: number;
@@ -26,15 +46,6 @@ class Particle {
     this.color = color;
     this.size = Math.random() * 3 + 2;
   }
-
-  // update(dt: number) {
-  //   this.x += this.vx * dt;
-  //   this.y += this.vy * dt;
-  //   // exponential-ish fade
-  //   this.life *= Math.pow(this.decay, dt * 60);
-  //   this.vx *= 1 - 0.2 * dt * 60;
-  //   this.vy *= 1 - 0.2 * dt * 60;
-  // }
 
   update(dt: number) {
     this.x += this.vx * dt;
@@ -102,12 +113,15 @@ const Pong: React.FC = () => {
     function getConfig(d: Difficulty): DifficultyPreset {
       return CONFIG[d];
     }
-    function randomDirection() { return (Math.random() > 0.5 ? 1 : -1) }
+    function randomDirection() {
+      return Math.random() > 0.5 ? 1 : -1;
+    }
     function randomSpeedY(min: number, max: number) {
       return Math.random() * (max - min) + min;
     }
-    function getBall() { return ball };
-
+    function getBall() {
+      return ball;
+    }
 
     function createBall(canvas: HTMLCanvasElement, ballSpeed: number): Ball {
       return {
@@ -148,8 +162,7 @@ const Pong: React.FC = () => {
       combo = 0;
     }
     function getControls() {
-      if (isAI && isSingle)
-        return aiPos;
+      if (isAI && isSingle) return aiPos;
       return "both";
     }
 
@@ -241,7 +254,7 @@ const Pong: React.FC = () => {
         : paddle.x - ball.radius;
 
       combo++;
-      createParticles(ball.x, ball.y, 10, "#89b4fa");
+      // createParticles(ball.x, ball.y, 10, "#89b4fa");
       beepSound(soundOn, 440);
     }
 
@@ -291,8 +304,8 @@ const Pong: React.FC = () => {
       }
       if (aiConfig.enabled && ais.rightAI) {
         const aiKeys = ais.rightAI.update(tFrame);
-        if (aiKeys.up) dyR -= rightPaddle.speed * dt;;
-        if (aiKeys.down) dyR += rightPaddle.speed * dt;;
+        if (aiKeys.up) dyR -= rightPaddle.speed * dt;
+        if (aiKeys.down) dyR += rightPaddle.speed * dt;
       } else {
         if (keys["ArrowUp"]) dyR -= rightPaddle.speed * dt;
         if (keys["ArrowDown"]) dyR += rightPaddle.speed * dt;
@@ -371,7 +384,7 @@ const Pong: React.FC = () => {
       //scoring
       if (ball.x + ball.radius < 0) {
         rightPaddle.score++;
-        createParticles(50, canvas.height / 2, 24, "#f38ba8");
+        // createParticles(50, canvas.height / 2, 24, "#f38ba8");
         beepSound(
           soundOn,
           rightPaddle.score >= WIN_SCORE ? 659 : 523,
@@ -387,7 +400,7 @@ const Pong: React.FC = () => {
         }
       } else if (ball.x - ball.radius > canvas.width) {
         leftPaddle.score++;
-        createParticles(canvas.width - 50, canvas.height / 2, 24, "#a6e3a1");
+        // createParticles(canvas.width - 50, canvas.height / 2, 24, "#a6e3a1");
         beepSound(
           soundOn,
           leftPaddle.score >= WIN_SCORE ? 659 : 523,
@@ -633,7 +646,6 @@ const Pong: React.FC = () => {
           </div>
 
           <div className="border-t border-gray-700 pt-6 space-y-4">
-
             <div>
               <label className="block text-gray-300 mb-2 font-medium">
                 Ai Position
