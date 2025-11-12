@@ -232,6 +232,7 @@ useEffect(() => {
         : paddle.x - ball.radius;
 
       combo++;
+      maxCombo = Math.max(maxCombo, combo);
       beepSound(soundOnRef.current, 440);
     }
 
