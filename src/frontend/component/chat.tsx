@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import socket from "../utils/socket";
-import { MessageCircle, X } from "lucide-react"; 
+import { MessageCircle, X } from "lucide-react";
 
 export default function Chat() {
   const [messages, setMessages] = useState<string[]>([]);
   const [input, setInput] = useState("");
   const [connected, setConnected] = useState(socket.connected);
-  const [open, setOpen] = useState(false); 
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     socket.on("connect", () => setConnected(true));
@@ -62,9 +62,8 @@ export default function Chat() {
             <div className="flex items-center gap-2">
               <button
                 onClick={toggleConnection}
-                className={`text-xs px-2 py-1 rounded ${
-                  connected ? "bg-red-500" : "bg-green-600"
-                }`}
+                className={`text-xs px-2 py-1 rounded ${connected ? "bg-red-500" : "bg-green-600"
+                  }`}
               >
                 {connected ? "Disconnect" : "Connect"}
               </button>

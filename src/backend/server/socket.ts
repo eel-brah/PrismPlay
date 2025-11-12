@@ -4,7 +4,12 @@ import { Server as SocketIOServer } from "socket.io";
 
 export default fp(async function socketPlugin(fastify: FastifyInstance) {
   const io = new SocketIOServer(fastify.server, {
-    // connectionStateRecovery: {},
+    connectionStateRecovery: {
+      // the backup duration of the sessions and the packets
+      maxDisconnectionDuration: 2 * 60 * 1000,
+      // whether to skip middlewares upon successful recovery
+      skipMiddlewares: true,
+    },
     cors: {
       origin: "*", //TODO:
     },
@@ -12,17 +17,12 @@ export default fp(async function socketPlugin(fastify: FastifyInstance) {
 
   io.on("connection", (socket) => {
     fastify.log.info(`Client connected: ${socket.id}`);
-
-    // socket.on("message", (data: string) => {
-    //   fastify.log.info(`Received message: ${data}`);
-    //   socket.broadcast.emit("message", data); // send to all other clients
-    // });
-    //
-    // socket.emit("message", "Hello from server!");
+    // io.emit("connected", "User: " + socket.id.toString().slice(0, 3));
 
     socket.on("chat message", (msg) => {
-      io.emit("chat message", msg);
+      io.emit("chat message", socket.id.toString().slice(0, 3) + ": " + msg);
     });
+
     socket.on("disconnect", () => {
       fastify.log.info(`Client disconnected: ${socket.id}`);
     });
