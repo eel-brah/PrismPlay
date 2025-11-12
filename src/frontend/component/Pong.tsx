@@ -75,6 +75,12 @@ const Pong: React.FC = () => {
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [aiPos, setAiPos] = useState<AiPos>("left");
 
+const soundOnRef = useRef(soundOn);
+
+useEffect(() => {
+  soundOnRef.current = soundOn;
+}, [soundOn]);
+
   useEffect(() => {
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
@@ -226,7 +232,7 @@ const Pong: React.FC = () => {
         : paddle.x - ball.radius;
 
       combo++;
-      beepSound(soundOn, 440);
+      beepSound(soundOnRef.current, 440);
     }
 
     function configAiOpponent(aiConfig: AIConfig): AIObject {
@@ -314,11 +320,11 @@ const Pong: React.FC = () => {
       if (ball.y - ball.radius < 0) {
         ball.y = ball.radius;
         ball.speedY = Math.abs(ball.speedY);
-        beepSound(soundOn, 520, 0.05, 0.15);
+        beepSound(soundOnRef.current, 520, 0.05, 0.15);
       } else if (ball.y + ball.radius > canvas.height) {
         ball.y = canvas.height - ball.radius;
         ball.speedY = -Math.abs(ball.speedY);
-        beepSound(soundOn, 520, 0.05, 0.15);
+        beepSound(soundOnRef.current, 520, 0.05, 0.15);
       }
 
       ball.trail.push({ x: ball.x, y: ball.y });
@@ -326,7 +332,7 @@ const Pong: React.FC = () => {
 
       if (ball.x + ball.radius < 0) {
         rightPaddle.score++;
-        beepSound(soundOn, rightPaddle.score >= WIN_SCORE ? 659 : 523, 0.12, 0.3);
+        beepSound(soundOnRef.current, rightPaddle.score >= WIN_SCORE ? 659 : 523, 0.12, 0.3);
         if (rightPaddle.score >= WIN_SCORE) {
           winner = "right";
           phase = "gameover";
@@ -336,7 +342,7 @@ const Pong: React.FC = () => {
         }
       } else if (ball.x - ball.radius > canvas.width) {
         leftPaddle.score++;
-        beepSound(soundOn, leftPaddle.score >= WIN_SCORE ? 659 : 523, 0.12, 0.3);
+        beepSound(soundOnRef.current, leftPaddle.score >= WIN_SCORE ? 659 : 523, 0.12, 0.3);
         if (leftPaddle.score >= WIN_SCORE) {
           winner = "left";
           phase = "gameover";
@@ -464,13 +470,13 @@ const Pong: React.FC = () => {
         phase = "playing";
         combo = 0;
         maxCombo = 0;
-        beepSound(soundOn, 440, 0.06, 0.2);
+        beepSound(soundOnRef.current, 440, 0.06, 0.2);
       } else if (phase === "playing" && e.key === "p") {
         phase = "paused";
-        beepSound(soundOn, 330, 0.05, 0.18);
+        beepSound(soundOnRef.current, 330, 0.05, 0.18);
       } else if (phase === "paused" && e.key === "p") {
         phase = "playing";
-        beepSound(soundOn, 440, 0.05, 0.18);
+        beepSound(soundOnRef.current, 440, 0.05, 0.18);
       } else if (phase === "scored" && e.key === " ") {
         resetBall();
         phase = "playing";
@@ -515,7 +521,7 @@ const Pong: React.FC = () => {
       if (animationId) cancelAnimationFrame(animationId);
       observer.disconnect();
     };
-  }, [isSingle, soundOn, difficulty, gameMode, isAI, aiPos]);
+  }, [, gameMode,]);
 
   return (
     <>
