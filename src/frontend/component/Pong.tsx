@@ -495,15 +495,16 @@ const Pong: React.FC = () => {
       const parent = canvasRef.current.parentElement;
       const rect = parent.getBoundingClientRect();
       const ratio = 810 / 600;
-      const scale = 0.50; 
+      const scale = 0.80; 
+      const effectiveScale = Math.min(scale, 1);
       let w = rect.width;
       let h = rect.height;
       if (w / h > ratio) w = h * ratio;
       else h = w / ratio;
 
       
-      canvas.style.width = `${w * scale}px`;
-      canvas.style.height = `${h * scale}px`;
+      canvas.style.width = `${w * effectiveScale}px`;
+      canvas.style.height = `${h * effectiveScale}px`;
     };
 
     const observer = new ResizeObserver(resizeCanvas);
@@ -524,7 +525,7 @@ const Pong: React.FC = () => {
       {gameMode === "menu" && (
         <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-8 shadow-2xl max-w-md w-full">
           <h1 className="text-5xl font-bold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-            Pinon Game
+            Pinpon Game
           </h1>
 
           <div className="space-y-4 mb-6">
@@ -607,7 +608,7 @@ const Pong: React.FC = () => {
       {gameMode === "playing" && (
         <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">
           {/* Top-right controls */}
-          <div className="absolute top-4 right-4 flex gap-2 z-10">
+          <div className="absolute top-4 right-4 flex gap-2 z-50">
             <button
               onClick={() => setSoundOn(!soundOn)}
               className="bg-gray-800/80 hover:bg-gray-800 text-white p-3 rounded-lg transition-all"
@@ -627,7 +628,7 @@ const Pong: React.FC = () => {
             width={810}
             height={600}
             className="max-w-full max-h-full w-auto h-auto border-4 border-gray-700 rounded-lg shadow-2xl"
-            style={{ imageRendering: "pixelated" }}
+            style={{ imageRendering: "auto" }}
           />
         </div>
       )}
