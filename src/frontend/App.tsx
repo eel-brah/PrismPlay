@@ -7,10 +7,18 @@ export default function App() {
   const [page, setPage] = useState<"landing" | "offline" | "online" | "tournament">(
     "landing",
   );
+  const isLanding = page === "landing";
+  const isOffline = page === "offline";
 
-  if (page !== "offline") {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex flex-col items-center justify-center p-8">
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+      {/* Landing View */}
+      <div
+        className={`absolute inset-0 flex flex-col items-center justify-center p-8 page-transition ${
+          isLanding ? "page-shown pointer-events-auto" : "page-hidden"
+        }`}
+        aria-hidden={!isLanding}
+      >
         <h1 className="text-4xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
           Select Game Mode
         </h1>
@@ -69,24 +77,27 @@ export default function App() {
           </div>
         </div>
       </div>
-    );
-  }
 
-  // Offline: show the existing image + Pong menu layout
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex">
-      {/* Left 60% – image */}
-      <div className="w-3/5 flex items-center justify-center p-4">
-        <img
-          src={MyImage}
-          alt="Start screen"
-          className="object-contain max-w-full max-h-full"
-        />
-      </div>
+      {/* Offline View */}
+      <div
+        className={`absolute inset-0 flex page-transition ${
+          isOffline ? "page-shown pointer-events-auto" : "page-hidden"
+        }`}
+        aria-hidden={!isOffline}
+      >
+        {/* Left 60% – image */}
+        <div className="w-3/5 flex items-center justify-center p-4">
+          <img
+            src={MyImage}
+            alt="Start screen"
+            className="object-contain max-w-full max-h-full"
+          />
+        </div>
 
-      {/* Right 40% – Pong component (handles its own full-screen mode) */}
-      <div className="w-2/5 flex items-center justify-center p-4">
-        <Pong onReturn={() => setPage("landing")} />
+        {/* Right 40% – Pong component (handles its own full-screen mode) */}
+        <div className="w-2/5 flex items-center justify-center p-4">
+          <Pong onReturn={() => setPage("landing")} />
+        </div>
       </div>
     </div>
   );
