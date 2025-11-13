@@ -65,7 +65,7 @@ class Particle {
   }
 }
 
-const Pong: React.FC = () => {
+const Pong: React.FC<{ onReturn?: () => void }> = ({ onReturn }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [gameMode, setGameMode] = useState<"menu" | "playing">("menu");
   const [isSingle, setIsSingle] = useState<boolean>(false);
@@ -525,7 +525,7 @@ const Pong: React.FC = () => {
       {gameMode === "menu" && (
         <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-8 shadow-2xl max-w-md w-full">
           <h1 className="text-5xl font-bold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-            Pinpon Game
+            PinPon Game
           </h1>
 
           <div className="space-y-4 mb-6">
@@ -558,6 +558,14 @@ const Pong: React.FC = () => {
               className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
             >
               AIs
+            </button>
+            <button
+              onClick={() => {
+                if (onReturn) onReturn();
+              }}
+              className="w-full bg-gray-700 hover:bg-gray-600 text-white py-4 rounded-lg font-semibold transition-all shadow-lg"
+            >
+              Return
             </button>
           </div>
 
@@ -616,11 +624,15 @@ const Pong: React.FC = () => {
               {soundOn ? <Volume2 size={20} /> : <VolumeX size={20} />}
             </button>
             <button
-              onClick={() => setGameMode("menu")}
+              onClick={() => {
+                // In-game Return goes back to the internal menu
+                setGameMode("menu");
+              }}
               className="bg-gray-800/80 hover:bg-gray-800 text-white p-3 rounded-lg transition-all"
             >
-              Menu
+              Return
             </button>
+            {/* Menu button removed: Return already navigates to menu */}
           </div>
 
           <canvas

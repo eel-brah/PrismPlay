@@ -86,7 +86,7 @@ export default function App() {
 
       {/* Right 40% – Pong component (handles its own full-screen mode) */}
       <div className="w-2/5 flex items-center justify-center p-4">
-        <Pong />
+        <Pong onReturn={() => setPage("landing")} />
       </div>
     </div>
   );
