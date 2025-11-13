@@ -489,19 +489,21 @@ const Pong: React.FC = () => {
     document.addEventListener("keyup", handleKeyUp, { passive: false });
     animationId = requestAnimationFrame(gameLoop);
 
-    // Optional: Resize canvas to fit container while preserving aspect ratio
+    
     const resizeCanvas = () => {
       if (!canvasRef.current?.parentElement) return;
       const parent = canvasRef.current.parentElement;
       const rect = parent.getBoundingClientRect();
       const ratio = 810 / 600;
+      const scale = 0.50; 
       let w = rect.width;
       let h = rect.height;
       if (w / h > ratio) w = h * ratio;
       else h = w / ratio;
 
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
+      
+      canvas.style.width = `${w * scale}px`;
+      canvas.style.height = `${h * scale}px`;
     };
 
     const observer = new ResizeObserver(resizeCanvas);
