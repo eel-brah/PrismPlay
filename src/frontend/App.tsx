@@ -2,16 +2,70 @@
 import React, { useState } from "react";
 import Pong from "./component/Pong";
 import MyImage from "/pics/start.png";
+import LoginPage from "./component/LoginPage";
+import LoginForm from "./component/LoginForm";
+import RegisterForm from "./component/RegisterForm";
 
 export default function App() {
-  const [page, setPage] = useState<"landing" | "offline" | "online" | "tournament">(
-    "landing",
-  );
+  const [page, setPage] = useState<
+    "login" | "loginForm" | "register" | "landing" | "offline" | "online" | "tournament"
+  >("login");
+  const isLogin = page === "login";
+  const isLoginForm = page === "loginForm";
+  const isRegister = page === "register";
   const isLanding = page === "landing";
   const isOffline = page === "offline";
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+      {/* Login View */}
+      <div
+        className={`absolute inset-0 flex items-center justify-center page-transition ${
+          isLogin ? "page-shown pointer-events-auto" : "page-hidden"
+        }`}
+        aria-hidden={!isLogin}
+      >
+        <LoginPage
+          onContinue={(mode) => {
+            // Login goes to form; Guest goes directly to landing
+            setPage(mode === "login" ? "loginForm" : "landing");
+          }}
+        />
+      </div>
+
+      {/* Login Form View */}
+      <div
+        className={`absolute inset-0 flex items-center justify-center page-transition ${
+          isLoginForm ? "page-shown pointer-events-auto" : "page-hidden"
+        }`}
+        aria-hidden={!isLoginForm}
+      >
+        <LoginForm
+          onSubmit={() => {
+            // Frontend-only: after "login" just go to landing
+            setPage("landing");
+          }}
+          onReturn={() => setPage("login")}
+          onRegister={() => setPage("register")}
+        />
+      </div>
+
+      {/* Register View */}
+      <div
+        className={`absolute inset-0 flex items-center justify-center page-transition ${
+          isRegister ? "page-shown pointer-events-auto" : "page-hidden"
+        }`}
+        aria-hidden={!isRegister}
+      >
+        <RegisterForm
+          onSubmit={() => {
+            // Frontend-only: after "register" go to landing
+            setPage("landing");
+          }}
+          onReturn={() => setPage("loginForm")}
+        />
+      </div>
+
       {/* Landing View */}
       <div
         className={`absolute inset-0 flex flex-col items-center justify-center p-8 page-transition ${
@@ -19,6 +73,15 @@ export default function App() {
         }`}
         aria-hidden={!isLanding}
       >
+        {/* Return to Login */}
+        <div className="absolute top-4 right-4 z-50">
+          <button
+            onClick={() => setPage("login")}
+            className="bg-gray-800/80 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-all"
+          >
+            Return
+          </button>
+        </div>
         <h1 className="text-4xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
           Select Game Mode
         </h1>
