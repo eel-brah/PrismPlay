@@ -4,29 +4,32 @@ const MAP_WIDTH = 2000;
 const MAP_HEIGHT = 2000;
 
 const RADIUS = 20;
-const SPEED = 200;
 const MAX_SPEED = 400;
 const MIN_SPEED = 50;
 
 class Player {
   private _x: number;
   private _y: number;
-  private radius: number;
-  private speed: number;
+  private _radius: number;
   private color: string;
 
   constructor(x: number, y: number, color: string) {
     this._x = x;
     this._y = y;
-    this.radius = RADIUS;
-    this.speed = SPEED;
+    this._radius = RADIUS;
     this.color = color;
   }
+
   get x(): number {
     return this._x;
   }
+
   get y(): number {
     return this._y;
+  }
+
+  get radius(): number {
+    return this._radius;
   }
 
   update(dt: number, mouse: Mouse, orbs: Orb[]) {
@@ -38,38 +41,46 @@ class Player {
       const dirX = dx / distance;
       const dirY = dy / distance;
 
-      const speed = Math.min(MAX_SPEED, Math.max(MIN_SPEED, distance * 2));
+      //TODO: improve
+      const baseSpeed = Math.min(MAX_SPEED, Math.max(MIN_SPEED, distance * 2));
+      const sizeFactor = this.radius / RADIUS;
+      const speed = baseSpeed / sizeFactor;
 
+      // const baseSpeed = Math.min(MAX_SPEED, Math.max(MIN_SPEED, distance * 2));
+      // const speed = baseSpeed / Math.log(this.radius );
+
+      console.log(this.radius, "   ", speed);
       this._x += dirX * speed * dt;
       this._y += dirY * speed * dt;
     }
 
     for (let i = orbs.length - 1; i >= 0; i--) {
       const orb = orbs[i];
-
       const odx = orb.x - this._x;
       const ody = orb.y - this._y;
       const odistance = Math.hypot(odx, ody);
 
-      if (odistance < this.radius + orb.radius) {
+      if (odistance < this._radius + orb.radius) {
         orbs.splice(i, 1);
-        this.radius += 0.3;
+        // TODO: Update the max
+        if (this._radius < 200)
+          this._radius += 0.3;
       }
     }
 
-    this._x = Math.max(this.radius, Math.min(MAP_WIDTH - this.radius, this._x));
-    this._y = Math.max(this.radius, Math.min(MAP_HEIGHT - this.radius, this._y));
+    this._x = Math.max(this._radius, Math.min(MAP_WIDTH - this._radius, this._x));
+    this._y = Math.max(this._radius, Math.min(MAP_HEIGHT - this._radius, this._y));
   }
 
   draw(ctx: CanvasRenderingContext2D, camera: Camera) {
     ctx.beginPath();
-    ctx.arc(this._x - camera.x, this._y - camera.y, this.radius, 0, Math.PI * 2);
+    ctx.arc(this._x - camera.x, this._y - camera.y, this._radius, 0, Math.PI * 2);
 
     ctx.fillStyle = this.color;
     ctx.fill();
 
     ctx.strokeStyle = darkenHex(this.color);
-    ctx.lineWidth = 7 + this.radius * 0.05;
+    ctx.lineWidth = 7 + this._radius * 0.05;
     ctx.stroke();
   }
 }
@@ -94,17 +105,18 @@ function darkenHex(hex: string, amount = 0.3): string {
     b.toString(16).padStart(2, "0")
   );
 }
+
 interface Orb {
   x: number;
   y: number;
   radius: number;
   color: string;
 }
+
 interface Mouse {
   x: number;
   y: number;
 }
-
 
 interface Camera {
   x: number;
@@ -112,88 +124,206 @@ interface Camera {
   width: number;
   height: number;
 }
+
 const Agario = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const backgroundRef = useRef<HTMLDivElement>(null);
 
-  let animationId: number | null = null;
-  let lastTime: number = 0;
-  let orbCount: number = 0;
-  let orbs: Orb[] = [];
+  const animationIdRef = useRef<number | null>(null);
+  const orbsRef = useRef<Orb[]>([]);
+  const playerRef = useRef<Player | null>(null);
+  const cameraRef = useRef<Camera | null>(null);
+  const mouseRef = useRef<Mouse>({ x: 0, y: 0 });
+  const lastTimeRef = useRef<number | null>(null);
+  console.log(lastTimeRef.current)
+
+  // Helpers 
+  function randomOrb(): Orb {
+    return {
+      x: Math.random() * MAP_WIDTH,
+      y: Math.random() * MAP_HEIGHT,
+      radius: 8,
+      color: randomColor(),
+    };
+  }
+
+  function randomColor(): string {
+    const r = Math.floor(Math.random() * 255);
+    const g = Math.floor(Math.random() * 255);
+    const b = Math.floor(Math.random() * 255);
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  function drawGrid(
+    ctx: CanvasRenderingContext2D,
+    camera: Camera
+  ) {
+    const gridSize = 50;
+
+    const startX = - (camera.x % gridSize);
+    const startY = - (camera.y % gridSize);
+
+    const width = camera.width;
+    const height = camera.height;
+
+    ctx.strokeStyle = "#b8c1c5";
+    ctx.lineWidth = 1;
+
+    for (let x = startX; x < width; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
+    }
+
+    for (let y = startY; y < height; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(0 + width, y);
+      ctx.stroke();
+    }
+  }
+
+  function drawOrbs(
+    ctx: CanvasRenderingContext2D,
+    orbs: Orb[],
+    camera: Camera
+  ) {
+    for (const orb of orbs) {
+      const sx = orb.x - camera.x;
+      const sy = orb.y - camera.y;
+
+      if (
+        sx + orb.radius < 0 ||
+        sx - orb.radius > camera.width ||
+        sy + orb.radius < 0 ||
+        sy - orb.radius > camera.height
+      ) {
+        continue;
+      }
+
+      ctx.beginPath();
+      ctx.fillStyle = orb.color;
+      ctx.arc(sx, sy, orb.radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     resizeCanvas();
-    window.addEventListener("resize", resizeCanvas);
 
-    let mouse: Mouse = { x: canvas.width / 2, y: canvas.height / 2 };
-    function handleMouseMove(e: MouseEvent) {
-      mouse.x = e.clientX;
-      mouse.y = e.clientY;
+    if (!playerRef.current) {
+      playerRef.current = new Player(MAP_WIDTH / 2, MAP_HEIGHT / 2, "#ef4444");
     }
+
+    cameraRef.current = {
+      x: playerRef.current.x - canvas.width / 2,
+      y: playerRef.current.y - canvas.height / 2,
+      width: canvas.width,
+      height: canvas.height,
+    };
+
+    mouseRef.current = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+    };
+
+    function handleResize() {
+      resizeCanvas();
+      const cam = cameraRef.current;
+      if (!cam || !canvas || !playerRef.current) return;
+
+      cam.width = canvas.width;
+      cam.height = canvas.height;
+      cam.x = playerRef.current.x - cam.width / 2;
+      cam.y = playerRef.current.y - cam.height / 2;
+    }
+
+    function handleMouseMove(e: MouseEvent) {
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      mouseRef.current.x = e.clientX - rect.left;
+      mouseRef.current.y = e.clientY - rect.top;
+    }
+
+    window.addEventListener("resize", handleResize);
     window.addEventListener("mousemove", handleMouseMove);
 
-    let player = new Player(MAP_WIDTH / 2, MAP_HEIGHT / 2, "#ef4444");
-
-    const camera: Camera = { x: 0, y: 0, width: canvas.width, height: canvas.height };
-
     function update(dt: number) {
-      if (!canvas) return;
+      const player = playerRef.current;
+      const camera = cameraRef.current;
+      const orbs = orbsRef.current;
+
+      if (!canvas || !player || !camera) return;
 
       while (orbs.length < 200) {
         orbs.push(randomOrb());
       }
-      const worldMouse = {
-        x: mouse.x + camera.x,
-        y: mouse.y + camera.y
+
+      const worldMouse: Mouse = {
+        x: mouseRef.current.x + camera.x,
+        y: mouseRef.current.y + camera.y,
       };
+
       player.update(dt, worldMouse, orbs);
 
-      camera.x = player.x - canvas.width / 2;
-      camera.y = player.y - canvas.height / 2;
+      camera.x = player.x - camera.width / 2;
+      camera.y = player.y - camera.height / 2;
     }
 
     function draw() {
-      if (!ctx || !canvas) return;
+      if (!canvas || !ctx) return;
+      const camera = cameraRef.current;
+      const player = playerRef.current;
+      if (!camera || !player) return;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // ctx.fillStyle = "#ffffff";
+      // ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      drawGrid(ctx, camera);
 
       ctx.strokeStyle = "#000";
       ctx.strokeRect(-camera.x, -camera.y, MAP_WIDTH, MAP_HEIGHT);
 
-      drawOrbs(ctx, orbs, camera);
+      drawOrbs(ctx, orbsRef.current, camera);
       player.draw(ctx, camera);
     }
 
-    let lastTime = 0;
     function gameLoop(now: number) {
-      const dt = (now - lastTime) / 1000;
-      lastTime = now;
+      if (lastTimeRef.current == null) {
+        lastTimeRef.current = now;
+      }
+      const dt = (now - lastTimeRef.current) / 1000;
+      lastTimeRef.current = now;
 
       update(dt);
       draw();
-      if (backgroundRef.current) {
-        backgroundRef.current.style.backgroundPosition = `${-camera.x}px ${-camera.y}px`;
-      }
-      animationId = requestAnimationFrame(gameLoop);
+
+      animationIdRef.current = requestAnimationFrame(gameLoop);
     }
-    animationId = requestAnimationFrame(gameLoop);
+
+    animationIdRef.current = requestAnimationFrame(gameLoop);
 
     return () => {
-      window.removeEventListener("resize", resizeCanvas);
+      window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
-      if (animationId) cancelAnimationFrame(animationId);
+      if (animationIdRef.current !== null) {
+        cancelAnimationFrame(animationIdRef.current);
+      }
     };
   }, []);
 
-  // Helpers
   function resizeCanvas() {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
     const dpr = window.devicePixelRatio || 1;
 
     const width = window.innerWidth;
@@ -206,57 +336,15 @@ const Agario = () => {
     canvas.height = Math.round(height * dpr);
 
     const ctx = canvas.getContext("2d");
-    if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  };
-  function randomOrb(): Orb {
-    return {
-      x: Math.random() * MAP_WIDTH,
-      y: Math.random() * MAP_HEIGHT,
-      radius: 8,
-      color: randomColor()
-    };
-  }
-  function randomColor(): string {
-    const r = Math.floor(Math.random() * 255);
-    const g = Math.floor(Math.random() * 255);
-    const b = Math.floor(Math.random() * 255);
-    return `rgb(${r}, ${g}, ${b})`;
-  }
-
-  function drawOrbs(ctx: CanvasRenderingContext2D, orbs: Orb[], camera: Camera) {
-    for (const orb of orbs) {
-      const sx = orb.x - camera.x;
-      const sy = orb.y - camera.y;
-
-      if (
-        sx + orb.radius < 0 ||
-        sx - orb.radius > camera.width ||
-        sy + orb.radius < 0 ||
-        sy - orb.radius > camera.height
-      ) continue;
-
-      ctx.beginPath();
-      ctx.fillStyle = orb.color;
-      ctx.arc(sx, sy, orb.radius, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    if (ctx)
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
   return (
-    <div
-      ref={backgroundRef}
-      className="
-    fixed top-0 left-0 w-full h-full
-    bg-white
-    [background-image:linear-gradient(#b8c1c5_1px,transparent_1px),linear-gradient(90deg,#b8c1c5_1px,transparent_1px)]
-    [background-size:50px_50px]
-  "
-      style={{ backgroundPosition: '0px 0px' }} // initial
-    >
+    <div className="fixed inset-0">
       <canvas
         ref={canvasRef}
-        className="w-full h-full"
-        style={{ display: "block" }}
+        className="w-full h-full block"
       />
     </div>
   );
