@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "strict": true,
+
+    "rootDir": "src/games",
+    "outDir": "public",
+
+    "lib": ["DOM", "ESNext"],
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/games/**/*.ts"]
+}
