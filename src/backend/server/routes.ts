@@ -21,16 +21,16 @@ export function registerRoutes(
   });
 
   // Register static files + /game route on the main HTTPS server
-  server.register(async (app) => {
-    await app.register(fastifyStatic, {
-      root: path.join(__dirname, "../../../", "public/agario"),
-      prefix: "/",
-    });
-
-    app.get("/agario", async (_req, reply) => {
-      return reply.type("text/html").sendFile("agario.html");
-    });
-  });
+  // server.register(async (app) => {
+  //   await app.register(fastifyStatic, {
+  //     root: path.join(__dirname, "../../../", "public/agario"),
+  //     prefix: "/",
+  //   });
+  //
+  //   app.get("/agario", async (_req, reply) => {
+  //     return reply.type("text/html").sendFile("agario.html");
+  //   });
+  // });
 
   server.register(userRoutes, { prefix: "users" });
   server.register(authRoutes, { prefix: "auth" });

@@ -1,4 +1,3 @@
-
 export interface Orb {
   x: number;
   y: number;
@@ -16,4 +15,13 @@ export interface Camera {
   y: number;
   width: number;
   height: number;
+}
+
+export interface PlayerData {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  radius: number;
+  color: string;
 }

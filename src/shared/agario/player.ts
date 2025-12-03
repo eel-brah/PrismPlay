@@ -1,12 +1,12 @@
 import {
+  INIT_RADIUS,
   MAP_HEIGHT,
   MAP_WIDTH,
   MAX_SPEED,
   MIN_SPEED,
   ORB_RADIUS,
-  RADIUS,
 } from "./config.js";
-import { Camera, Mouse, Orb } from "./types.js";
+import { Camera, Mouse, Orb, PlayerData } from "./types.js";
 import { darkenHex } from "./utils.js";
 
 export class Player {
@@ -15,27 +15,36 @@ export class Player {
   private _x: number;
   private _y: number;
   private _radius: number;
-  private color: string;
+  private _color: string;
 
   constructor(id: string, name: string, x: number, y: number, color: string) {
     this._id = id;
     this._name = name;
     this._x = x;
     this._y = y;
-    this._radius = RADIUS;
-    this.color = color;
+    this._radius = INIT_RADIUS;
+    this._color = color;
   }
 
   get x(): number {
     return this._x;
   }
+  set x(x: number) {
+    this._x = x;
+  }
 
   get y(): number {
     return this._y;
   }
+  set y(y: number) {
+    this._y = y;
+  }
 
   get radius(): number {
     return this._radius;
+  }
+  set radius(radius: number) {
+    this._radius = radius;
   }
 
   get name(): string {
@@ -46,7 +55,27 @@ export class Player {
     return this._id;
   }
 
-  update(dt: number, mouse: Mouse, orbs: Orb[]) {
+  serialize() {
+    return {
+      id: this._id,
+      name: this._name,
+      x: this._x,
+      y: this._y,
+      radius: this._radius,
+      color: this._color,
+    };
+  }
+
+  static deserialize(data: PlayerData): Player {
+    return new Player(data.id, data.name, data.x, data.y, data.color);
+  }
+
+  update(
+    dt: number,
+    mouse: Mouse,
+    orbs: Orb[],
+    enemies: Record<string, Player>,
+  ): string[] {
     const dx = mouse.x - this._x;
     const dy = mouse.y - this._y;
     const distance = Math.hypot(dx, dy);
@@ -57,7 +86,7 @@ export class Player {
 
       //TODO: improve
       const baseSpeed = Math.min(MAX_SPEED, Math.max(MIN_SPEED, distance * 2));
-      const sizeFactor = this.radius / RADIUS;
+      const sizeFactor = this.radius / INIT_RADIUS;
       const speed = baseSpeed / sizeFactor;
 
       // const baseSpeed = Math.min(MAX_SPEED, Math.max(MIN_SPEED, distance * 2));
@@ -65,6 +94,25 @@ export class Player {
 
       this._x += dirX * speed * dt;
       this._y += dirY * speed * dt;
+    }
+
+    const devouredEnemies: string[] = [];
+    for (const [k, enemy] of Object.entries(enemies)) {
+      if (this._radius >= enemy._radius + enemy._radius / 10) {
+        const odx = enemy.x - this._x;
+        const ody = enemy.y - this._y;
+        const odistance = Math.hypot(odx, ody);
+
+        if (odistance < this._radius + enemy.radius) {
+          delete enemies[k];
+          console.log(Object.keys(enemies).length)
+          devouredEnemies.push(k);
+          let sum =
+            Math.PI * this._radius * this._radius +
+            Math.PI * enemy.radius * enemy.radius;
+          this._radius = Math.sqrt(sum / Math.PI);
+        }
+      }
     }
 
     for (let i = orbs.length - 1; i >= 0; i--) {
@@ -93,6 +141,7 @@ export class Player {
       this._radius,
       Math.min(MAP_HEIGHT - this._radius, this._y),
     );
+    return devouredEnemies;
   }
 
   draw(ctx: CanvasRenderingContext2D, camera: Camera) {
@@ -105,10 +154,10 @@ export class Player {
       Math.PI * 2,
     );
 
-    ctx.fillStyle = this.color;
+    ctx.fillStyle = this._color;
     ctx.fill();
 
-    ctx.strokeStyle = darkenHex(this.color);
+    ctx.strokeStyle = darkenHex(this._color);
     ctx.lineWidth = 7 + this._radius * 0.05;
     ctx.stroke();
   }

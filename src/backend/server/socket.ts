@@ -1,11 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import { Server as SocketIOServer } from "socket.io";
-import { MAP_HEIGHT, MAP_WIDTH } from "src/games/agario/config";
+import { INIT_RADIUS, MAP_HEIGHT, MAP_WIDTH } from "src/shared/agario/config";
 
-import { Player } from "src/games/agario/player";
+import { Player } from "src/shared/agario/player";
+import { Orb, PlayerData } from "src/shared/agario/types";
+import { randomOrb } from "src/shared/agario/utils";
 
-const players: Player[] = [];
+const players: Record<string, PlayerData> = {};
 
 export default fp(async function socketPlugin(fastify: FastifyInstance) {
   const io = new SocketIOServer(fastify.server, {
@@ -20,25 +22,61 @@ export default fp(async function socketPlugin(fastify: FastifyInstance) {
     },
   });
 
+  const orbs: Orb[] = [];
+  while (orbs.length < 200) {
+    orbs.push(randomOrb());
+  }
+
+  setInterval(heartbeat, 100);
+  function heartbeat() {
+    io.sockets.emit("heartbeat", players);
+  }
+
   io.on("connection", (socket) => {
     fastify.log.info({ id: socket.id }, "socket connected");
 
     socket.on("join", (data) => {
       fastify.log.info({ id: socket.id, data }, "player join");
-      
-      const new_player = new Player(socket.id, data.name, MAP_WIDTH / 2, MAP_HEIGHT / 2, "#ffffff");
-      players.push(new_player);
 
-      socket.emit("joined", { id: socket.id });
+      const newPlayerData: PlayerData = {
+        id: socket.id,
+        name: data.name,
+        x: MAP_WIDTH / 2,
+        y: MAP_HEIGHT / 2,
+        color: "#ffffff",
+        radius: INIT_RADIUS,
+      };
+      players[newPlayerData.id] = newPlayerData;
+
+      socket.emit("joined", newPlayerData);
     });
 
-    socket.on("player_input", (input) => {
-      // TODO: push input to your GameServer
-      // e.g. gameServer.handleInput(socket.id, input);
+    socket.on("update", (data: PlayerData) => {
+      if (players[data.id]) {
+        players[data.id].x = data.x;
+        players[data.id].y = data.y;
+        players[data.id].radius = data.radius;
+      }
+    });
+    socket.on("losers", (losers: string[]) => {
+      socket.on("losers", (losers: string[]) => {
+        losers.forEach((id) => {
+          delete players[id];
+          const client = io.sockets.sockets.get(id);
+
+          if (client) {
+            client.emit("youLost", { reason: "game_over" });
+            client.disconnect(true);
+          }
+        });
+      });
     });
 
     socket.on("disconnect", (reason) => {
       fastify.log.info({ id: socket.id, reason }, "socket disconnected");
+      if (players[socket.id]) {
+        delete players[socket.id];
+      }
       // TODO: remove from game
     });
   });

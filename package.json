@@ -7,16 +7,11 @@
   "scripts": {
     "dev:client": "vite",
     "build:client": "vite build",
-
     "dev:game": "tsc -p tsconfig.games.json --watch",
     "build:game": "tsc -p tsconfig.games.json",
-
     "build": "pnpm build:client && pnpm build:game",
-
     "dev:server": "concurrently \"nodemon\" \"pnpm dev:game\"",
-
     "dev": "concurrently \"pnpm dev:server\" \"pnpm dev:client\"",
-
     "deploy": "git subtree push --prefix dist origin gh-pages",
     "benchmark": "concurrently -k -s first \"NODE_ENV=production ts-node src/backend/server/index.ts\" \"pnpm autocannon -c 100 -d 10 https://localhost:9443/healthcheck\""
   },
@@ -58,6 +53,8 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-refresh": "^0.18.0",
+    "react-router": "^7.10.0",
+    "react-router-dom": "^7.10.0",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "tailwindcss": "^4.1.17",
