@@ -45,24 +45,57 @@ const Agario = () => {
 
   useEffect(() => {
     const socket = io("https://localhost:9443", {});
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    socket.on("heartbeat", (data: Record<string, PlayerData>) => {
-      for (const [k, v] of Object.entries(data)) {
-        if (k != playerRef.current?.id) {
-          if (Object.hasOwn(enemiesRef.current, k)) {
-            enemiesRef.current[k].x = v.x;
-            enemiesRef.current[k].y = v.y;
-            enemiesRef.current[k].radius = v.radius;
+    resizeCanvas();
+
+    function initCameraForPlayer() {
+      if (!canvas || !playerRef.current) return;
+      cameraRef.current = {
+        x: playerRef.current.x - canvas.width / 2,
+        y: playerRef.current.y - canvas.height / 2,
+        width: canvas.width,
+        height: canvas.height,
+      };
+
+      mouseRef.current = {
+        x: canvas.width / 2,
+        y: canvas.height / 2,
+      };
+    }
+
+    socket.on(
+      "heartbeat",
+      (data: { players: Record<string, PlayerData>, orbs: Orb[] }) => {
+        const myId = playerRef.current?.id;
+        if (!myId) return;
+
+        for (const [id, pData] of Object.entries(data.players)) {
+          if (id === myId) continue;
+
+          if (enemiesRef.current[id]) {
+            enemiesRef.current[id].x = pData.x;
+            enemiesRef.current[id].y = pData.y;
+            enemiesRef.current[id].radius = pData.radius;
+          } else {
+            enemiesRef.current[id] = Player.deserialize(pData);
           }
-          else
-            enemiesRef.current[k] = Player.deserialize(v);
         }
-      }
-    });
+
+        const serverIds = new Set(Object.keys(data.players));
+        for (const id of Object.keys(enemiesRef.current)) {
+          if (!serverIds.has(id)) {
+            delete enemiesRef.current[id];
+          }
+        }
+
+        orbsRef.current = data.orbs;
+      },
+    );
 
     socket.on("connect", () => {
       console.log("Connected to server with socket id:", socket.id);
@@ -71,33 +104,18 @@ const Agario = () => {
       });
     });
 
-    //TODO: wait for the player
-    if (!playerRef.current) {
-      playerRef.current = new Player("2", "2", MAP_WIDTH / 2, MAP_HEIGHT / 2, "#ef4444");
-    }
     socket.on("joined", (data: PlayerData) => {
       playerRef.current = Player.deserialize(data);
       console.log("Joined game as", playerRef.current.id, " named: ", playerRef.current.name);
+      initCameraForPlayer();
     });
 
     socket.on("youLost", (data: string) => {
-      console.log(data);
-      playerRef.current!.radius = 0;
+      if (playerRef.current) {
+        playerRef.current.radius = 0;
+      }
+      console.log("You lost");
     });
-
-    resizeCanvas();
-
-    cameraRef.current = {
-      x: playerRef.current.x - canvas.width / 2,
-      y: playerRef.current.y - canvas.height / 2,
-      width: canvas.width,
-      height: canvas.height,
-    };
-
-    mouseRef.current = {
-      x: canvas.width / 2,
-      y: canvas.height / 2,
-    };
 
     function handleResize() {
       resizeCanvas();
@@ -127,17 +145,24 @@ const Agario = () => {
 
       if (!canvas || !player || !camera) return;
 
-      while (orbs.length < 200) {
-        orbs.push(randomOrb());
-      }
-
       const worldMouse: Mouse = {
         x: mouseRef.current.x + camera.x,
         y: mouseRef.current.y + camera.y,
       };
 
-      const devouredEnemies = player.update(dt, worldMouse, orbs, enemiesRef.current);
-      socket.emit("losers", devouredEnemies);
+      const { devouredEnemies, eatenOrbs } = player.update(dt, worldMouse, orbs, enemiesRef.current,);
+
+      if (devouredEnemies.length > 0) {
+        socket.emit("losers", devouredEnemies);
+      }
+
+      if (eatenOrbs.length > 0) {
+        const eatenSet = new Set(eatenOrbs);
+        orbsRef.current = orbsRef.current.filter(
+          (o) => !eatenSet.has(o.id),
+        );
+        socket.emit("orbsEaten", eatenOrbs);
+      }
 
       camera.x = player.x - camera.width / 2;
       camera.y = player.y - camera.height / 2;
@@ -163,9 +188,10 @@ const Agario = () => {
 
       drawOrbs(ctx, orbsRef.current, camera);
       player.draw(ctx, camera);
+
       // TODO: dont draw the enemies if out of cam
-      for (const [k, v] of Object.entries(enemiesRef.current)) {
-        v.draw(ctx, camera);
+      for (const enemy of Object.values(enemiesRef.current)) {
+        enemy.draw(ctx, camera);
       }
     }
 
@@ -190,6 +216,7 @@ const Agario = () => {
       if (animationIdRef.current !== null) {
         cancelAnimationFrame(animationIdRef.current);
       }
+      socket.disconnect();
     };
   }, []);
 

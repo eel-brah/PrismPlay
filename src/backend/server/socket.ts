@@ -2,13 +2,20 @@ import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import { Server as SocketIOServer } from "socket.io";
 import { INIT_RADIUS, MAP_HEIGHT, MAP_WIDTH } from "src/shared/agario/config";
-
-import { Player } from "src/shared/agario/player";
 import { Orb, PlayerData } from "src/shared/agario/types";
-import { randomOrb } from "src/shared/agario/utils";
+import { randomColor, randomOrb } from "src/shared/agario/utils";
 
 const players: Record<string, PlayerData> = {};
+const orbs: Orb[] = [];
+const MAX_ORBS = 200;
 
+function ensureOrbs() {
+  while (orbs.length < MAX_ORBS) {
+    orbs.push(randomOrb());
+  }
+}
+
+//TODO: moving enemy-player collision logic server-side too so you can’t cheat by editing the client
 export default fp(async function socketPlugin(fastify: FastifyInstance) {
   const io = new SocketIOServer(fastify.server, {
     connectionStateRecovery: {
@@ -22,14 +29,11 @@ export default fp(async function socketPlugin(fastify: FastifyInstance) {
     },
   });
 
-  const orbs: Orb[] = [];
-  while (orbs.length < 200) {
-    orbs.push(randomOrb());
-  }
-
+  //TODO: seek better way
   setInterval(heartbeat, 100);
   function heartbeat() {
-    io.sockets.emit("heartbeat", players);
+    ensureOrbs();
+    io.sockets.emit("heartbeat", {players, orbs});
   }
 
   io.on("connection", (socket) => {
@@ -43,7 +47,7 @@ export default fp(async function socketPlugin(fastify: FastifyInstance) {
         name: data.name,
         x: MAP_WIDTH / 2,
         y: MAP_HEIGHT / 2,
-        color: "#ffffff",
+        color: randomColor(),
         radius: INIT_RADIUS,
       };
       players[newPlayerData.id] = newPlayerData;
@@ -58,18 +62,34 @@ export default fp(async function socketPlugin(fastify: FastifyInstance) {
         players[data.id].radius = data.radius;
       }
     });
-    socket.on("losers", (losers: string[]) => {
-      socket.on("losers", (losers: string[]) => {
-        losers.forEach((id) => {
-          delete players[id];
-          const client = io.sockets.sockets.get(id);
 
-          if (client) {
-            client.emit("youLost", { reason: "game_over" });
-            client.disconnect(true);
-          }
-        });
+    socket.on("losers", (losers: string[]) => {
+      losers.forEach((id) => {
+        delete players[id];
+        const client = io.sockets.sockets.get(id);
+
+        if (client) {
+          client.emit("youLost", { reason: "game_over" });
+          client.disconnect(true);
+        }
       });
+    });
+    
+    socket.on("orbsEaten", (orbIds: string[]) => {
+      let changed = false;
+
+      for (const id of orbIds) {
+        const index = orbs.findIndex((o) => o.id === id);
+        if (index !== -1) {
+          orbs.splice(index, 1);
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        ensureOrbs();
+        // io.sockets.emit("orbsUpdated", orbs);
+      }
     });
 
     socket.on("disconnect", (reason) => {

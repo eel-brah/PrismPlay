@@ -1,18 +1,27 @@
 import { MAP_HEIGHT, MAP_WIDTH, ORB_RADIUS } from "./config";
 import { Camera, Orb } from "./types";
 
-export function darkenHex(hex: string, amount = 0.3): string {
-  hex = hex.replace("#", "");
+export function darkenHex(color: string, amount = 0.3): string {
+  let r: number, g: number, b: number;
 
-  const num = parseInt(hex, 16);
+  if (color.startsWith("#")) {
+    const hex = color.slice(1);
+    const num = parseInt(hex, 16);
 
-  let r = (num >> 16) & 255;
-  let g = (num >> 8) & 255;
-  let b = num & 255;
+    r = (num >> 16) & 255;
+    g = (num >> 8) & 255;
+    b = num & 255;
+  } else {
+    [r, g, b] = color.match(/\d+/g)!.map(Number);
+  }
 
   r = Math.floor(r * (1 - amount));
   g = Math.floor(g * (1 - amount));
   b = Math.floor(b * (1 - amount));
+
+  r = Math.max(0, r);
+  g = Math.max(0, g);
+  b = Math.max(0, b);
 
   return (
     "#" +
@@ -22,9 +31,13 @@ export function darkenHex(hex: string, amount = 0.3): string {
   );
 }
 
+function randomId(): string {
+  return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 9);
+}
 
 export function randomOrb(): Orb {
   return {
+    id: randomId(),
     x: Math.random() * MAP_WIDTH,
     y: Math.random() * MAP_HEIGHT,
     radius: ORB_RADIUS,
@@ -39,8 +52,11 @@ export function randomColor(): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-
-export function drawOrbs(ctx: CanvasRenderingContext2D, orbs: Orb[], camera: Camera) {
+export function drawOrbs(
+  ctx: CanvasRenderingContext2D,
+  orbs: Orb[],
+  camera: Camera,
+) {
   for (const orb of orbs) {
     const sx = orb.x - camera.x;
     const sy = orb.y - camera.y;
@@ -60,4 +76,3 @@ export function drawOrbs(ctx: CanvasRenderingContext2D, orbs: Orb[], camera: Cam
     ctx.fill();
   }
 }
-

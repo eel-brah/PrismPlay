@@ -1,4 +1,5 @@
 export interface Orb {
+  id: string;
   x: number;
   y: number;
   radius: number;

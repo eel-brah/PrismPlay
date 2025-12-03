@@ -67,7 +67,9 @@ export class Player {
   }
 
   static deserialize(data: PlayerData): Player {
-    return new Player(data.id, data.name, data.x, data.y, data.color);
+    const p = new Player(data.id, data.name, data.x, data.y, data.color);
+    p.radius = data.radius;
+    return p;
   }
 
   update(
@@ -75,7 +77,7 @@ export class Player {
     mouse: Mouse,
     orbs: Orb[],
     enemies: Record<string, Player>,
-  ): string[] {
+  ): { devouredEnemies: string[]; eatenOrbs: string[] } {
     const dx = mouse.x - this._x;
     const dy = mouse.y - this._y;
     const distance = Math.hypot(dx, dy);
@@ -105,7 +107,6 @@ export class Player {
 
         if (odistance < this._radius + enemy.radius) {
           delete enemies[k];
-          console.log(Object.keys(enemies).length)
           devouredEnemies.push(k);
           let sum =
             Math.PI * this._radius * this._radius +
@@ -115,17 +116,18 @@ export class Player {
       }
     }
 
-    for (let i = orbs.length - 1; i >= 0; i--) {
-      const orb = orbs[i];
+    const eatenOrbs: string[] = [];
+    for (const orb of orbs) {
       const odx = orb.x - this._x;
       const ody = orb.y - this._y;
       const odistance = Math.hypot(odx, ody);
 
       if (odistance < this._radius + orb.radius) {
-        orbs.splice(i, 1);
-        // TODO: Update the max
+        eatenOrbs.push(orb.id);
+
+        //TODO: update max
         if (this._radius < 200) {
-          let sum =
+          const sum =
             Math.PI * this._radius * this._radius +
             Math.PI * ORB_RADIUS * ORB_RADIUS;
           this._radius = Math.sqrt(sum / Math.PI);
@@ -141,7 +143,7 @@ export class Player {
       this._radius,
       Math.min(MAP_HEIGHT - this._radius, this._y),
     );
-    return devouredEnemies;
+    return { devouredEnemies, eatenOrbs };
   }
 
   draw(ctx: CanvasRenderingContext2D, camera: Camera) {
