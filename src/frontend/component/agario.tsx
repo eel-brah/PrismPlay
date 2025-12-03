@@ -47,7 +47,7 @@ const Agario = () => {
   const [gameOver, setGameOver] = useState(false);
 
   useEffect(() => {
-    const socket = io("https://0.0.0.0:9443", {});
+    const socket = io("https://localhost:9443", {});
 
     const canvas = canvasRef.current;
     if (!canvas) return;
