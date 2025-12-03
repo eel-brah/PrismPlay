@@ -23,7 +23,7 @@ export function registerRoutes(
   // Register static files + /game route on the main HTTPS server
   server.register(async (app) => {
     await app.register(fastifyStatic, {
-      root: path.join(__dirname, "../../../", "public"),
+      root: path.join(__dirname, "../../../", "public/agario"),
       prefix: "/",
     });
 

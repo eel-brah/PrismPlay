@@ -1,6 +1,11 @@
 import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import { Server as SocketIOServer } from "socket.io";
+import { MAP_HEIGHT, MAP_WIDTH } from "src/games/agario/config";
+
+import { Player } from "src/games/agario/player";
+
+const players: Player[] = [];
 
 export default fp(async function socketPlugin(fastify: FastifyInstance) {
   const io = new SocketIOServer(fastify.server, {
@@ -16,15 +21,25 @@ export default fp(async function socketPlugin(fastify: FastifyInstance) {
   });
 
   io.on("connection", (socket) => {
-    fastify.log.info(`Client connected: ${socket.id}`);
-    // io.emit("connected", "User: " + socket.id.toString().slice(0, 3));
+    fastify.log.info({ id: socket.id }, "socket connected");
 
-    socket.on("chat message", (msg) => {
-      io.emit("chat message", socket.id.toString().slice(0, 3) + ": " + msg);
+    socket.on("join", (data) => {
+      fastify.log.info({ id: socket.id, data }, "player join");
+      
+      const new_player = new Player(socket.id, data.name, MAP_WIDTH / 2, MAP_HEIGHT / 2, "#ffffff");
+      players.push(new_player);
+
+      socket.emit("joined", { id: socket.id });
     });
 
-    socket.on("disconnect", () => {
-      fastify.log.info(`Client disconnected: ${socket.id}`);
+    socket.on("player_input", (input) => {
+      // TODO: push input to your GameServer
+      // e.g. gameServer.handleInput(socket.id, input);
+    });
+
+    socket.on("disconnect", (reason) => {
+      fastify.log.info({ id: socket.id, reason }, "socket disconnected");
+      // TODO: remove from game
     });
   });
 

@@ -5,8 +5,8 @@
     "moduleResolution": "Node",
     "strict": true,
 
-    "rootDir": "src/games",
-    "outDir": "public",
+    "rootDir": "src/games/agario",
+    "outDir": "public/agario",
 
     "lib": ["DOM", "ESNext"],
     "esModuleInterop": true,
