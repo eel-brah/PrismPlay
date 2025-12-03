@@ -5,7 +5,7 @@
   "main": "webpack.dev.js",
   "type": "module",
   "scripts": {
-    "dev:client": "vite",
+    "dev:client": "vite --host",
     "build:client": "vite build",
     "dev:game": "tsc -p tsconfig.games.json --watch",
     "build:game": "tsc -p tsconfig.games.json",

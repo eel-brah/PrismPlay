@@ -54,6 +54,9 @@ export class Player {
   get id(): string {
     return this._id;
   }
+  get color(): string {
+    return this._color;
+  }
 
   serialize() {
     return {
@@ -72,12 +75,7 @@ export class Player {
     return p;
   }
 
-  update(
-    dt: number,
-    mouse: Mouse,
-    orbs: Orb[],
-    enemies: Record<string, Player>,
-  ): { devouredEnemies: string[]; eatenOrbs: string[] } {
+  update(dt: number, mouse: Mouse, orbs: Orb[]): string[] {
     const dx = mouse.x - this._x;
     const dy = mouse.y - this._y;
     const distance = Math.hypot(dx, dy);
@@ -96,24 +94,6 @@ export class Player {
 
       this._x += dirX * speed * dt;
       this._y += dirY * speed * dt;
-    }
-
-    const devouredEnemies: string[] = [];
-    for (const [k, enemy] of Object.entries(enemies)) {
-      if (this._radius >= enemy._radius + enemy._radius / 10) {
-        const odx = enemy.x - this._x;
-        const ody = enemy.y - this._y;
-        const odistance = Math.hypot(odx, ody);
-
-        if (odistance < this._radius + enemy.radius) {
-          delete enemies[k];
-          devouredEnemies.push(k);
-          let sum =
-            Math.PI * this._radius * this._radius +
-            Math.PI * enemy.radius * enemy.radius;
-          this._radius = Math.sqrt(sum / Math.PI);
-        }
-      }
     }
 
     const eatenOrbs: string[] = [];
@@ -143,7 +123,7 @@ export class Player {
       this._radius,
       Math.min(MAP_HEIGHT - this._radius, this._y),
     );
-    return { devouredEnemies, eatenOrbs };
+    return eatenOrbs;
   }
 
   draw(ctx: CanvasRenderingContext2D, camera: Camera) {

@@ -26,3 +26,8 @@ export interface PlayerData {
   radius: number;
   color: string;
 }
+export interface InputState {
+  mouseX: number;
+  mouseY: number;
+  seq: number;
+}

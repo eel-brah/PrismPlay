@@ -1,8 +1,8 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { MAP_HEIGHT, MAP_WIDTH } from "@/../shared/agario/config";
 import { Player } from "@/../shared/agario/player";
-import { Camera, Mouse, Orb, PlayerData } from "@/../shared/agario/types";
+import { Camera, InputState, Mouse, Orb, PlayerData } from "@/../shared/agario/types";
 import { drawOrbs, randomOrb } from "@/../shared/agario/utils";
 
 function drawGrid(ctx: CanvasRenderingContext2D, camera: Camera) {
@@ -42,9 +42,12 @@ const Agario = () => {
   const mouseRef = useRef<Mouse>({ x: 0, y: 0 });
   const lastTimeRef = useRef<number | null>(null);
   const enemiesRef = useRef<Record<string, Player>>({});
+  const inputSeqRef = useRef(0);
+  const isDeadRef = useRef(false);
+  const [gameOver, setGameOver] = useState(false);
 
   useEffect(() => {
-    const socket = io("https://localhost:9443", {});
+    const socket = io("https://0.0.0.0:9443", {});
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -68,11 +71,24 @@ const Agario = () => {
       };
     }
 
+    //TODO: prediction reconciliation
     socket.on(
       "heartbeat",
-      (data: { players: Record<string, PlayerData>, orbs: Orb[] }) => {
-        const myId = playerRef.current?.id;
-        if (!myId) return;
+      (data: { players: Record<string, PlayerData>; orbs: Orb[] }) => {
+        const myId = playerRef.current?.id ?? socket.id;
+
+        const myServerData = data.players[myId!];
+        if (myServerData) {
+          if (!playerRef.current) {
+            playerRef.current = Player.deserialize(myServerData);
+          } else {
+            playerRef.current.x = myServerData.x;
+            playerRef.current.y = myServerData.y;
+            playerRef.current.radius = myServerData.radius;
+          }
+        }
+
+        const serverIds = new Set(Object.keys(data.players));
 
         for (const [id, pData] of Object.entries(data.players)) {
           if (id === myId) continue;
@@ -86,7 +102,6 @@ const Agario = () => {
           }
         }
 
-        const serverIds = new Set(Object.keys(data.players));
         for (const id of Object.keys(enemiesRef.current)) {
           if (!serverIds.has(id)) {
             delete enemiesRef.current[id];
@@ -110,11 +125,9 @@ const Agario = () => {
       initCameraForPlayer();
     });
 
-    socket.on("youLost", (data: string) => {
-      if (playerRef.current) {
-        playerRef.current.radius = 0;
-      }
-      console.log("You lost");
+    socket.on("youLost", () => {
+      isDeadRef.current = true;
+      setGameOver(true);
     });
 
     function handleResize() {
@@ -139,6 +152,7 @@ const Agario = () => {
     window.addEventListener("mousemove", handleMouseMove);
 
     function update(dt: number) {
+      if (isDeadRef.current) return;
       const player = playerRef.current;
       const camera = cameraRef.current;
       const orbs = orbsRef.current;
@@ -150,36 +164,32 @@ const Agario = () => {
         y: mouseRef.current.y + camera.y,
       };
 
-      const { devouredEnemies, eatenOrbs } = player.update(dt, worldMouse, orbs, enemiesRef.current,);
-
-      if (devouredEnemies.length > 0) {
-        socket.emit("losers", devouredEnemies);
-      }
-
+      // local prediction (optional)
+      const eatenOrbs = player.update(dt, worldMouse, orbs);
       if (eatenOrbs.length > 0) {
         const eatenSet = new Set(eatenOrbs);
-        orbsRef.current = orbsRef.current.filter(
-          (o) => !eatenSet.has(o.id),
-        );
-        socket.emit("orbsEaten", eatenOrbs);
+        orbsRef.current = orbsRef.current.filter((o) => !eatenSet.has(o.id));
       }
 
       camera.x = player.x - camera.width / 2;
       camera.y = player.y - camera.height / 2;
 
-      socket.emit("update", player.serialize());
+      inputSeqRef.current += 1;
+      socket.emit("input", {
+        mouseX: worldMouse.x,
+        mouseY: worldMouse.y,
+        seq: inputSeqRef.current,
+      } as InputState);
     }
 
     function draw() {
+      if (isDeadRef.current) return;
       if (!canvas || !ctx) return;
       const camera = cameraRef.current;
       const player = playerRef.current;
       if (!camera || !player) return;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // ctx.fillStyle = "#ffffff";
-      // ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       drawGrid(ctx, camera);
 
@@ -193,6 +203,7 @@ const Agario = () => {
       for (const enemy of Object.values(enemiesRef.current)) {
         enemy.draw(ctx, camera);
       }
+
     }
 
     function gameLoop(now: number) {
@@ -241,6 +252,17 @@ const Agario = () => {
   }
   return (
     <div className="fixed inset-0">
+      {gameOver && (
+        <div className="absolute inset-0 bg-black/70 flex flex-col justify-center items-center text-white text-4xl">
+          <div>You Died</div>
+          <button
+            // onClick={handleRespawn}
+            className="mt-4 px-6 py-3 bg-white text-black rounded-md text-xl"
+          >
+            Respawn
+          </button>
+        </div>
+      )}
       <canvas
         ref={canvasRef}
         id="agario"
