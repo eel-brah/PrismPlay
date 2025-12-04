@@ -75,7 +75,12 @@ export class Player {
     return p;
   }
 
-  update(dt: number, mouse: Mouse, orbs: Orb[], isDead: boolean = false): string[] {
+  update(
+    dt: number,
+    mouse: Mouse,
+    orbs: Orb[],
+    isDead: boolean = false,
+  ): string[] {
     const dx = mouse.x - this._x;
     const dy = mouse.y - this._y;
     const distance = Math.hypot(dx, dy);
@@ -130,14 +135,11 @@ export class Player {
   }
 
   draw(ctx: CanvasRenderingContext2D, camera: Camera) {
+    const screenX = this._x - camera.x;
+    const screenY = this._y - camera.y;
+
     ctx.beginPath();
-    ctx.arc(
-      this._x - camera.x,
-      this._y - camera.y,
-      this._radius,
-      0,
-      Math.PI * 2,
-    );
+    ctx.arc(screenX, screenY, this._radius, 0, Math.PI * 2);
 
     ctx.fillStyle = this._color;
     ctx.fill();
@@ -145,5 +147,13 @@ export class Player {
     ctx.strokeStyle = darkenHex(this._color);
     ctx.lineWidth = 7 + this._radius * 0.05;
     ctx.stroke();
+
+    ctx.fillStyle = "black";
+    //TODO: better font
+    ctx.font = `bold ${this._radius * 0.3}px Market, "Helvetica Neue", Arial, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.fillText(this._name, screenX, screenY);
   }
 }
