@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { authRoutes, userRoutes } from "../modules/user/user_route.ts";
+import { authRoutes, userRoutes } from "../modules/user/user_route";
 import { setTimeout } from "timers/promises";
 import fastifyStatic from "@fastify/static";
 import path from "node:path";

@@ -1,9 +1,9 @@
 import fjwt from "@fastify/jwt";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { JWT_SECRET } from "./config.ts";
-import prisma from "../utils/prisma.ts";
-import { findToken } from "../modules/user/user_service.ts";
-import { type AuthHeaderSchema } from "../modules/user/user_schema.ts";
+import { JWT_SECRET } from "./config";
+import prisma from "../utils/prisma";
+import { findToken } from "../modules/user/user_service";
+import { type AuthHeaderSchema } from "../modules/user/user_schema";
 
 export async function setupAuth(server: FastifyInstance) {
   server.register(fjwt, { secret: JWT_SECRET });

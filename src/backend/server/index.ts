@@ -1,10 +1,11 @@
-import server, { http_server } from "./server.ts";
-import { setGlobalErrorHandler } from "./errorHandler.ts";
-import { registerRoutes } from "./routes.ts";
-import { setupAuth } from "./auth.ts";
-import { PORT, HTTP_PORT, IP } from "./config.ts";
-import loggingHook from "./loggingHook.ts";
-import socketPlugin from "./socket.ts";
+import server, { http_server } from "./server";
+import { setGlobalErrorHandler } from "./errorHandler";
+import { registerRoutes } from "./routes";
+import { setupAuth } from "./auth";
+import { PORT, HTTP_PORT, IP } from "./config";
+import loggingHook from "./loggingHook";
+import socketPlugin from "./socket/index"
+// import socketPlugin from "./socket"
 
 // Set up error handling
 setGlobalErrorHandler(server);
