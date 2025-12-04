@@ -75,7 +75,7 @@ export class Player {
     return p;
   }
 
-  update(dt: number, mouse: Mouse, orbs: Orb[]): string[] {
+  update(dt: number, mouse: Mouse, orbs: Orb[], isDead: boolean = false): string[] {
     const dx = mouse.x - this._x;
     const dy = mouse.y - this._y;
     const distance = Math.hypot(dx, dy);
@@ -96,6 +96,17 @@ export class Player {
       this._y += dirY * speed * dt;
     }
 
+    this._x = Math.max(
+      this._radius,
+      Math.min(MAP_WIDTH - this._radius, this._x),
+    );
+    this._y = Math.max(
+      this._radius,
+      Math.min(MAP_HEIGHT - this._radius, this._y),
+    );
+
+    if (isDead) return [];
+
     const eatenOrbs: string[] = [];
     for (const orb of orbs) {
       const odx = orb.x - this._x;
@@ -115,14 +126,6 @@ export class Player {
       }
     }
 
-    this._x = Math.max(
-      this._radius,
-      Math.min(MAP_WIDTH - this._radius, this._x),
-    );
-    this._y = Math.max(
-      this._radius,
-      Math.min(MAP_HEIGHT - this._radius, this._y),
-    );
     return eatenOrbs;
   }
 

@@ -2,30 +2,23 @@ import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import { Server as SocketIOServer } from "socket.io";
 import {
-  INIT_RADIUS,
   MAP_HEIGHT,
   MAP_WIDTH,
+  MAX_ORBS,
   ORB_RADIUS,
 } from "src/shared/agario/config";
 import { Player } from "src/shared/agario/player";
-import { InputState, Mouse, Orb, PlayerData } from "src/shared/agario/types";
+import {
+  InputState,
+  Mouse,
+  Orb,
+  PlayerData,
+  PlayerState,
+} from "src/shared/agario/types";
 import { randomColor, randomOrb } from "src/shared/agario/utils";
 
-const orbs: Orb[] = [];
-const MAX_ORBS = 200;
-
-function ensureOrbs() {
-  while (orbs.length < MAX_ORBS) {
-    orbs.push(randomOrb());
-  }
-}
-
-type PlayerState = {
-  player: Player;
-  input: InputState | null;
-};
-
 const players: Record<string, PlayerState> = {};
+const orbs: Orb[] = [];
 
 export default fp(async function socketPlugin(fastify: FastifyInstance) {
   const io = new SocketIOServer(fastify.server, {
@@ -39,6 +32,48 @@ export default fp(async function socketPlugin(fastify: FastifyInstance) {
       origin: "*", //TODO:
     },
   });
+
+  function ensureOrbs() {
+    while (orbs.length < MAX_ORBS) {
+      orbs.push(randomOrb());
+    }
+  }
+
+  function simulate(dt: number) {
+    const ids = Object.keys(players);
+
+    for (const id of ids) {
+      const state = players[id];
+      const p = state.player;
+      const input = state.input;
+
+      if (!input) continue;
+
+      const mouse: Mouse = { x: input.mouseX, y: input.mouseY };
+
+      const eatenOrbs = p.update(dt, mouse, orbs);
+
+      if (eatenOrbs.length > 0) {
+        let changed = false;
+        for (const orbId of eatenOrbs) {
+          const idx = orbs.findIndex((o) => o.id === orbId);
+          if (idx !== -1) {
+            orbs.splice(idx, 1);
+            changed = true;
+            const sumArea =
+              Math.PI * p.radius * p.radius + Math.PI * ORB_RADIUS * ORB_RADIUS;
+
+            p.radius = Math.sqrt(sumArea / Math.PI);
+          }
+        }
+        if (changed) {
+          ensureOrbs();
+        }
+      }
+    }
+
+    handlePlayerCollisions();
+  }
 
   function handlePlayerCollisions() {
     const ids = Object.keys(players);
@@ -102,42 +137,6 @@ export default fp(async function socketPlugin(fastify: FastifyInstance) {
     }
   }
 
-  function simulate(dt: number) {
-    const ids = Object.keys(players);
-
-    for (const id of ids) {
-      const state = players[id];
-      const p = state.player;
-      const input = state.input;
-
-      if (!input) continue;
-
-      const mouse: Mouse = { x: input.mouseX, y: input.mouseY };
-
-      const eatenOrbs = p.update(dt, mouse, orbs);
-
-      if (eatenOrbs.length > 0) {
-        let changed = false;
-        for (const orbId of eatenOrbs) {
-          const idx = orbs.findIndex((o) => o.id === orbId);
-          if (idx !== -1) {
-            orbs.splice(idx, 1);
-            changed = true;
-            const sumArea =
-              Math.PI * p.radius * p.radius + Math.PI * ORB_RADIUS * ORB_RADIUS;
-
-            p.radius = Math.sqrt(sumArea / Math.PI);
-          }
-        }
-        if (changed) {
-          ensureOrbs();
-        }
-      }
-    }
-
-    handlePlayerCollisions();
-  }
-
   function broadcastState() {
     const serializedPlayers: Record<string, PlayerData> = {};
     for (const [id, state] of Object.entries(players)) {
@@ -149,8 +148,8 @@ export default fp(async function socketPlugin(fastify: FastifyInstance) {
       orbs,
     });
   }
-  let lastTime = Date.now();
 
+  let lastTime = Date.now();
   setInterval(() => {
     const now = Date.now();
     const dt = (now - lastTime) / 1000;
@@ -186,23 +185,6 @@ export default fp(async function socketPlugin(fastify: FastifyInstance) {
       const state = players[socket.id];
       if (!state) return;
       state.input = input;
-    });
-
-    socket.on("orbsEaten", (orbIds: string[]) => {
-      let changed = false;
-
-      for (const id of orbIds) {
-        const index = orbs.findIndex((o) => o.id === id);
-        if (index !== -1) {
-          orbs.splice(index, 1);
-          changed = true;
-        }
-      }
-
-      if (changed) {
-        ensureOrbs();
-        // io.sockets.emit("orbsUpdated", orbs);
-      }
     });
 
     socket.on("disconnect", (reason) => {

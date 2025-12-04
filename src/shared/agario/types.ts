@@ -1,3 +1,5 @@
+import { Player } from "./player";
+
 export interface Orb {
   id: string;
   x: number;
@@ -31,3 +33,9 @@ export interface InputState {
   mouseY: number;
   seq: number;
 }
+
+export type PlayerState = {
+  player: Player;
+  input: InputState | null;
+};
+

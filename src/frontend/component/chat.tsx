@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
-import socket from "../utils/socket";
 import { MessageCircle, X } from "lucide-react";
+import { io } from "socket.io-client";
+
+const socket = io("https://localhost:9443", {});
 
 export default function Chat() {
   const [messages, setMessages] = useState<string[]>([]);

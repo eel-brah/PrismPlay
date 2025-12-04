@@ -34,6 +34,12 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": "https://localhost:9443",
+      "/socket.io": {
+        target: "https://localhost:9443",
+        ws: true, // enable websocket proxy
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   build: {

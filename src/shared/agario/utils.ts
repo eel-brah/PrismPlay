@@ -58,21 +58,36 @@ export function drawOrbs(
   camera: Camera,
 ) {
   for (const orb of orbs) {
+    if (!isInView(orb.x, orb.y, orb.radius, camera)) continue;
+
     const sx = orb.x - camera.x;
     const sy = orb.y - camera.y;
-
-    if (
-      sx + orb.radius < 0 ||
-      sx - orb.radius > camera.width ||
-      sy + orb.radius < 0 ||
-      sy - orb.radius > camera.height
-    ) {
-      continue;
-    }
 
     ctx.beginPath();
     ctx.fillStyle = orb.color;
     ctx.arc(sx, sy, orb.radius, 0, Math.PI * 2);
     ctx.fill();
   }
+}
+
+export function isInView(
+  x: number,
+  y: number,
+  radius: number,
+  camera: Camera,
+): boolean {
+  const sx = x - camera.x;
+  const sy = y - camera.y;
+
+  const padding = 50;
+
+  if (
+    sx + radius < -padding ||
+    sx - radius > camera.width + padding ||
+    sy + radius < -padding ||
+    sy - radius > camera.height + padding
+  ) {
+    return false;
+  }
+  return true;
 }
