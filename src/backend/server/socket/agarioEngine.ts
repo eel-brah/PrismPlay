@@ -1,8 +1,12 @@
-import { MAX_ORBS, ORB_RADIUS } from "src/shared/agario/config";
+import { MAX_ORBS } from "src/shared/agario/config";
 import { Mouse, Orb, PlayerData, PlayerState } from "src/shared/agario/types";
-import { randomOrb } from "src/shared/agario/utils";
-
+import { radiusFromMass, randomOrb } from "src/shared/agario/utils";
 import type { Server as SocketIOServer } from "socket.io";
+
+const EAT_FACTOR = 1.25;
+const TICK_RATE = 50;
+const TICK_DT = 1 / TICK_RATE;
+
 export function agarioEngine(
   io: SocketIOServer,
   players: Record<string, PlayerState>,
@@ -26,6 +30,11 @@ export function agarioEngine(
 
       const mouse: Mouse = { x: input.mouseX, y: input.mouseY };
 
+      if (state.splitRequested) {
+        p.split(mouse);
+        state.splitRequested = false;
+      }
+
       const eatenOrbs = p.update(dt, mouse, orbs);
 
       if (eatenOrbs.length > 0) {
@@ -35,10 +44,6 @@ export function agarioEngine(
           if (idx !== -1) {
             orbs.splice(idx, 1);
             changed = true;
-            const sumArea =
-              Math.PI * p.radius * p.radius + Math.PI * ORB_RADIUS * ORB_RADIUS;
-
-            p.radius = Math.sqrt(sumArea / Math.PI);
           }
         }
         if (changed) {
@@ -52,62 +57,112 @@ export function agarioEngine(
 
   function handlePlayerCollisions() {
     const ids = Object.keys(players);
-    const removed = new Set<string>();
+    const removedPlayers = new Set<string>();
 
     for (let i = 0; i < ids.length; i++) {
       const idA = ids[i];
-      if (removed.has(idA)) continue;
+      if (removedPlayers.has(idA)) continue;
 
-      const a = players[idA].player;
+      const playerA = players[idA]?.player;
+      if (!playerA) continue;
 
       for (let j = i + 1; j < ids.length; j++) {
         const idB = ids[j];
-        if (removed.has(idB)) continue;
+        if (removedPlayers.has(idB)) continue;
 
-        const b = players[idB].player;
+        const playerB = players[idB]?.player;
+        if (!playerB) continue;
 
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const distance = Math.hypot(dx, dy);
+        const blobsA = playerA.blobs;
+        const blobsB = playerB.blobs;
 
-        if (distance >= a.radius + b.radius) {
-          continue;
+        if (blobsA.length === 0 || blobsB.length === 0) continue;
+
+        outer: for (let ai = 0; ai < blobsA.length; ai++) {
+          for (let bi = 0; bi < blobsB.length; bi++) {
+            const a = blobsA[ai];
+            const b = blobsB[bi];
+
+            let dx = b.x - a.x;
+            let dy = b.y - a.y;
+            let distance = Math.hypot(dx, dy);
+            const ra = radiusFromMass(a.mass);
+            const rb = radiusFromMass(b.mass);
+            const minDist = ra + rb;
+
+            if (distance === 0) {
+              dx = Math.random() - 0.5;
+              dy = Math.random() - 0.5;
+              distance = Math.hypot(dx, dy) || 1;
+            }
+
+            if (distance >= minDist) {
+              continue;
+            }
+
+            const aCanEat = a.mass >= b.mass * EAT_FACTOR;
+            const bCanEat = b.mass >= a.mass * EAT_FACTOR;
+
+            if (aCanEat || bCanEat) {
+              let eaterOwnerId: string;
+              let eatenOwnerId: string;
+              let eaterBlob: typeof a | typeof b;
+              let eatenBlobIndex: number;
+
+              if (aCanEat) {
+                eaterOwnerId = idA;
+                eatenOwnerId = idB;
+                eaterBlob = a;
+                eatenBlobIndex = bi;
+              } else {
+                eaterOwnerId = idB;
+                eatenOwnerId = idA;
+                eaterBlob = b;
+                eatenBlobIndex = ai;
+              }
+
+              const eaterPlayer = eaterOwnerId === idA ? playerA : playerB;
+              const eatenPlayer = eatenOwnerId === idA ? playerA : playerB;
+
+              const eatenBlobs = eatenPlayer.blobs;
+              const eatenBlob = eatenBlobs[eatenBlobIndex];
+              if (!eatenBlob) continue;
+
+              eaterBlob.mass += eatenBlob.mass;
+
+              eatenBlobs.splice(eatenBlobIndex, 1);
+
+              if (eatenBlobs.length === 0) {
+                removedPlayers.add(eatenOwnerId);
+              }
+
+              if (removedPlayers.has(idA) || removedPlayers.has(idB)) {
+                break outer;
+              }
+            } else {
+              const overlap = minDist - distance;
+              const nx = dx / distance;
+              const ny = dy / distance;
+
+              const totalMass = a.mass + b.mass;
+              const aWeight = b.mass / totalMass;
+              const bWeight = a.mass / totalMass;
+
+              a.x -= nx * overlap * aWeight;
+              a.y -= ny * overlap * aWeight;
+              b.x += nx * overlap * bWeight;
+              b.y += ny * overlap * bWeight;
+            }
+          }
         }
-
-        let eater: PlayerData | null = null;
-        let eatenId: string | null = null;
-
-        if (a.radius >= b.radius * 1.1) {
-          eater = a;
-          eatenId = idB;
-        } else if (b.radius >= a.radius * 1.1) {
-          eater = b;
-          eatenId = idA;
-        } else {
-          continue;
-        }
-
-        if (!eater || !eatenId) continue;
-
-        const eaten = players[eatenId].player;
-        if (!eaten) continue;
-
-        const sumArea =
-          Math.PI * eater.radius * eater.radius +
-          Math.PI * eaten.radius * eaten.radius;
-
-        eater.radius = Math.sqrt(sumArea / Math.PI);
-
-        removed.add(eatenId);
       }
     }
 
-    for (const id of removed) {
+    for (const id of removedPlayers) {
       delete players[id];
       const client = io.sockets.sockets.get(id);
       if (client) {
         client.emit("youLost", { reason: "eaten" });
-        // client.disconnect(true);
       }
     }
   }
@@ -116,6 +171,7 @@ export function agarioEngine(
     const serializedPlayers: Record<string, PlayerData> = {};
     for (const [id, state] of Object.entries(players)) {
       serializedPlayers[id] = state.player.serialize();
+      // console.log(serializedPlayers[id]);
     }
 
     io.sockets.emit("heartbeat", {
@@ -125,13 +181,22 @@ export function agarioEngine(
   }
 
   let lastTime = Date.now();
+  let accumulator = 0;
+
   setInterval(() => {
     const now = Date.now();
-    const dt = (now - lastTime) / 1000;
+    let frameDt = (now - lastTime) / 1000;
     lastTime = now;
 
-    simulate(dt);
-    ensureOrbs();
+    frameDt = Math.min(frameDt, 0.1);
+    accumulator += frameDt;
+
+    while (accumulator >= TICK_DT) {
+      simulate(TICK_DT);
+      ensureOrbs();
+      accumulator -= TICK_DT;
+    }
+
     broadcastState();
-  }, 10);
+  }, 1000 / TICK_RATE);
 }

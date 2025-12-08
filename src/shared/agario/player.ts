@@ -1,50 +1,101 @@
 import {
-  INIT_RADIUS,
-  MAP_HEIGHT,
+  Camera,
+  Mouse,
+  Orb,
+  PlayerData,
+  BlobData,
+} from "@/../shared/agario/types";
+import { darkenHex, radiusFromMass } from "@/../shared/agario/utils";
+import {
   MAP_WIDTH,
+  MAP_HEIGHT,
   MAX_SPEED,
   MIN_SPEED,
-  ORB_RADIUS,
-} from "./config.js";
-import { Camera, Mouse, Orb, PlayerData } from "./types.js";
-import { darkenHex } from "./utils.js";
+  INIT_MASS,
+} from "@/../shared/agario/config";
+import { isInView } from "@/game/agario/utils";
+
+interface BlobCell extends BlobData {
+  vx: number;
+  vy: number;
+  mergeCooldown: number;
+}
+
+const MAX_BLOBS_PER_PLAYER = 16;
+const MIN_SPLIT_MASS = INIT_MASS * 4;
+const MERGE_COOLDOWN = 20;
+const SPLIT_LAUNCH_SPEED = 700;
+const SPLIT_FRICTION = 3;
 
 export class Player {
   private _id: string;
   private _name: string;
-  private _x: number;
-  private _y: number;
-  private _radius: number;
   private _color: string;
+  private _blobs: BlobCell[];
 
-  constructor(id: string, name: string, x: number, y: number, color: string) {
+  constructor(id: string, name: string, color: string, blobs?: BlobData[]) {
     this._id = id;
     this._name = name;
-    this._x = x;
-    this._y = y;
-    this._radius = INIT_RADIUS;
     this._color = color;
+
+    if (blobs && blobs.length > 0) {
+      this._blobs = blobs.map((b) => this.fromBlobData(b));
+    } else {
+      this._blobs = [
+        {
+          id: `${id}-0`,
+          // TODO: random
+          x: MAP_WIDTH / 2,
+          y: MAP_HEIGHT / 2,
+          mass: INIT_MASS,
+          vx: 0,
+          vy: 0,
+          mergeCooldown: 0,
+        },
+      ];
+    }
   }
 
-  get x(): number {
-    return this._x;
-  }
-  set x(x: number) {
-    this._x = x;
+  private fromBlobData(b: BlobData): BlobCell {
+    return {
+      id: b.id,
+      x: b.x,
+      y: b.y,
+      mass: b.mass,
+      vx: b.vx,
+      vy: b.vy,
+      mergeCooldown: b.mergeCooldown,
+    };
   }
 
   get y(): number {
-    return this._y;
-  }
-  set y(y: number) {
-    this._y = y;
+    if (this._blobs.length === 0) return 0;
+    let massSum = 0;
+    let ySum = 0;
+    for (const b of this._blobs) {
+      massSum += b.mass;
+      ySum += b.y * b.mass;
+    }
+    return ySum / massSum;
   }
 
-  get radius(): number {
-    return this._radius;
+  get x(): number {
+    if (this._blobs.length === 0) return 0;
+    let massSum = 0;
+    let xSum = 0;
+    for (const b of this._blobs) {
+      massSum += b.mass;
+      xSum += b.x * b.mass;
+    }
+    return xSum / massSum;
   }
-  set radius(radius: number) {
-    this._radius = radius;
+
+  get blobs(): BlobCell[] {
+    return this._blobs;
+  }
+
+  set blobs(blobs: BlobCell[]) {
+    this._blobs = blobs;
   }
 
   get name(): string {
@@ -54,25 +105,42 @@ export class Player {
   get id(): string {
     return this._id;
   }
+
   get color(): string {
     return this._color;
   }
 
-  serialize() {
+  updateFromData(data: PlayerData) {
+    this._name = data.name;
+    this._color = data.color;
+    this._blobs = data.blobs.map((b) => this.fromBlobData(b));
+  }
+
+  serialize(): PlayerData {
     return {
       id: this._id,
       name: this._name,
-      x: this._x,
-      y: this._y,
-      radius: this._radius,
       color: this._color,
+      blobs: this._blobs.map((b) => ({
+        id: b.id,
+        x: b.x,
+        y: b.y,
+        mass: b.mass,
+        vx: b.vx,
+        vy: b.vy,
+        mergeCooldown: b.mergeCooldown,
+      })),
     };
   }
 
   static deserialize(data: PlayerData): Player {
-    const p = new Player(data.id, data.name, data.x, data.y, data.color);
-    p.radius = data.radius;
-    return p;
+    return new Player(data.id, data.name, data.color, data.blobs);
+  }
+
+  private clampBlobToMap(blob: BlobCell) {
+    const r = radiusFromMass(blob.mass);
+    blob.x = Math.max(r, Math.min(MAP_WIDTH - r, blob.x));
+    blob.y = Math.max(r, Math.min(MAP_HEIGHT - r, blob.y));
   }
 
   update(
@@ -81,52 +149,140 @@ export class Player {
     orbs: Orb[],
     isDead: boolean = false,
   ): string[] {
-    const dx = mouse.x - this._x;
-    const dy = mouse.y - this._y;
-    const distance = Math.hypot(dx, dy);
+    // if (isDead || this._blobs.length === 0) return [];
 
-    if (distance > 1) {
-      const dirX = dx / distance;
-      const dirY = dy / distance;
+    const blobs = this._blobs;
 
-      //TODO: improve
-      const baseSpeed = Math.min(MAX_SPEED, Math.max(MIN_SPEED, distance * 2));
-      const sizeFactor = this.radius / INIT_RADIUS;
-      const speed = baseSpeed / sizeFactor;
+    const frictionDecay = Math.exp(-SPLIT_FRICTION * dt);
 
-      // const baseSpeed = Math.min(MAX_SPEED, Math.max(MIN_SPEED, distance * 2));
-      // const speed = baseSpeed / Math.log(this.radius );
+    for (const blob of blobs) {
+      if (blob.mergeCooldown > 0) {
+        blob.mergeCooldown = Math.max(0, blob.mergeCooldown - dt);
+      }
 
-      this._x += dirX * speed * dt;
-      this._y += dirY * speed * dt;
+      if (blob.vx !== 0 || blob.vy !== 0) {
+        blob.x += blob.vx * dt;
+        blob.y += blob.vy * dt;
+
+        blob.vx *= frictionDecay;
+        blob.vy *= frictionDecay;
+
+        if (Math.abs(blob.vx) < 1) blob.vx = 0;
+        if (Math.abs(blob.vy) < 1) blob.vy = 0;
+      }
     }
 
-    this._x = Math.max(
-      this._radius,
-      Math.min(MAP_WIDTH - this._radius, this._x),
-    );
-    this._y = Math.max(
-      this._radius,
-      Math.min(MAP_HEIGHT - this._radius, this._y),
-    );
+    for (const blob of blobs) {
+      const dx = mouse.x - blob.x;
+      const dy = mouse.y - blob.y;
+      const distance = Math.hypot(dx, dy);
+
+      if (distance > 1) {
+        const dirX = dx / distance;
+        const dirY = dy / distance;
+
+        const baseSpeed = Math.min(
+          MAX_SPEED,
+          Math.max(MIN_SPEED, distance * 2),
+        );
+        const sizeFactor = Math.sqrt(blob.mass / INIT_MASS);
+        const speed = baseSpeed / sizeFactor;
+
+        blob.x += dirX * speed * dt;
+        blob.y += dirY * speed * dt;
+      }
+
+      this.clampBlobToMap(blob);
+    }
+
+    for (let i = 0; i < blobs.length; i++) {
+      let a = blobs[i];
+
+      for (let j = i + 1; j < blobs.length; ) {
+        const b = blobs[j];
+
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+        let dist = Math.hypot(dx, dy);
+        const ra = radiusFromMass(a.mass);
+        const rb = radiusFromMass(b.mass);
+        const minDist = ra + rb;
+
+        if (dist === 0) {
+          dx = Math.random() - 0.5;
+          dy = Math.random() - 0.5;
+          dist = Math.hypot(dx, dy) || 1;
+        }
+
+        if (dist < minDist) {
+          const overlap = minDist - dist;
+          const nx = dx / dist;
+          const ny = dy / dist;
+
+          const canMerge = a.mergeCooldown <= 0 && b.mergeCooldown <= 0;
+
+          if (canMerge) {
+            const totalMass = a.mass + b.mass;
+
+            const newX = (a.x * a.mass + b.x * b.mass) / totalMass;
+            const newY = (a.y * a.mass + b.y * b.mass) / totalMass;
+            const newVx = (a.vx * a.mass + b.vx * b.mass) / totalMass;
+            const newVy = (a.vy * a.mass + b.vy * b.mass) / totalMass;
+
+            a.x = newX;
+            a.y = newY;
+            a.vx = newVx;
+            a.vy = newVy;
+            a.mass = totalMass;
+            a.mergeCooldown = 0;
+
+            this.clampBlobToMap(a);
+
+            blobs.splice(j, 1);
+            continue;
+          } else {
+            const totalMass = a.mass + b.mass;
+            const aWeight = b.mass / totalMass;
+            const bWeight = a.mass / totalMass;
+
+            a.x -= nx * overlap * aWeight;
+            a.y -= ny * overlap * aWeight;
+            b.x += nx * overlap * bWeight;
+            b.y += ny * overlap * bWeight;
+
+            this.clampBlobToMap(a);
+            this.clampBlobToMap(b);
+          }
+        }
+
+        j++;
+      }
+    }
 
     if (isDead) return [];
 
     const eatenOrbs: string[] = [];
+
     for (const orb of orbs) {
-      const odx = orb.x - this._x;
-      const ody = orb.y - this._y;
-      const odistance = Math.hypot(odx, ody);
+      const orbRadius = radiusFromMass(orb.mass);
+      for (const blob of blobs) {
+        const odx = orb.x - blob.x;
+        const ody = orb.y - blob.y;
+        const odistance = Math.hypot(odx, ody);
 
-      if (odistance < this._radius + orb.radius) {
-        eatenOrbs.push(orb.id);
+        const br = radiusFromMass(blob.mass);
 
-        //TODO: update max
-        if (this._radius < 200) {
-          const sum =
-            Math.PI * this._radius * this._radius +
-            Math.PI * ORB_RADIUS * ORB_RADIUS;
-          this._radius = Math.sqrt(sum / Math.PI);
+        if (odistance < br + orbRadius) {
+          eatenOrbs.push(orb.id);
+
+          blob.mass += orb.mass;
+          const r = radiusFromMass(blob.mass);
+          if (r > 200) {
+            const cappedMass = Math.PI * 200 * 200;
+            blob.mass = cappedMass;
+          }
+
+          break;
         }
       }
     }
@@ -135,25 +291,79 @@ export class Player {
   }
 
   draw(ctx: CanvasRenderingContext2D, camera: Camera) {
-    const screenX = this._x - camera.x;
-    const screenY = this._y - camera.y;
+    for (const blob of this._blobs) {
+      const r = radiusFromMass(blob.mass);
+      if (!isInView(blob.x, blob.y, r, camera)) continue;
 
-    ctx.beginPath();
-    ctx.arc(screenX, screenY, this._radius, 0, Math.PI * 2);
+      const screenX = blob.x - camera.x;
+      const screenY = blob.y - camera.y;
 
-    ctx.fillStyle = this._color;
-    ctx.fill();
+      ctx.beginPath();
+      ctx.arc(screenX, screenY, r, 0, Math.PI * 2);
 
-    ctx.strokeStyle = darkenHex(this._color);
-    ctx.lineWidth = 7 + this._radius * 0.05;
-    ctx.stroke();
+      ctx.fillStyle = this._color;
+      ctx.fill();
 
-    ctx.fillStyle = "black";
-    //TODO: better font
-    ctx.font = `bold ${this._radius * 0.3}px Market, "Helvetica Neue", Arial, sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+      ctx.strokeStyle = darkenHex(this._color);
+      ctx.lineWidth = 7 + r * 0.05;
+      ctx.stroke();
 
-    ctx.fillText(this._name, screenX, screenY);
+      ctx.fillStyle = "black";
+      ctx.font = `bold ${r * 0.5}px Market, "Helvetica Neue", Arial, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(this._name, screenX, screenY);
+    }
+  }
+
+  split(mouse: Mouse) {
+    if (this._blobs.length >= MAX_BLOBS_PER_PLAYER) return;
+    if (this._blobs.length === 0) return;
+
+    const newBlobs: BlobCell[] = [];
+
+    for (const blob of this._blobs) {
+      if (this._blobs.length + newBlobs.length >= MAX_BLOBS_PER_PLAYER) break;
+
+      if (blob.mass < MIN_SPLIT_MASS) continue;
+
+      let dx = mouse.x - blob.x;
+      let dy = mouse.y - blob.y;
+      let dist = Math.hypot(dx, dy);
+      if (dist < 1e-3) {
+        dx = Math.random() - 0.5;
+        dy = Math.random() - 0.5;
+        dist = Math.hypot(dx, dy) || 1;
+      }
+      const dirX = dx / dist;
+      const dirY = dy / dist;
+
+      const newMass = blob.mass / 2;
+
+      blob.mass = newMass;
+      blob.mergeCooldown = MERGE_COOLDOWN;
+
+      const r = radiusFromMass(newMass);
+      const offset = r * 2.2;
+
+      const child: BlobCell = {
+        id: `${this._id}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        x: Math.max(r, Math.min(MAP_WIDTH - r, blob.x + dirX * offset)),
+        y: Math.max(r, Math.min(MAP_HEIGHT - r, blob.y + dirY * offset)),
+        mass: newMass,
+        vx: dirX * SPLIT_LAUNCH_SPEED,
+        vy: dirY * SPLIT_LAUNCH_SPEED,
+        mergeCooldown: MERGE_COOLDOWN,
+      };
+
+      blob.vx -= dirX * SPLIT_LAUNCH_SPEED * 0.25;
+      blob.vy -= dirY * SPLIT_LAUNCH_SPEED * 0.25;
+
+      newBlobs.push(child);
+    }
+
+    if (newBlobs.length > 0) {
+      this._blobs.push(...newBlobs);
+    }
   }
 }

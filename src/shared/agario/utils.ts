@@ -1,4 +1,4 @@
-import { MAP_HEIGHT, MAP_WIDTH, ORB_RADIUS } from "./config";
+import { MAP_HEIGHT, MAP_WIDTH, ORB_MASS } from "./config";
 import { Camera, Orb } from "./types";
 
 export function darkenHex(color: string, amount = 0.3): string {
@@ -40,7 +40,7 @@ export function randomOrb(): Orb {
     id: randomId(),
     x: Math.random() * MAP_WIDTH,
     y: Math.random() * MAP_HEIGHT,
-    radius: ORB_RADIUS,
+    mass: ORB_MASS,
     color: randomColor(),
   };
 }
@@ -58,14 +58,16 @@ export function drawOrbs(
   camera: Camera,
 ) {
   for (const orb of orbs) {
-    if (!isInView(orb.x, orb.y, orb.radius, camera)) continue;
+    const r = radiusFromMass(orb.mass);
+
+    if (!isInView(orb.x, orb.y, r, camera)) continue;
 
     const sx = orb.x - camera.x;
     const sy = orb.y - camera.y;
 
     ctx.beginPath();
     ctx.fillStyle = orb.color;
-    ctx.arc(sx, sy, orb.radius, 0, Math.PI * 2);
+    ctx.arc(sx, sy, r, 0, Math.PI * 2);
     ctx.fill();
   }
 }
@@ -90,4 +92,8 @@ export function isInView(
     return false;
   }
   return true;
+}
+
+export function radiusFromMass(mass: number): number {
+  return Math.sqrt(mass / Math.PI);
 }

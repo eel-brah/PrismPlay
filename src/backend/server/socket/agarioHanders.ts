@@ -1,3 +1,4 @@
+// src/server/agarioHanders.ts
 import { FastifyInstance } from "fastify";
 import { Socket } from "socket.io";
 import { MAP_HEIGHT, MAP_WIDTH } from "src/shared/agario/config";
@@ -17,14 +18,13 @@ export function agarioHandlers(
     const newPlayer = new Player(
       socket.id,
       data.name,
-      MAP_WIDTH / 2,
-      MAP_HEIGHT / 2,
       randomColor(),
     );
 
     players[socket.id] = {
       player: newPlayer,
       input: null,
+      splitRequested: false, 
     };
 
     socket.emit("joined", newPlayer.serialize());
@@ -34,6 +34,12 @@ export function agarioHandlers(
     const state = players[socket.id];
     if (!state) return;
     state.input = input;
+  });
+
+  socket.on("split", () => {
+    const state = players[socket.id];
+    if (!state) return;
+    state.splitRequested = true;
   });
 
   socket.on("disconnect", (reason) => {

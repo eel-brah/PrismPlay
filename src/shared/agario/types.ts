@@ -4,8 +4,25 @@ export interface Orb {
   id: string;
   x: number;
   y: number;
-  radius: number;
+  mass: number;
   color: string;
+}
+
+export interface BlobData {
+  id: string;
+  x: number;
+  y: number;
+  mass: number;
+  vx: number;
+  vy: number;
+  mergeCooldown: number;
+}
+
+export interface PlayerData {
+  id: string;
+  name: string;
+  color: string;
+  blobs: BlobData[];
 }
 
 export interface Mouse {
@@ -20,22 +37,15 @@ export interface Camera {
   height: number;
 }
 
-export interface PlayerData {
-  id: string;
-  name: string;
-  x: number;
-  y: number;
-  radius: number;
-  color: string;
-}
 export interface InputState {
   mouseX: number;
   mouseY: number;
   seq: number;
 }
 
-export type PlayerState = {
+export interface PlayerState {
   player: Player;
   input: InputState | null;
-};
+  splitRequested: boolean;
+}
 

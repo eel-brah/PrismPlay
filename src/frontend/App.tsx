@@ -3,7 +3,7 @@ import React from "react";
 import Pong from "./component/Pong";
 import MyImage from "/pics/start.png";
 import Chat from "./component/chat";
-import Agario from "./component/agario";
+import Agario from "./component/Agario";
 import { Routes, Route } from "react-router-dom";
 
 export default function App() {

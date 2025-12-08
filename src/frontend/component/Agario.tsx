@@ -2,14 +2,21 @@ import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { MAP_HEIGHT, MAP_WIDTH } from "@/../shared/agario/config";
 import { Player } from "@/../shared/agario/player";
-import { Camera, InputState, Mouse, Orb, PlayerData } from "@/../shared/agario/types";
+import {
+  Camera,
+  InputState,
+  Mouse,
+  Orb,
+  PlayerData,
+} from "@/../shared/agario/types";
 import { drawOrbs } from "@/../shared/agario/utils";
-import { drawGrid, isInView } from "@/game/agario/utils";
+import { drawGrid } from "@/game/agario/utils";
 
 const Agario = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationIdRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
+  const socketRef = useRef<ReturnType<typeof io> | null>(null);
 
   const playerRef = useRef<Player | null>(null);
   const orbsRef = useRef<Orb[]>([]);
@@ -18,10 +25,14 @@ const Agario = () => {
   const enemiesRef = useRef<Record<string, Player>>({});
   const inputSeqRef = useRef(0);
   const isDeadRef = useRef(false);
+
+  const [playerName, setPlayerName] = useState("");
+  const [hasJoined, setHasJoined] = useState(false);
   const [gameOver, setGameOver] = useState(false);
 
   useEffect(() => {
     const socket = io({ path: "/socket.io" });
+    socketRef.current = socket;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -30,7 +41,7 @@ const Agario = () => {
 
     resizeCanvas();
 
-    function initCameraForPlayer() {
+    function initCam() {
       if (!canvas || !playerRef.current) return;
       cameraRef.current = {
         x: playerRef.current.x - canvas.width / 2,
@@ -47,18 +58,28 @@ const Agario = () => {
 
     socket.on("connect", () => {
       console.log("Connected to server with socket id:", socket.id);
-      socket.emit("join", {
-        name: "Player-" + Math.floor(Math.random() * 1000),
-      });
     });
 
     socket.on("joined", (data: PlayerData) => {
       playerRef.current = Player.deserialize(data);
-      console.log("Joined game as", playerRef.current.id, " named: ", playerRef.current.name);
-      initCameraForPlayer();
+      console.log(
+        "Joined game as",
+        playerRef.current.id,
+        " named: ",
+        playerRef.current.name,
+      );
+
+      isDeadRef.current = false;
+      setGameOver(false);
+      setHasJoined(true);
+
+      enemiesRef.current = {};
+      orbsRef.current = [];
+
+      initCam();
     });
 
-    //TODO: prediction reconciliation
+    //TODO: prediction + reconciliation
     socket.on(
       "heartbeat",
       (data: { players: Record<string, PlayerData>; orbs: Orb[] }) => {
@@ -70,9 +91,7 @@ const Agario = () => {
           if (!playerRef.current) {
             playerRef.current = Player.deserialize(myData);
           } else {
-            playerRef.current.x = myData.x;
-            playerRef.current.y = myData.y;
-            playerRef.current.radius = myData.radius;
+            playerRef.current.updateFromData(myData);
           }
         }
 
@@ -80,9 +99,7 @@ const Agario = () => {
           if (id === myId) continue;
 
           if (enemiesRef.current[id]) {
-            enemiesRef.current[id].x = pData.x;
-            enemiesRef.current[id].y = pData.y;
-            enemiesRef.current[id].radius = pData.radius;
+            enemiesRef.current[id].updateFromData(pData);
           } else {
             enemiesRef.current[id] = Player.deserialize(pData);
           }
@@ -122,8 +139,19 @@ const Agario = () => {
       mouseRef.current.y = e.clientY - rect.top;
     }
 
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.repeat) return;
+      if (e.code === "Space" || e.key === " ") {
+        e.preventDefault();
+        const sock = socketRef.current;
+        if (!sock || isDeadRef.current) return;
+        sock.emit("split");
+      }
+    }
+
     window.addEventListener("resize", handleResize);
     window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("keydown", handleKeyDown);
 
     function update(dt: number) {
       const player = playerRef.current;
@@ -137,11 +165,13 @@ const Agario = () => {
         y: mouseRef.current.y + camera.y,
       };
 
-      // local prediction
+      // local prediction 
       const eatenOrbs = player.update(dt, worldMouse, orbs, isDeadRef.current);
       if (eatenOrbs.length > 0) {
         const eatenSet = new Set(eatenOrbs);
-        orbsRef.current = orbsRef.current.filter((o) => !eatenSet.has(o.id));
+        orbsRef.current = orbsRef.current.filter(
+          (o) => !eatenSet.has(o.id),
+        );
       }
 
       camera.x = player.x - camera.width / 2;
@@ -174,11 +204,8 @@ const Agario = () => {
       player.draw(ctx, camera);
 
       for (const enemy of Object.values(enemiesRef.current)) {
-        if (!isInView(enemy.x, enemy.y, enemy.radius, camera))
-          continue;
         enemy.draw(ctx, camera);
       }
-
     }
 
     function gameLoop(now: number) {
@@ -199,6 +226,7 @@ const Agario = () => {
     return () => {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("keydown", handleKeyDown);
       if (animationIdRef.current !== null) {
         cancelAnimationFrame(animationIdRef.current);
       }
@@ -222,23 +250,84 @@ const Agario = () => {
     canvas.height = Math.round(height * dpr);
 
     const ctx = canvas.getContext("2d");
-    if (ctx)
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function handleJoin() {
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    let pName = playerName;
+    if (playerName.length > 6) pName = playerName.slice(0, 6);
+    setPlayerName(pName.trim());
+    const name = pName || "Player-" + Math.floor(Math.random() * 1000);
+
+    socket.emit("join", { name });
+  }
+
+  function handleRespawn() {
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    const name =
+      playerName || "Player-" + Math.floor(Math.random() * 1000);
+
+    isDeadRef.current = false;
+    setGameOver(false);
+
+    socket.emit("join", { name });
   }
 
   return (
     <div className="fixed inset-0">
-      {gameOver && (
+      {!hasJoined && (
+        <div className="absolute inset-0 flex flex-col justify-center items-center gap-4">
+          <h1 className="text-4xl mb-4 font-bold text-gray-800">Agario</h1>
+
+          <input
+            className="
+            px-4 py-2
+            rounded-md
+            border-2 border-gray-400
+            text-black text-xl
+            bg-white
+            focus:outline-none
+            focus:border-gray-600
+            placeholder-gray-500
+          "
+            placeholder="Name (max 6)"
+            maxLength={6}
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+          />
+
+          <button
+            onClick={handleJoin}
+            className="
+            mt-2 px-6 py-3
+            bg-gray-300 text-black
+            rounded-md text-xl
+            hover:bg-gray-400
+            transition
+          "
+          >
+            Join
+          </button>
+        </div>
+      )}
+
+      {hasJoined && gameOver && (
         <div className="absolute inset-0 bg-black/70 flex flex-col justify-center items-center text-white text-4xl">
           <div>You Died</div>
           <button
-            // onClick={handleRespawn}
-            className="mt-4 px-6 py-3 bg-white text-black rounded-md text-xl"
+            onClick={handleRespawn}
+            className="mt-4 px-6 py-3 bg-white text-black rounded-md text-xl hover:bg-gray-200"
           >
             Respawn
           </button>
         </div>
       )}
+
       <canvas
         ref={canvasRef}
         id="agario"
