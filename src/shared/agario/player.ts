@@ -5,15 +5,16 @@ import {
   PlayerData,
   BlobData,
 } from "@/../shared/agario/types";
-import { darkenHex, radiusFromMass } from "@/../shared/agario/utils";
+import { darkenHex, isInView, radiusFromMass } from "@/../shared/agario/utils";
 import {
   MAP_WIDTH,
   MAP_HEIGHT,
   MAX_SPEED,
   MIN_SPEED,
   INIT_MASS,
+  MASS_FROM_ORBS,
+  MAXIMUM_MASS_LIMIT,
 } from "@/../shared/agario/config";
-import { isInView } from "@/game/agario/utils";
 
 interface BlobCell extends BlobData {
   vx: number;
@@ -275,18 +276,28 @@ export class Player {
         if (odistance < br + orbRadius) {
           eatenOrbs.push(orb.id);
 
-          blob.mass += orb.mass;
-          const r = radiusFromMass(blob.mass);
-          if (r > 200) {
-            const cappedMass = Math.PI * 200 * 200;
-            blob.mass = cappedMass;
-          }
+          blob.mass += MASS_FROM_ORBS;
+
+          if(blob.mass > MAXIMUM_MASS_LIMIT)
+            blob.mass =MAXIMUM_MASS_LIMIT;
+          // const r = radiusFromMass(blob.mass);
+          // if (r > 200) {
+            // const cappedMass = Math.PI * 200 * 200;
+            // blob.mass = cappedMass;
+          // }
 
           break;
         }
       }
     }
 
+    // Mass decay (0.2% per second)
+    const decayFactor = Math.pow(0.998, dt);
+    for (const blob of this._blobs) {
+      blob.mass *= decayFactor;
+      if (blob.mass < INIT_MASS) blob.mass = INIT_MASS;
+    }
+    
     return eatenOrbs;
   }
 

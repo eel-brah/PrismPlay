@@ -1,11 +1,20 @@
-import { MAX_ORBS } from "src/shared/agario/config";
-import { Mouse, Orb, PlayerData, PlayerState } from "src/shared/agario/types";
+import { MAX_ORBS, MAXIMUM_MASS_LIMIT } from "src/shared/agario/config";
+import {
+  BlobData,
+  Mouse,
+  Orb,
+  PlayerData,
+  PlayerState,
+} from "src/shared/agario/types";
 import { radiusFromMass, randomOrb } from "src/shared/agario/utils";
 import type { Server as SocketIOServer } from "socket.io";
+import { Player } from "src/shared/agario/player";
 
-const EAT_FACTOR = 1.25;
 const TICK_RATE = 50;
 const TICK_DT = 1 / TICK_RATE;
+
+const SINGLE_EAT_FACTOR = 1.25;
+const SPLIT_EAT_FACTOR = 1.33;
 
 export function agarioEngine(
   io: SocketIOServer,
@@ -16,6 +25,14 @@ export function agarioEngine(
     while (orbs.length < MAX_ORBS) {
       orbs.push(randomOrb());
     }
+  }
+  function canEat(
+    attacker: BlobData,
+    defender: BlobData,
+    attackerBlobs: number,
+  ) {
+    const required = attackerBlobs === 1 ? SINGLE_EAT_FACTOR : SPLIT_EAT_FACTOR;
+    return attacker.mass >= defender.mass * required;
   }
 
   function simulate(dt: number) {
@@ -100,8 +117,8 @@ export function agarioEngine(
               continue;
             }
 
-            const aCanEat = a.mass >= b.mass * EAT_FACTOR;
-            const bCanEat = b.mass >= a.mass * EAT_FACTOR;
+            const aCanEat = canEat(a, b, blobsA.length);
+            const bCanEat = canEat(b, a, blobsB.length);
 
             if (aCanEat || bCanEat) {
               let eaterOwnerId: string;
@@ -129,6 +146,8 @@ export function agarioEngine(
               if (!eatenBlob) continue;
 
               eaterBlob.mass += eatenBlob.mass;
+              if (eaterBlob.mass > MAXIMUM_MASS_LIMIT)
+                eaterBlob.mass = MAXIMUM_MASS_LIMIT;
 
               eatenBlobs.splice(eatenBlobIndex, 1);
 
@@ -172,6 +191,7 @@ export function agarioEngine(
     for (const [id, state] of Object.entries(players)) {
       serializedPlayers[id] = state.player.serialize();
       // console.log(serializedPlayers[id]);
+      console.log(serializedPlayers[id].blobs[0].mass);
     }
 
     io.sockets.emit("heartbeat", {

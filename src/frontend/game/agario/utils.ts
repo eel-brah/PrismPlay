@@ -1,26 +1,5 @@
 import { Camera } from "src/shared/agario/types";
 
-export function isInView(
-  x: number,
-  y: number,
-  radius: number,
-  camera: Camera,
-): boolean {
-  const sx = x - camera.x;
-  const sy = y - camera.y;
-
-  const padding = 50;
-
-  if (
-    sx + radius < -padding ||
-    sx - radius > camera.width + padding ||
-    sy + radius < -padding ||
-    sy - radius > camera.height + padding
-  ) {
-    return false;
-  }
-  return true;
-}
 export function drawGrid(
   ctx: CanvasRenderingContext2D,
   camera: Camera,
