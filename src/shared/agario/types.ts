@@ -16,6 +16,7 @@ export interface BlobData {
   vx: number;
   vy: number;
   mergeCooldown: number;
+  splitOrder: number;
 }
 
 export interface PlayerData {
@@ -48,4 +49,3 @@ export interface PlayerState {
   input: InputState | null;
   splitRequested: boolean;
 }
-
