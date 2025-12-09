@@ -1,20 +1,23 @@
 // App.tsx
 import React, { useState } from "react";
 import Pong from "./component/Pong";
-import MyImage from "/pics/start.png";
 import LoginPage from "./component/LoginPage";
 import LoginForm from "./component/LoginForm";
 import RegisterForm from "./component/RegisterForm";
+import SocialHub from "./component/SocialHub";
 
 export default function App() {
   const [page, setPage] = useState<
-    "login" | "loginForm" | "register" | "landing" | "offline" | "online" | "tournament"
+    "login" | "loginForm" | "register" | "landing" | "landingGuest" | "offline" | "online" | "tournament"
   >("login");
+  const [sessionMode, setSessionMode] = useState<"guest" | "user" | null>(null);
   const isLogin = page === "login";
   const isLoginForm = page === "loginForm";
   const isRegister = page === "register";
   const isLanding = page === "landing";
+  const isLandingGuest = page === "landingGuest";
   const isOffline = page === "offline";
+  const [showSocial, setShowSocial] = useState(false);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
@@ -27,8 +30,13 @@ export default function App() {
       >
         <LoginPage
           onContinue={(mode) => {
-            // Login goes to form; Guest goes directly to landing
-            setPage(mode === "login" ? "loginForm" : "landing");
+            if (mode === "login") {
+              setSessionMode(null);
+              setPage("loginForm");
+            } else {
+              setSessionMode("guest");
+              setPage("landingGuest");
+            }
           }}
         />
       </div>
@@ -43,6 +51,7 @@ export default function App() {
         <LoginForm
           onSubmit={() => {
             // Frontend-only: after "login" just go to landing
+            setSessionMode("user");
             setPage("landing");
           }}
           onReturn={() => setPage("login")}
@@ -60,6 +69,7 @@ export default function App() {
         <RegisterForm
           onSubmit={() => {
             // Frontend-only: after "register" go to landing
+            setSessionMode("user");
             setPage("landing");
           }}
           onReturn={() => setPage("loginForm")}
@@ -73,8 +83,16 @@ export default function App() {
         }`}
         aria-hidden={!isLanding}
       >
-        {/* Return to Login */}
-        <div className="absolute top-4 right-4 z-50">
+        {/* Top-right controls */}
+        <div className="absolute top-4 right-4 z-50 flex gap-2">
+          {sessionMode === "user" && (
+            <button
+              onClick={() => setShowSocial(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all"
+            >
+              Social
+            </button>
+          )}
           <button
             onClick={() => setPage("login")}
             className="bg-gray-800/80 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-all"
@@ -141,26 +159,67 @@ export default function App() {
         </div>
       </div>
 
+      {/* Social Hub Overlay – only for logged-in users */}
+      {sessionMode === "user" && (
+        <div
+          className={`fixed top-0 right-0 h-full w-full sm:w-[480px] md:w-[clamp(520px,40vw,900px)] border-l border-gray-700 shadow-2xl page-transition ${
+            showSocial ? "page-shown pointer-events-auto" : "page-hidden"
+          }`}
+          aria-hidden={!showSocial}
+        >
+          <SocialHub onClose={() => setShowSocial(false)} />
+        </div>
+      )}
+
+      {/* Guest Landing View (Offline-only) */}
+      <div
+        className={`absolute inset-0 flex flex-col items-center justify-center p-8 page-transition ${
+          isLandingGuest ? "page-shown pointer-events-auto" : "page-hidden"
+        }`}
+        aria-hidden={!isLandingGuest}
+      >
+        {/* Return to Login */}
+        <div className="absolute top-4 right-4 z-50">
+          <button
+            onClick={() => setPage("login")}
+            className="bg-gray-800/80 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-all"
+          >
+            Return
+          </button>
+        </div>
+        <h1 className="text-4xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+          Guest Mode
+        </h1>
+        <p className="text-gray-300 mb-8">Only offline mode is available</p>
+
+        <div className="grid grid-cols-1 gap-6 w-full max-w-3xl">
+          {/* Offline Mode Only */}
+          <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-gray-700">
+            <h2 className="text-xl font-semibold text-green-400 mb-2">Offline Mode</h2>
+            <p className="text-gray-300 mb-4">Play against AI opponent</p>
+            <ul className="text-sm text-gray-400 mb-6 space-y-1">
+              <li>• Practice your skills</li>
+              <li>• Adjustable AI difficulty</li>
+              <li>• No internet required</li>
+            </ul>
+            <button
+              onClick={() => setPage("offline")}
+              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
+            >
+              Play Offline
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Offline View */}
       <div
-        className={`absolute inset-0 flex page-transition ${
+        className={`absolute inset-0 flex items-center justify-center p-8 page-transition ${
           isOffline ? "page-shown pointer-events-auto" : "page-hidden"
         }`}
         aria-hidden={!isOffline}
       >
-        {/* Left 60% – image */}
-        <div className="w-3/5 flex items-center justify-center p-4">
-          <img
-            src={MyImage}
-            alt="Start screen"
-            className="object-contain max-w-full max-h-full"
-          />
-        </div>
-
-        {/* Right 40% – Pong component (handles its own full-screen mode) */}
-        <div className="w-2/5 flex items-center justify-center p-4">
-          <Pong onReturn={() => setPage("landing")} />
-        </div>
+        <Pong onReturn={() => setPage(sessionMode === "guest" ? "landingGuest" : "landing")} />
       </div>
     </div>
   );
