@@ -66,7 +66,7 @@ class Particle {
   }
 }
 
-const Pong: React.FC = () => {
+const Pong: React.FC<{ onReturn?: () => void }> = ({ onReturn }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [gameMode, setGameMode] = useState<"menu" | "playing">("menu");
   const [isSingle, setIsSingle] = useState<boolean>(false);
@@ -497,19 +497,22 @@ useEffect(() => {
     document.addEventListener("keyup", handleKeyUp, { passive: false });
     animationId = requestAnimationFrame(gameLoop);
 
-    // Optional: Resize canvas to fit container while preserving aspect ratio
+    
     const resizeCanvas = () => {
       if (!canvasRef.current?.parentElement) return;
       const parent = canvasRef.current.parentElement;
       const rect = parent.getBoundingClientRect();
       const ratio = 810 / 600;
+      const scale = 0.80; 
+      const effectiveScale = Math.min(scale, 1);
       let w = rect.width;
       let h = rect.height;
       if (w / h > ratio) w = h * ratio;
       else h = w / ratio;
 
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
+      
+      canvas.style.width = `${w * effectiveScale}px`;
+      canvas.style.height = `${h * effectiveScale}px`;
     };
 
     const observer = new ResizeObserver(resizeCanvas);
@@ -530,7 +533,7 @@ useEffect(() => {
       {gameMode === "menu" && (
         <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-8 shadow-2xl max-w-md w-full">
           <h1 className="text-5xl font-bold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-            Pinon Game
+            PinPon Game
           </h1>
 
           <div className="space-y-4 mb-6">
@@ -563,6 +566,14 @@ useEffect(() => {
               className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
             >
               AIs
+            </button>
+            <button
+              onClick={() => {
+                if (onReturn) onReturn();
+              }}
+              className="w-full bg-gray-700 hover:bg-gray-600 text-white py-4 rounded-lg font-semibold transition-all shadow-lg"
+            >
+              Return
             </button>
           </div>
 
@@ -608,7 +619,7 @@ useEffect(() => {
       {gameMode === "playing" && (
         <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">
           {/* Top-right controls */}
-          <div className="absolute top-4 right-4 flex gap-2 z-10">
+          <div className="absolute top-4 right-4 flex gap-2 z-50">
             <button
               onClick={() => setSoundOn(!soundOn)}
               className="bg-gray-800/80 hover:bg-gray-800 text-white p-3 rounded-lg transition-all"
@@ -616,11 +627,15 @@ useEffect(() => {
               {soundOn ? <Volume2 size={20} /> : <VolumeX size={20} />}
             </button>
             <button
-              onClick={() => setGameMode("menu")}
+              onClick={() => {
+                // In-game Return goes back to the internal menu
+                setGameMode("menu");
+              }}
               className="bg-gray-800/80 hover:bg-gray-800 text-white p-3 rounded-lg transition-all"
             >
-              Menu
+              Return
             </button>
+            {/* Menu button removed: Return already navigates to menu */}
           </div>
 
           <canvas
@@ -628,7 +643,7 @@ useEffect(() => {
             width={810}
             height={600}
             className="max-w-full max-h-full w-auto h-auto border-4 border-gray-700 rounded-lg shadow-2xl"
-            style={{ imageRendering: "pixelated" }}
+            style={{ imageRendering: "auto" }}
           />
         </div>
       )}
