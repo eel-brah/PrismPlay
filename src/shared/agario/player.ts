@@ -16,48 +16,55 @@ import {
   MAXIMUM_MASS_LIMIT,
 } from "@/../shared/agario/config";
 
-interface BlobCell extends BlobData {
-  vx: number;
-  vy: number;
-  mergeCooldown: number;
-}
-
 const MAX_BLOBS_PER_PLAYER = 16;
 const MIN_SPLIT_MASS = INIT_MASS * 4;
-const MERGE_COOLDOWN = 20;
+const MERGE_BASE_TIME = 30;
+const MERGE_FACTOR = 0.0233;
 const SPLIT_LAUNCH_SPEED = 700;
 const SPLIT_FRICTION = 3;
+
+function computeMergeCooldown(mass: number): number {
+  return MERGE_BASE_TIME + mass * MERGE_FACTOR;
+}
 
 export class Player {
   private _id: string;
   private _name: string;
   private _color: string;
-  private _blobs: BlobCell[];
+  private _blobs: BlobData[];
+  private _splitOrderCounter: number;
 
   constructor(id: string, name: string, color: string, blobs?: BlobData[]) {
     this._id = id;
     this._name = name;
     this._color = color;
+    this._splitOrderCounter = 0;
 
     if (blobs && blobs.length > 0) {
       this._blobs = blobs.map((b) => this.fromBlobData(b));
+      const maxOrder = this._blobs.reduce(
+        (max, b) => (b.splitOrder > max ? b.splitOrder : max),
+        0,
+      );
+      this._splitOrderCounter = maxOrder;
     } else {
       this._blobs = [
         {
           id: `${id}-0`,
-          // TODO: random
+          //TODO: random
           x: MAP_WIDTH / 2,
           y: MAP_HEIGHT / 2,
           mass: INIT_MASS,
           vx: 0,
           vy: 0,
           mergeCooldown: 0,
+          splitOrder: 0,
         },
       ];
     }
   }
 
-  private fromBlobData(b: BlobData): BlobCell {
+  private fromBlobData(b: BlobData): BlobData {
     return {
       id: b.id,
       x: b.x,
@@ -66,6 +73,7 @@ export class Player {
       vx: b.vx,
       vy: b.vy,
       mergeCooldown: b.mergeCooldown,
+      splitOrder: b.splitOrder,
     };
   }
 
@@ -91,11 +99,11 @@ export class Player {
     return xSum / massSum;
   }
 
-  get blobs(): BlobCell[] {
+  get blobs(): BlobData[] {
     return this._blobs;
   }
 
-  set blobs(blobs: BlobCell[]) {
+  set blobs(blobs: BlobData[]) {
     this._blobs = blobs;
   }
 
@@ -115,6 +123,12 @@ export class Player {
     this._name = data.name;
     this._color = data.color;
     this._blobs = data.blobs.map((b) => this.fromBlobData(b));
+
+    const maxOrder = this._blobs.reduce(
+      (max, b) => (b.splitOrder > max ? b.splitOrder : max),
+      0,
+    );
+    this._splitOrderCounter = maxOrder;
   }
 
   serialize(): PlayerData {
@@ -130,6 +144,7 @@ export class Player {
         vx: b.vx,
         vy: b.vy,
         mergeCooldown: b.mergeCooldown,
+        splitOrder: b.splitOrder,
       })),
     };
   }
@@ -138,7 +153,7 @@ export class Player {
     return new Player(data.id, data.name, data.color, data.blobs);
   }
 
-  private clampBlobToMap(blob: BlobCell) {
+  private clampBlobToMap(blob: BlobData) {
     const r = radiusFromMass(blob.mass);
     blob.x = Math.max(r, Math.min(MAP_WIDTH - r, blob.x));
     blob.y = Math.max(r, Math.min(MAP_HEIGHT - r, blob.y));
@@ -150,8 +165,6 @@ export class Player {
     orbs: Orb[],
     isDead: boolean = false,
   ): string[] {
-    // if (isDead || this._blobs.length === 0) return [];
-
     const blobs = this._blobs;
 
     const frictionDecay = Math.exp(-SPLIT_FRICTION * dt);
@@ -278,12 +291,11 @@ export class Player {
 
           blob.mass += MASS_FROM_ORBS;
 
-          if(blob.mass > MAXIMUM_MASS_LIMIT)
-            blob.mass =MAXIMUM_MASS_LIMIT;
+          if (blob.mass > MAXIMUM_MASS_LIMIT) blob.mass = MAXIMUM_MASS_LIMIT;
           // const r = radiusFromMass(blob.mass);
           // if (r > 200) {
-            // const cappedMass = Math.PI * 200 * 200;
-            // blob.mass = cappedMass;
+          // const cappedMass = Math.PI * 200 * 200;
+          // blob.mass = cappedMass;
           // }
 
           break;
@@ -297,7 +309,7 @@ export class Player {
       blob.mass *= decayFactor;
       if (blob.mass < INIT_MASS) blob.mass = INIT_MASS;
     }
-    
+
     return eatenOrbs;
   }
 
@@ -331,9 +343,19 @@ export class Player {
     if (this._blobs.length >= MAX_BLOBS_PER_PLAYER) return;
     if (this._blobs.length === 0) return;
 
-    const newBlobs: BlobCell[] = [];
+    const splittable = this._blobs.filter((b) => b.mass >= MIN_SPLIT_MASS);
 
-    for (const blob of this._blobs) {
+    if (splittable.length === 0) return;
+    splittable.sort((a, b) => a.splitOrder - b.splitOrder);
+
+    const availableSlots = MAX_BLOBS_PER_PLAYER - this._blobs.length;
+    const maxToSplit = Math.min(8, availableSlots);
+    if (maxToSplit <= 0) return;
+
+    const toSplit = splittable.slice(0, maxToSplit);
+    const newBlobs: BlobData[] = [];
+
+    for (const blob of toSplit) {
       if (this._blobs.length + newBlobs.length >= MAX_BLOBS_PER_PLAYER) break;
 
       if (blob.mass < MIN_SPLIT_MASS) continue;
@@ -352,19 +374,21 @@ export class Player {
       const newMass = blob.mass / 2;
 
       blob.mass = newMass;
-      blob.mergeCooldown = MERGE_COOLDOWN;
+      blob.mergeCooldown = computeMergeCooldown(newMass);
+      blob.splitOrder = blob.splitOrder || ++this._splitOrderCounter;
 
       const r = radiusFromMass(newMass);
       const offset = r * 2.2;
 
-      const child: BlobCell = {
+      const child: BlobData = {
         id: `${this._id}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
         x: Math.max(r, Math.min(MAP_WIDTH - r, blob.x + dirX * offset)),
         y: Math.max(r, Math.min(MAP_HEIGHT - r, blob.y + dirY * offset)),
         mass: newMass,
         vx: dirX * SPLIT_LAUNCH_SPEED,
         vy: dirY * SPLIT_LAUNCH_SPEED,
-        mergeCooldown: MERGE_COOLDOWN,
+        mergeCooldown: computeMergeCooldown(newMass),
+        splitOrder: ++this._splitOrderCounter,
       };
 
       blob.vx -= dirX * SPLIT_LAUNCH_SPEED * 0.25;

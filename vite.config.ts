@@ -27,9 +27,24 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import tailwindcss from "@tailwindcss/vite";
 
+const sharedDir = path.resolve(__dirname, "src/shared");
+
 export default defineConfig({
   root: path.resolve(__dirname, "src/frontend"),
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+
+    {
+      name: "watch-shared-folder",
+      handleHotUpdate({ file, server }) {
+        if (file.startsWith(sharedDir)) {
+          console.log("[watch] change in shared dir:", file);
+          server.ws.send({ type: "full-reload" });
+        }
+      },
+    },
+  ],
   server: {
     port: 5173,
     proxy: {
