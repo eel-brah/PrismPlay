@@ -191,7 +191,7 @@ export function agarioEngine(
     for (const [id, state] of Object.entries(players)) {
       serializedPlayers[id] = state.player.serialize();
       // console.log(serializedPlayers[id]);
-      console.log(serializedPlayers[id].blobs[0].mass);
+      // console.log(serializedPlayers[id].blobs[0].mass);
     }
 
     io.sockets.emit("heartbeat", {
