@@ -1,4 +1,4 @@
-import { MAP_HEIGHT, MAP_WIDTH, ORB_MASS } from "./config";
+import { MAP_HEIGHT, MAP_WIDTH, ORB_MIN_MASS, } from "./config";
 import { Camera, Orb } from "./types";
 
 export function darkenHex(color: string, amount = 0.3): string {
@@ -40,7 +40,7 @@ export function randomOrb(): Orb {
     id: randomId(),
     x: Math.random() * MAP_WIDTH,
     y: Math.random() * MAP_HEIGHT,
-    mass: ORB_MASS,
+    mass: ORB_MIN_MASS,
     color: randomColor(),
   };
 }
@@ -67,7 +67,7 @@ export function drawOrbs(
 
     ctx.beginPath();
     ctx.fillStyle = orb.color;
-    ctx.arc(sx, sy, r, 0, Math.PI * 2);
+    ctx.arc(sx, sy, r + 2, 0, Math.PI * 2);
     ctx.fill();
   }
 }

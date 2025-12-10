@@ -1,4 +1,9 @@
-import { MAX_ORBS, MAXIMUM_MASS_LIMIT } from "src/shared/agario/config";
+import {
+  MAX_ORBS,
+  MAXIMUM_MASS_LIMIT,
+  ORB_GROWTH_RATE,
+  ORB_MAX_MASS,
+} from "src/shared/agario/config";
 import {
   BlobData,
   Mouse,
@@ -219,4 +224,12 @@ export function agarioEngine(
 
     broadcastState();
   }, 1000 / TICK_RATE);
+
+  setInterval(() => {
+    for (const orb of orbs) {
+      if (orb.mass < ORB_MAX_MASS) {
+        orb.mass = Math.min(ORB_MAX_MASS, orb.mass + ORB_GROWTH_RATE * 60);
+      }
+    }
+  }, 60 * 1000);
 }

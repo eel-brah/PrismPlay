@@ -12,7 +12,6 @@ import {
   MAX_SPEED,
   MIN_SPEED,
   INIT_MASS,
-  MASS_FROM_ORBS,
   MAXIMUM_MASS_LIMIT,
 } from "@/../shared/agario/config";
 
@@ -289,7 +288,7 @@ export class Player {
         if (odistance < br + orbRadius) {
           eatenOrbs.push(orb.id);
 
-          blob.mass += MASS_FROM_ORBS;
+          blob.mass += orb.mass;
 
           if (blob.mass > MAXIMUM_MASS_LIMIT) blob.mass = MAXIMUM_MASS_LIMIT;
           // const r = radiusFromMass(blob.mass);

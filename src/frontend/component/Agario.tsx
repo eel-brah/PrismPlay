@@ -260,7 +260,7 @@ const Agario = () => {
     let pName = playerName;
     if (playerName.length > 6) pName = playerName.slice(0, 6);
     setPlayerName(pName.trim());
-    const name = pName || "Player-" + Math.floor(Math.random() * 1000);
+    const name = pName || "Pl" + Math.floor(Math.random() * 1000);
 
     socket.emit("join", { name });
   }
@@ -270,7 +270,7 @@ const Agario = () => {
     if (!socket) return;
 
     const name =
-      playerName || "Player-" + Math.floor(Math.random() * 1000);
+      playerName || "Pl" + Math.floor(Math.random() * 1000);
 
     isDeadRef.current = false;
     setGameOver(false);
