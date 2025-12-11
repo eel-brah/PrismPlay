@@ -145,6 +145,7 @@ export class Player {
         mergeCooldown: b.mergeCooldown,
         splitOrder: b.splitOrder,
       })),
+      lastProcessedSeq: 0,
     };
   }
 

@@ -30,6 +30,9 @@ const Agario = () => {
   const [hasJoined, setHasJoined] = useState(false);
   const [gameOver, setGameOver] = useState(false);
 
+  const pendingInputsRef = useRef<InputState[]>([]);
+  const lastProcessedSeqRef = useRef<number>(0);
+
   useEffect(() => {
     const socket = io({ path: "/socket.io" });
     socketRef.current = socket;
@@ -75,11 +78,13 @@ const Agario = () => {
 
       enemiesRef.current = {};
       orbsRef.current = [];
+      pendingInputsRef.current = [];
+      lastProcessedSeqRef.current = data.lastProcessedSeq;
 
       initCam();
     });
 
-    //TODO: prediction + reconciliation
+    //TODO: prediction + reconciliation: remove?? 
     socket.on(
       "heartbeat",
       (data: { players: Record<string, PlayerData>; orbs: Orb[] }) => {
@@ -92,6 +97,28 @@ const Agario = () => {
             playerRef.current = Player.deserialize(myData);
           } else {
             playerRef.current.updateFromData(myData);
+          }
+
+          lastProcessedSeqRef.current = myData.lastProcessedSeq;
+
+          const remainingInputs = pendingInputsRef.current.filter(
+            (input) => input.seq > myData.lastProcessedSeq
+          );
+          pendingInputsRef.current = remainingInputs;
+
+          const player = playerRef.current;
+          const orbs = orbsRef.current;
+          if (player) {
+            for (const input of remainingInputs) {
+              const mouse: Mouse = { x: input.mouseX, y: input.mouseY };
+              const eatenOrbs = player.update(input.dt, mouse, orbs, false);
+              if (eatenOrbs.length > 0) {
+                const eatenSet = new Set(eatenOrbs);
+                orbsRef.current = orbsRef.current.filter(
+                  (o) => !eatenSet.has(o.id),
+                );
+              }
+            }
           }
         }
 
@@ -180,11 +207,14 @@ const Agario = () => {
       if (isDeadRef.current) return;
 
       inputSeqRef.current += 1;
-      socket.emit("input", {
+      const input: InputState = {
         mouseX: worldMouse.x,
         mouseY: worldMouse.y,
         seq: inputSeqRef.current,
-      } as InputState);
+        dt,
+      };
+      pendingInputsRef.current.push(input);
+      socket.emit("input", input);
     }
 
     function draw() {

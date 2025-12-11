@@ -24,6 +24,7 @@ export interface PlayerData {
   name: string;
   color: string;
   blobs: BlobData[];
+  lastProcessedSeq: number;
 }
 
 export interface Mouse {
@@ -42,6 +43,7 @@ export interface InputState {
   mouseX: number;
   mouseY: number;
   seq: number;
+  dt: number;
 }
 
 export interface PlayerState {

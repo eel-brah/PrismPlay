@@ -195,6 +195,8 @@ export function agarioEngine(
     const serializedPlayers: Record<string, PlayerData> = {};
     for (const [id, state] of Object.entries(players)) {
       serializedPlayers[id] = state.player.serialize();
+      serializedPlayers[id].lastProcessedSeq = state.input?.seq ?? 0;
+
       // console.log(serializedPlayers[id]);
       // console.log(serializedPlayers[id].blobs[0].mass);
     }
