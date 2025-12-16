@@ -1,5 +1,5 @@
-import { MAP_HEIGHT, MAP_WIDTH, ORB_MIN_MASS, } from "./config";
-import { Camera, Orb } from "./types";
+import { MAP_HEIGHT, MAP_WIDTH, ORB_MIN_MASS } from "./config";
+import { Camera, Eject, Orb } from "./types";
 
 export function darkenHex(color: string, amount = 0.3): string {
   let r: number, g: number, b: number;
@@ -68,6 +68,25 @@ export function drawOrbs(
     ctx.beginPath();
     ctx.fillStyle = orb.color;
     ctx.arc(sx, sy, r + 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+export function drawEjects(
+  ctx: CanvasRenderingContext2D,
+  ejects: Eject[],
+  camera: Camera,
+) {
+  for (const e of ejects) {
+    const r = radiusFromMass(e.mass);
+    if (!isInView(e.x, e.y, r, camera)) continue;
+
+    const x = e.x - camera.x;
+    const y = e.y - camera.y;
+
+    ctx.beginPath();
+    ctx.fillStyle = e.color;
+    ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
   }
 }

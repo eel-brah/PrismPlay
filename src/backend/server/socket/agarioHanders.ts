@@ -1,4 +1,3 @@
-// src/server/agarioHanders.ts
 import { FastifyInstance } from "fastify";
 import { Socket } from "socket.io";
 import { MAP_HEIGHT, MAP_WIDTH } from "src/shared/agario/config";
@@ -25,6 +24,7 @@ export function agarioHandlers(
       player: newPlayer,
       input: null,
       splitRequested: false, 
+      ejectRequested: false,
     };
 
     socket.emit("joined", newPlayer.serialize());
@@ -40,6 +40,12 @@ export function agarioHandlers(
     const state = players[socket.id];
     if (!state) return;
     state.splitRequested = true;
+  });
+
+  socket.on("eject", () => {
+    const state = players[socket.id];
+    if (!state) return;
+    state.ejectRequested = true;
   });
 
   socket.on("disconnect", (reason) => {

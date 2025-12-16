@@ -4,6 +4,7 @@ import {
   Orb,
   PlayerData,
   BlobData,
+  Eject,
 } from "@/../shared/agario/types";
 import { darkenHex, isInView, radiusFromMass } from "@/../shared/agario/utils";
 import {
@@ -13,6 +14,10 @@ import {
   MIN_SPEED,
   INIT_MASS,
   MAXIMUM_MASS_LIMIT,
+  MIN_EJECT_MASS,
+  EJECT_COST,
+  EJECT_MASS,
+  EJECT_SPEED,
 } from "@/../shared/agario/config";
 
 const MAX_BLOBS_PER_PLAYER = 16;
@@ -53,7 +58,8 @@ export class Player {
           //TODO: random
           x: MAP_WIDTH / 2,
           y: MAP_HEIGHT / 2,
-          mass: INIT_MASS,
+          // mass: INIT_MASS,
+          mass: 100000,
           vx: 0,
           vy: 0,
           mergeCooldown: 0,
@@ -163,8 +169,9 @@ export class Player {
     dt: number,
     mouse: Mouse,
     orbs: Orb[],
+    ejects: Eject[],
     isDead: boolean = false,
-  ): string[] {
+  ): [string[], string[]] {
     const blobs = this._blobs;
 
     const frictionDecay = Math.exp(-SPLIT_FRICTION * dt);
@@ -273,7 +280,39 @@ export class Player {
       }
     }
 
-    if (isDead) return [];
+    if (isDead) return [[], []];
+
+    const SELF_EJECT_GRACE = 0.1;
+    const eatenEjects: string[] = [];
+
+    for (const eject of ejects) {
+      const ejectRadius = radiusFromMass(eject.mass);
+      for (const blob of blobs) {
+        //TODO: remove
+        if (eject.ownerId === blob.id && eject.age < SELF_EJECT_GRACE) {
+          continue;
+        }
+
+        const MIN_EAT_MASS = 22;
+        const EAT_FACTOR = 1.01;
+
+        const ejx = eject.x - blob.x;
+        const ejy = eject.y - blob.y;
+        const odistance = Math.hypot(ejx, ejy);
+
+        const br = radiusFromMass(blob.mass);
+
+        if (
+          blob.mass >= Math.max(MIN_EAT_MASS, eject.mass * EAT_FACTOR) &&
+          odistance < br + ejectRadius
+        ) {
+          eatenEjects.push(eject.id);
+          blob.mass += eject.mass;
+          if (blob.mass > MAXIMUM_MASS_LIMIT) blob.mass = MAXIMUM_MASS_LIMIT;
+          break;
+        }
+      }
+    }
 
     const eatenOrbs: string[] = [];
 
@@ -310,7 +349,7 @@ export class Player {
       if (blob.mass < INIT_MASS) blob.mass = INIT_MASS;
     }
 
-    return eatenOrbs;
+    return [eatenOrbs, eatenEjects];
   }
 
   draw(ctx: CanvasRenderingContext2D, camera: Camera) {
@@ -400,5 +439,53 @@ export class Player {
     if (newBlobs.length > 0) {
       this._blobs.push(...newBlobs);
     }
+  }
+
+  eject(mouse: Mouse): Eject[] {
+    const ejects: Eject[] = [];
+
+    for (const blob of this._blobs) {
+      if (blob.mass <= MIN_EJECT_MASS) continue;
+
+      const blobR = radiusFromMass(blob.mass);
+      blob.mass -= EJECT_COST;
+
+      let dx = mouse.x - blob.x;
+      let dy = mouse.y - blob.y;
+      let dist = Math.hypot(dx, dy);
+
+      let dirX = dx / dist;
+      let dirY = dy / dist;
+
+      // console.log(dist, "==", blobR);
+      if (dist < blobR / 4) {
+        dirX = 0;
+        dirY = 0;
+      }
+
+      const ejectR = radiusFromMass(EJECT_MASS);
+      const GAP = 2;
+      const spawnDist = blobR + ejectR + GAP;
+
+      ejects.push({
+        id: `${this._id}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        x: Math.max(
+          ejectR,
+          Math.min(MAP_WIDTH - ejectR, blob.x + dirX * spawnDist),
+        ),
+        y: Math.max(
+          ejectR,
+          Math.min(MAP_HEIGHT - ejectR, blob.y + dirY * spawnDist),
+        ),
+        color: this.color,
+        mass: EJECT_MASS,
+        vx: dirX * EJECT_SPEED,
+        vy: dirY * EJECT_SPEED,
+        ownerId: blob.id,
+        age: 0,
+      });
+    }
+
+    return ejects;
   }
 }

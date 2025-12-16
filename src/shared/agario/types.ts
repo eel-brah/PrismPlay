@@ -8,6 +8,18 @@ export interface Orb {
   color: string;
 }
 
+export interface Eject {
+  id: string;
+  x: number;
+  y: number;
+  color: string;
+  mass: number;
+  vx: number;
+  vy: number;
+  ownerId: string;
+  age: number;
+}
+
 export interface BlobData {
   id: string;
   x: number;
@@ -50,4 +62,5 @@ export interface PlayerState {
   player: Player;
   input: InputState | null;
   splitRequested: boolean;
+  ejectRequested: boolean;
 }

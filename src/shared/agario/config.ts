@@ -17,4 +17,10 @@ export const ORB_GROWTH_DURATION = 60 * 60; // orbs grow from 1 to 5 in 1h
 export const ORB_GROWTH_RATE =
   (ORB_MAX_MASS - ORB_MIN_MASS) / ORB_GROWTH_DURATION;
 
+export const MIN_EJECT_MASS = MASS * 35;
+export const EJECT_COST = MASS * 18;
+export const EJECT_MASS = MASS * 13;
+export const EJECT_SPEED = 900;
+
+
 export const MAX_ORBS = 200;

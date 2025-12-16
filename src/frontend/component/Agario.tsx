@@ -4,12 +4,13 @@ import { MAP_HEIGHT, MAP_WIDTH } from "@/../shared/agario/config";
 import { Player } from "@/../shared/agario/player";
 import {
   Camera,
+  Eject,
   InputState,
   Mouse,
   Orb,
   PlayerData,
 } from "@/../shared/agario/types";
-import { drawOrbs } from "@/../shared/agario/utils";
+import { drawEjects, drawOrbs } from "@/../shared/agario/utils";
 import { drawGrid } from "@/game/agario/utils";
 
 const Agario = () => {
@@ -20,6 +21,7 @@ const Agario = () => {
 
   const playerRef = useRef<Player | null>(null);
   const orbsRef = useRef<Orb[]>([]);
+  const ejectsRef = useRef<Eject[]>([]);
   const cameraRef = useRef<Camera | null>(null);
   const mouseRef = useRef<Mouse>({ x: 0, y: 0 });
   const enemiesRef = useRef<Record<string, Player>>({});
@@ -78,6 +80,7 @@ const Agario = () => {
 
       enemiesRef.current = {};
       orbsRef.current = [];
+      ejectsRef.current = [];
       pendingInputsRef.current = [];
       lastProcessedSeqRef.current = data.lastProcessedSeq;
 
@@ -87,7 +90,7 @@ const Agario = () => {
     //TODO: prediction + reconciliation: remove?? 
     socket.on(
       "heartbeat",
-      (data: { players: Record<string, PlayerData>; orbs: Orb[] }) => {
+      (data: { players: Record<string, PlayerData>; orbs: Orb[]; ejects: Eject[] }) => {
         const myId = socket.id;
         if (!myId) return;
 
@@ -108,14 +111,22 @@ const Agario = () => {
 
           const player = playerRef.current;
           const orbs = orbsRef.current;
+          const ejects = ejectsRef.current;
           if (player) {
             for (const input of remainingInputs) {
               const mouse: Mouse = { x: input.mouseX, y: input.mouseY };
-              const eatenOrbs = player.update(input.dt, mouse, orbs, false);
+              //TODO: player.update(input.dt, mouse, orbs, [], false);
+              const [eatenOrbs, eatenEjects] = player.update(input.dt, mouse, orbs, ejects, false);
               if (eatenOrbs.length > 0) {
                 const eatenSet = new Set(eatenOrbs);
                 orbsRef.current = orbsRef.current.filter(
                   (o) => !eatenSet.has(o.id),
+                );
+              }
+              if (eatenEjects.length > 0) {
+                const eatenSet = new Set(eatenEjects);
+                ejectsRef.current = ejectsRef.current.filter(
+                  (e) => !eatenSet.has(e.id),
                 );
               }
             }
@@ -140,6 +151,7 @@ const Agario = () => {
         }
 
         orbsRef.current = data.orbs;
+        ejectsRef.current = data.ejects;
       },
     );
 
@@ -173,6 +185,11 @@ const Agario = () => {
         const sock = socketRef.current;
         if (!sock || isDeadRef.current) return;
         sock.emit("split");
+      } else if (e.code === "KeyW" || e.key === "w" || e.key === "W") {
+        e.preventDefault();
+        const sock = socketRef.current;
+        if (!sock || isDeadRef.current) return;
+        sock.emit("eject");
       }
     }
 
@@ -184,6 +201,7 @@ const Agario = () => {
       const player = playerRef.current;
       const camera = cameraRef.current;
       const orbs = orbsRef.current;
+      const ejects = ejectsRef.current;
 
       if (!canvas || !player || !camera) return;
 
@@ -193,11 +211,17 @@ const Agario = () => {
       };
 
       // local prediction 
-      const eatenOrbs = player.update(dt, worldMouse, orbs, isDeadRef.current);
+      const [eatenOrbs, eatenEjects] = player.update(dt, worldMouse, orbs, ejects, isDeadRef.current);
       if (eatenOrbs.length > 0) {
         const eatenSet = new Set(eatenOrbs);
         orbsRef.current = orbsRef.current.filter(
           (o) => !eatenSet.has(o.id),
+        );
+      }
+      if (eatenEjects.length > 0) {
+        const eatenSet = new Set(eatenEjects);
+        ejectsRef.current = ejectsRef.current.filter(
+          (e) => !eatenSet.has(e.id),
         );
       }
 
@@ -231,6 +255,7 @@ const Agario = () => {
       ctx.strokeRect(-camera.x, -camera.y, MAP_WIDTH, MAP_HEIGHT);
 
       drawOrbs(ctx, orbsRef.current, camera);
+      drawEjects(ctx, ejectsRef.current, camera);
       player.draw(ctx, camera);
 
       for (const enemy of Object.values(enemiesRef.current)) {

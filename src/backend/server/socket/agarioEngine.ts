@@ -1,4 +1,6 @@
 import {
+  MAP_HEIGHT,
+  MAP_WIDTH,
   MAX_ORBS,
   MAXIMUM_MASS_LIMIT,
   ORB_GROWTH_RATE,
@@ -6,6 +8,7 @@ import {
 } from "src/shared/agario/config";
 import {
   BlobData,
+  Eject,
   Mouse,
   Orb,
   PlayerData,
@@ -21,10 +24,13 @@ const TICK_DT = 1 / TICK_RATE;
 const SINGLE_EAT_FACTOR = 1.25;
 const SPLIT_EAT_FACTOR = 1.33;
 
+const EJECT_FRICTION = 2;
+
 export function agarioEngine(
   io: SocketIOServer,
   players: Record<string, PlayerState>,
   orbs: Orb[],
+  ejects: Eject[],
 ) {
   function ensureOrbs() {
     while (orbs.length < MAX_ORBS) {
@@ -56,8 +62,24 @@ export function agarioEngine(
         p.split(mouse);
         state.splitRequested = false;
       }
+      if (state.ejectRequested) {
+        ejects.push(...p.eject(mouse));
+        state.ejectRequested = false;
+      }
 
-      const eatenOrbs = p.update(dt, mouse, orbs);
+      for (const e of ejects) {
+        e.age += dt;
+        e.x += e.vx * dt;
+        e.y += e.vy * dt;
+        e.x = Math.max(0, Math.min(MAP_WIDTH, e.x));
+        e.y = Math.max(0, Math.min(MAP_HEIGHT, e.y));
+
+        const decay = Math.exp(-EJECT_FRICTION * dt);
+        e.vx *= decay;
+        e.vy *= decay;
+      }
+
+      const [eatenOrbs, eatenEjects] = p.update(dt, mouse, orbs, ejects);
 
       if (eatenOrbs.length > 0) {
         let changed = false;
@@ -70,6 +92,14 @@ export function agarioEngine(
         }
         if (changed) {
           ensureOrbs();
+        }
+      }
+      if (eatenEjects.length > 0) {
+        for (const ejectId of eatenEjects) {
+          const idx = ejects.findIndex((e) => e.id === ejectId);
+          if (idx !== -1) {
+            ejects.splice(idx, 1);
+          }
         }
       }
     }
@@ -204,6 +234,7 @@ export function agarioEngine(
     io.sockets.emit("heartbeat", {
       players: serializedPlayers,
       orbs,
+      ejects,
     });
   }
 
