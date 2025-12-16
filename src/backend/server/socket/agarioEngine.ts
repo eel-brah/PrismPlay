@@ -190,9 +190,7 @@ export function agarioEngine(
                 removedPlayers.add(eatenOwnerId);
               }
 
-              if (removedPlayers.has(idA) || removedPlayers.has(idB)) {
-                break outer;
-              }
+              break outer;
             } else {
               const overlap = minDist - distance;
               const nx = dx / distance;
@@ -207,6 +205,9 @@ export function agarioEngine(
               b.x += nx * overlap * bWeight;
               b.y += ny * overlap * bWeight;
             }
+          }
+          if (removedPlayers.has(idA) || removedPlayers.has(idB)) {
+            break outer;
           }
         }
       }
