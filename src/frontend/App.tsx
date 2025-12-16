@@ -5,6 +5,7 @@ import LoginPage from "./component/LoginPage";
 import LoginForm from "./component/LoginForm";
 import RegisterForm from "./component/RegisterForm";
 import SocialHub from "./component/SocialHub";
+import PlayerProfile from "./component/PlayerProfile";
 import { Route, Routes } from "react-router-dom";
 import Agario from "./component/Agario";
 
@@ -20,6 +21,7 @@ export default function App() {
   const isLandingGuest = page === "landingGuest";
   const isOffline = page === "offline";
   const [showSocial, setShowSocial] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   return (
   <Routes>
     <Route path="/agario" element={<Agario />} />
@@ -86,22 +88,36 @@ export default function App() {
           aria-hidden={!isLanding}
         >
           {/* Top-right controls */}
-          <div className="absolute top-4 right-4 z-50 flex gap-2">
-            {sessionMode === "user" && (
-              <button
-                onClick={() => setShowSocial(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all"
-              >
-                Social
-              </button>
-            )}
+        <div className="absolute top-4 right-4 z-50 flex gap-2">
+          {sessionMode === "user" && (
             <button
-              onClick={() => setPage("login")}
-              className="bg-gray-800/80 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-all"
+              onClick={() => {
+                setShowSocial(true);
+                setShowProfile(false);
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all"
             >
-              Return
+              Social
             </button>
-          </div>
+          )}
+          {sessionMode === "user" && (
+            <button
+              onClick={() => {
+                setShowProfile(true);
+                setShowSocial(false);
+              }}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-all"
+            >
+              Profile
+            </button>
+          )}
+          <button
+            onClick={() => setPage("login")}
+            className="bg-gray-800/80 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-all"
+          >
+            Return
+          </button>
+        </div>
           <h1 className="text-4xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
             Select Game Mode
           </h1>
@@ -162,15 +178,27 @@ export default function App() {
         </div>
 
         {/* Social Hub Overlay – only for logged-in users */}
-        {sessionMode === "user" && (
-          <div
-            className={`fixed top-0 right-0 h-full w-full sm:w-[480px] md:w-[clamp(520px,40vw,900px)] border-l border-gray-700 shadow-2xl page-transition ${showSocial ? "page-shown pointer-events-auto" : "page-hidden"
-              }`}
-            aria-hidden={!showSocial}
-          >
-            <SocialHub onClose={() => setShowSocial(false)} />
-          </div>
-        )}
+      {sessionMode === "user" && (
+        <div
+          className={`fixed top-0 right-0 h-full w-full sm:w-[480px] md:w-[clamp(520px,40vw,900px)] border-l border-gray-700 shadow-2xl page-transition ${
+            showSocial ? "page-shown pointer-events-auto" : "page-hidden"
+          }`}
+          aria-hidden={!showSocial}
+        >
+          <SocialHub onClose={() => setShowSocial(false)} />
+        </div>
+      )}
+
+      {sessionMode === "user" && (
+        <div
+          className={`fixed top-0 right-0 h-full w-full sm:w-[480px] md:w-[clamp(520px,40vw,900px)] border-l border-gray-700 shadow-2xl page-transition ${
+            showProfile ? "page-shown pointer-events-auto" : "page-hidden"
+          }`}
+          aria-hidden={!showProfile}
+        >
+          <PlayerProfile onClose={() => setShowProfile(false)} />
+        </div>
+      )}
 
         {/* Guest Landing View (Offline-only) */}
         <div
