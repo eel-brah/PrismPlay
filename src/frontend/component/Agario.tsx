@@ -6,12 +6,14 @@ import {
   Camera,
   Eject,
   InputState,
+  LeaderboardEntry,
   Mouse,
   Orb,
   PlayerData,
 } from "@/../shared/agario/types";
 import { drawEjects, drawOrbs } from "@/../shared/agario/utils";
 import { drawGrid } from "@/game/agario/utils";
+import { Leaderboard } from "./LeaderBoard";
 
 const Agario = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -34,6 +36,9 @@ const Agario = () => {
 
   const pendingInputsRef = useRef<InputState[]>([]);
   const lastProcessedSeqRef = useRef<number>(0);
+
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+
 
   useEffect(() => {
     const socket = io({ path: "/socket.io" });
@@ -152,6 +157,29 @@ const Agario = () => {
 
         orbsRef.current = data.orbs;
         ejectsRef.current = data.ejects;
+
+        const playersArray = Object.entries(data.players).map(([id, p]) => ({
+          id,
+          name: p.name,
+          totalMass: p.totalMass,
+        }));
+
+        playersArray.sort((a, b) => b.totalMass - a.totalMass);
+
+        const ranked = playersArray.map((p, index) => ({
+          ...p,
+          rank: index + 1,
+          isMe: p.id === myId,
+        }));
+
+        const top10 = ranked.slice(0, 10);
+        const me = ranked.find(p => p.id === myId);
+
+        let finalBoard = top10;
+        if (me && me.rank > 10) {
+          finalBoard = [...top10, me];
+        }
+        setLeaderboard(finalBoard);
       },
     );
 
@@ -383,6 +411,9 @@ const Agario = () => {
         </div>
       )}
 
+      {hasJoined && (
+        <Leaderboard leaderboard={leaderboard} />
+      )}
       <canvas
         ref={canvasRef}
         id="agario"

@@ -37,6 +37,7 @@ export interface PlayerData {
   color: string;
   blobs: BlobData[];
   lastProcessedSeq: number;
+  totalMass: number;
 }
 
 export interface Mouse {
@@ -64,3 +65,12 @@ export interface PlayerState {
   splitRequested: boolean;
   ejectRequested: boolean;
 }
+
+export type LeaderboardEntry = {
+  id: string;
+  name: string;
+  totalMass: number;
+  rank: number;
+  isMe: boolean;
+};
+

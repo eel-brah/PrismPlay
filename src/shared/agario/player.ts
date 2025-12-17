@@ -18,6 +18,7 @@ import {
   EJECT_COST,
   EJECT_MASS,
   EJECT_SPEED,
+  MASS,
 } from "@/../shared/agario/config";
 
 const MAX_BLOBS_PER_PLAYER = 16;
@@ -58,8 +59,8 @@ export class Player {
           //TODO: random
           x: MAP_WIDTH / 2,
           y: MAP_HEIGHT / 2,
-          // mass: INIT_MASS,
-          mass: 100000,
+          mass: INIT_MASS,
+          // mass: 100000,
           vx: 0,
           vy: 0,
           mergeCooldown: 0,
@@ -80,6 +81,10 @@ export class Player {
       mergeCooldown: b.mergeCooldown,
       splitOrder: b.splitOrder,
     };
+  }
+
+  getTotalMass(): number {
+    return Math.floor(this._blobs.reduce((sum, b) => sum + b.mass, 0) / MASS);
   }
 
   get y(): number {
@@ -152,6 +157,7 @@ export class Player {
         splitOrder: b.splitOrder,
       })),
       lastProcessedSeq: 0,
+      totalMass: this.getTotalMass(),
     };
   }
 
