@@ -117,11 +117,11 @@ const Agario = () => {
           );
           pendingInputsRef.current = remainingInputs;
 
-          const player = playerRef.current;
-          const orbs = orbsRef.current;
-          const ejects = ejectsRef.current;
-          // const viruses = virusesRef.current;
+          // const player = playerRef.current;
+          // const orbs = orbsRef.current;
+          // const ejects = ejectsRef.current;
           // if (player) {
+          // const viruses = virusesRef.current;
           //   for (const input of remainingInputs) {
           //     const mouse: Mouse = { x: input.mouseX, y: input.mouseY };
           //     //TODO: player.update(input.dt, mouse, orbs, [], false);
@@ -245,6 +245,7 @@ const Agario = () => {
       };
 
       // local prediction 
+      player.update(dt, worldMouse, [], [], isDeadRef.current);
       // const [eatenOrbs, eatenEjects] = player.update(dt, worldMouse, orbs, ejects, isDeadRef.current);
       // if (eatenOrbs.length > 0) {
       //   const eatenSet = new Set(eatenOrbs);

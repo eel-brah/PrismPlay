@@ -25,6 +25,8 @@ export default fp(async function socketPlugin(fastify: FastifyInstance) {
     cors: {
       origin: "*", //TODO:
     },
+  //   transports: ["websocket"],
+  // allowUpgrades: false,
   });
 
   const players: Record<string, PlayerState> = {};

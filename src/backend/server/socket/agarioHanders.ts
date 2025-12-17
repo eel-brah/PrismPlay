@@ -16,7 +16,7 @@ export function agarioHandlers(
     fastify.log.info({ id: socket.id, data }, "player join");
     const newPlayer = new Player(
       socket.id,
-      data.name,
+      data.name.slice(0, 6),
       randomColor(),
     );
 
