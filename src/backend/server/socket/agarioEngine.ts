@@ -1,10 +1,16 @@
 import {
   MAP_HEIGHT,
   MAP_WIDTH,
+  MAX_BLOBS_PER_PLAYER,
   MAX_ORBS,
+  MAX_VIRUSES,
   MAXIMUM_MASS_LIMIT,
   ORB_GROWTH_RATE,
   ORB_MAX_MASS,
+  VIRUS_BASE_MASS,
+  VIRUS_EAT_MIN_MASS,
+  VIRUS_MAX_FEED,
+  VIRUS_SPLIT_FORCE,
 } from "src/shared/agario/config";
 import {
   BlobData,
@@ -13,8 +19,15 @@ import {
   Orb,
   PlayerData,
   PlayerState,
+  Virus,
 } from "src/shared/agario/types";
-import { radiusFromMass, randomOrb } from "src/shared/agario/utils";
+import {
+  computeMergeCooldown,
+  radiusFromMass,
+  randomId,
+  randomOrb,
+  randomViruses,
+} from "src/shared/agario/utils";
 import type { Server as SocketIOServer } from "socket.io";
 import { Player } from "src/shared/agario/player";
 
@@ -31,10 +44,16 @@ export function agarioEngine(
   players: Record<string, PlayerState>,
   orbs: Orb[],
   ejects: Eject[],
+  viruses: Virus[],
 ) {
   function ensureOrbs() {
     while (orbs.length < MAX_ORBS) {
       orbs.push(randomOrb());
+    }
+  }
+  function ensureViruses() {
+    while (viruses.length < MAX_VIRUSES) {
+      viruses.push(randomViruses());
     }
   }
   function canEat(
@@ -67,18 +86,6 @@ export function agarioEngine(
         state.ejectRequested = false;
       }
 
-      for (const e of ejects) {
-        e.age += dt;
-        e.x += e.vx * dt;
-        e.y += e.vy * dt;
-        e.x = Math.max(0, Math.min(MAP_WIDTH, e.x));
-        e.y = Math.max(0, Math.min(MAP_HEIGHT, e.y));
-
-        const decay = Math.exp(-EJECT_FRICTION * dt);
-        e.vx *= decay;
-        e.vy *= decay;
-      }
-
       const [eatenOrbs, eatenEjects] = p.update(dt, mouse, orbs, ejects);
 
       if (eatenOrbs.length > 0) {
@@ -104,6 +111,38 @@ export function agarioEngine(
       }
     }
 
+    for (const e of ejects) {
+      e.age += dt;
+      e.x += e.vx * dt;
+      e.y += e.vy * dt;
+      // e.x = Math.max(0, Math.min(MAP_WIDTH, e.x));
+      // e.y = Math.max(0, Math.min(MAP_HEIGHT, e.y));
+
+      if (e.x < 0 || e.x > MAP_WIDTH) e.vx *= -1;
+      if (e.y < 0 || e.y > MAP_HEIGHT) e.vy *= -1;
+
+      const decay = Math.exp(-EJECT_FRICTION * dt);
+      e.vx *= decay;
+      e.vy *= decay;
+    }
+
+    for (const v of viruses) {
+      v.x += v.vx * dt;
+      v.y += v.vy * dt;
+
+      if (v.x < 0 || v.x > MAP_WIDTH) v.vx *= -1;
+      if (v.y < 0 || v.y > MAP_HEIGHT) v.vy *= -1;
+
+      const friction = Math.exp(-2 * dt);
+      v.vx *= friction;
+      v.vy *= friction;
+    }
+
+    handleVirusFeeding(viruses, ejects);
+
+    for (const id of ids) {
+      handleVirusCollisions(players[id].player, viruses);
+    }
     handlePlayerCollisions();
   }
 
@@ -222,6 +261,75 @@ export function agarioEngine(
     }
   }
 
+  function handleVirusCollisions(player: Player, viruses: Virus[]) {
+    for (let i = viruses.length - 1; i >= 0; i--) {
+      const virus = viruses[i];
+
+      for (const blob of player.blobs) {
+        const dx = virus.x - blob.x;
+        const dy = virus.y - blob.y;
+        const dist = Math.hypot(dx, dy);
+
+        const br = radiusFromMass(blob.mass);
+        const vr = radiusFromMass(virus.mass);
+
+        if (dist > br + vr) continue;
+
+        if (blob.mass < VIRUS_EAT_MIN_MASS) continue;
+
+        blob.mass += virus.mass;
+
+        viruses.splice(i, 1);
+
+        if (player.blobs.length >= MAX_BLOBS_PER_PLAYER) return;
+
+        player.explodePlayer(blob);
+        return;
+      }
+    }
+  }
+
+  function handleVirusFeeding(viruses: Virus[], ejects: Eject[]) {
+    for (let i = ejects.length - 1; i >= 0; i--) {
+      const e = ejects[i];
+
+      for (const virus of viruses) {
+        const dx = e.x - virus.x;
+        const dy = e.y - virus.y;
+        const dist = Math.hypot(dx, dy);
+
+        const er = radiusFromMass(e.mass);
+        const vr = radiusFromMass(virus.mass);
+
+        if (dist > er + vr) continue;
+
+        virus.mass += e.mass;
+        virus.fedCount++;
+
+        const lastDirX = Math.sign(e.vx);
+        const lastDirY = Math.sign(e.vy);
+
+        ejects.splice(i, 1);
+
+        if (virus.fedCount >= VIRUS_MAX_FEED) {
+          viruses.push({
+            id: randomId(),
+            x: virus.x,
+            y: virus.y,
+            mass: VIRUS_BASE_MASS,
+            vx: -lastDirX * 600,
+            vy: -lastDirY * 600,
+            fedCount: 0,
+          });
+          virus.mass = VIRUS_BASE_MASS;
+          virus.fedCount = 0;
+        }
+
+        break;
+      }
+    }
+  }
+
   function broadcastState() {
     const serializedPlayers: Record<string, PlayerData> = {};
     for (const [id, state] of Object.entries(players)) {
@@ -236,6 +344,7 @@ export function agarioEngine(
       players: serializedPlayers,
       orbs,
       ejects,
+      viruses,
     });
   }
 
@@ -253,6 +362,7 @@ export function agarioEngine(
     while (accumulator >= TICK_DT) {
       simulate(TICK_DT);
       ensureOrbs();
+      ensureViruses();
       accumulator -= TICK_DT;
     }
 

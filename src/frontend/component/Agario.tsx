@@ -10,8 +10,9 @@ import {
   Mouse,
   Orb,
   PlayerData,
+  Virus,
 } from "@/../shared/agario/types";
-import { drawEjects, drawOrbs } from "@/../shared/agario/utils";
+import { drawEjects, drawOrbs, drawViruses } from "@/../shared/agario/utils";
 import { drawGrid } from "@/game/agario/utils";
 import { Leaderboard } from "./LeaderBoard";
 
@@ -24,6 +25,7 @@ const Agario = () => {
   const playerRef = useRef<Player | null>(null);
   const orbsRef = useRef<Orb[]>([]);
   const ejectsRef = useRef<Eject[]>([]);
+  const virusesRef = useRef<Virus[]>([]);
   const cameraRef = useRef<Camera | null>(null);
   const mouseRef = useRef<Mouse>({ x: 0, y: 0 });
   const enemiesRef = useRef<Record<string, Player>>({});
@@ -86,6 +88,7 @@ const Agario = () => {
       enemiesRef.current = {};
       orbsRef.current = [];
       ejectsRef.current = [];
+      virusesRef.current = [];
       pendingInputsRef.current = [];
       lastProcessedSeqRef.current = data.lastProcessedSeq;
 
@@ -95,7 +98,7 @@ const Agario = () => {
     //TODO: prediction + reconciliation: remove?? 
     socket.on(
       "heartbeat",
-      (data: { players: Record<string, PlayerData>; orbs: Orb[]; ejects: Eject[] }) => {
+      (data: { players: Record<string, PlayerData>; orbs: Orb[]; ejects: Eject[]; viruses: Virus[] }) => {
         const myId = socket.id;
         if (!myId) return;
 
@@ -117,25 +120,26 @@ const Agario = () => {
           const player = playerRef.current;
           const orbs = orbsRef.current;
           const ejects = ejectsRef.current;
-          if (player) {
-            for (const input of remainingInputs) {
-              const mouse: Mouse = { x: input.mouseX, y: input.mouseY };
-              //TODO: player.update(input.dt, mouse, orbs, [], false);
-              const [eatenOrbs, eatenEjects] = player.update(input.dt, mouse, orbs, ejects, false);
-              if (eatenOrbs.length > 0) {
-                const eatenSet = new Set(eatenOrbs);
-                orbsRef.current = orbsRef.current.filter(
-                  (o) => !eatenSet.has(o.id),
-                );
-              }
-              if (eatenEjects.length > 0) {
-                const eatenSet = new Set(eatenEjects);
-                ejectsRef.current = ejectsRef.current.filter(
-                  (e) => !eatenSet.has(e.id),
-                );
-              }
-            }
-          }
+          // const viruses = virusesRef.current;
+          // if (player) {
+          //   for (const input of remainingInputs) {
+          //     const mouse: Mouse = { x: input.mouseX, y: input.mouseY };
+          //     //TODO: player.update(input.dt, mouse, orbs, [], false);
+          //     const [eatenOrbs, eatenEjects] = player.update(input.dt, mouse, orbs, ejects, false);
+          //     if (eatenOrbs.length > 0) {
+          //       const eatenSet = new Set(eatenOrbs);
+          //       orbsRef.current = orbsRef.current.filter(
+          //         (o) => !eatenSet.has(o.id),
+          //       );
+          //     }
+          //     if (eatenEjects.length > 0) {
+          //       const eatenSet = new Set(eatenEjects);
+          //       ejectsRef.current = ejectsRef.current.filter(
+          //         (e) => !eatenSet.has(e.id),
+          //       );
+          //     }
+          //   }
+          // }
         }
 
         for (const [id, pData] of Object.entries(data.players)) {
@@ -157,6 +161,7 @@ const Agario = () => {
 
         orbsRef.current = data.orbs;
         ejectsRef.current = data.ejects;
+        virusesRef.current = data.viruses;
 
         const playersArray = Object.entries(data.players).map(([id, p]) => ({
           id,
@@ -230,6 +235,7 @@ const Agario = () => {
       const camera = cameraRef.current;
       const orbs = orbsRef.current;
       const ejects = ejectsRef.current;
+      // const viruses = virusesRef.current;
 
       if (!canvas || !player || !camera) return;
 
@@ -239,19 +245,19 @@ const Agario = () => {
       };
 
       // local prediction 
-      const [eatenOrbs, eatenEjects] = player.update(dt, worldMouse, orbs, ejects, isDeadRef.current);
-      if (eatenOrbs.length > 0) {
-        const eatenSet = new Set(eatenOrbs);
-        orbsRef.current = orbsRef.current.filter(
-          (o) => !eatenSet.has(o.id),
-        );
-      }
-      if (eatenEjects.length > 0) {
-        const eatenSet = new Set(eatenEjects);
-        ejectsRef.current = ejectsRef.current.filter(
-          (e) => !eatenSet.has(e.id),
-        );
-      }
+      // const [eatenOrbs, eatenEjects] = player.update(dt, worldMouse, orbs, ejects, isDeadRef.current);
+      // if (eatenOrbs.length > 0) {
+      //   const eatenSet = new Set(eatenOrbs);
+      //   orbsRef.current = orbsRef.current.filter(
+      //     (o) => !eatenSet.has(o.id),
+      //   );
+      // }
+      // if (eatenEjects.length > 0) {
+      //   const eatenSet = new Set(eatenEjects);
+      //   ejectsRef.current = ejectsRef.current.filter(
+      //     (e) => !eatenSet.has(e.id),
+      //   );
+      // }
 
       camera.x = player.x - camera.width / 2;
       camera.y = player.y - camera.height / 2;
@@ -285,6 +291,7 @@ const Agario = () => {
       drawOrbs(ctx, orbsRef.current, camera);
       drawEjects(ctx, ejectsRef.current, camera);
       player.draw(ctx, camera);
+      drawViruses(ctx, virusesRef.current, camera);
 
       for (const enemy of Object.values(enemiesRef.current)) {
         enemy.draw(ctx, camera);

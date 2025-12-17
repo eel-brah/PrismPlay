@@ -6,7 +6,13 @@ import {
   BlobData,
   Eject,
 } from "@/../shared/agario/types";
-import { darkenHex, isInView, radiusFromMass } from "@/../shared/agario/utils";
+import {
+  computeMergeCooldown,
+  darkenHex,
+  isInView,
+  radiusFromMass,
+  randomId,
+} from "@/../shared/agario/utils";
 import {
   MAP_WIDTH,
   MAP_HEIGHT,
@@ -19,18 +25,13 @@ import {
   EJECT_MASS,
   EJECT_SPEED,
   MASS,
+  MAX_BLOBS_PER_PLAYER,
+  VIRUS_SPLIT_FORCE,
 } from "@/../shared/agario/config";
 
-const MAX_BLOBS_PER_PLAYER = 16;
 const MIN_SPLIT_MASS = INIT_MASS * 4;
-const MERGE_BASE_TIME = 30;
-const MERGE_FACTOR = 0.0233;
 const SPLIT_LAUNCH_SPEED = 700;
 const SPLIT_FRICTION = 3;
-
-function computeMergeCooldown(mass: number): number {
-  return MERGE_BASE_TIME + mass * MERGE_FACTOR;
-}
 
 export class Player {
   private _id: string;
@@ -55,12 +56,12 @@ export class Player {
     } else {
       this._blobs = [
         {
-          id: `${id}-0`,
+          id: randomId(),
           //TODO: random
           x: MAP_WIDTH / 2,
           y: MAP_HEIGHT / 2,
           mass: INIT_MASS,
-          // mass: 100000,
+          // mass: 50000,
           vx: 0,
           vy: 0,
           mergeCooldown: 0,
@@ -426,7 +427,7 @@ export class Player {
       const offset = r * 2.2;
 
       const child: BlobData = {
-        id: `${this._id}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        id: randomId(),
         x: Math.max(r, Math.min(MAP_WIDTH - r, blob.x + dirX * offset)),
         y: Math.max(r, Math.min(MAP_HEIGHT - r, blob.y + dirY * offset)),
         mass: newMass,
@@ -474,7 +475,7 @@ export class Player {
       const spawnDist = blobR + ejectR + GAP;
 
       ejects.push({
-        id: `${this._id}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        id: randomId(),
         x: Math.max(
           ejectR,
           Math.min(MAP_WIDTH - ejectR, blob.x + dirX * spawnDist),
@@ -493,5 +494,31 @@ export class Player {
     }
 
     return ejects;
+  }
+
+  explodePlayer(sourceBlob: BlobData) {
+    const piecesToCreate = MAX_BLOBS_PER_PLAYER - this.blobs.length;
+
+    const newMass = sourceBlob.mass / (piecesToCreate + 1);
+    sourceBlob.mass = newMass;
+    sourceBlob.mergeCooldown = computeMergeCooldown(newMass);
+    sourceBlob.splitOrder = sourceBlob.splitOrder || ++this._splitOrderCounter;
+
+    const angleStep = (Math.PI * 2) / piecesToCreate;
+
+    for (let i = 0; i < piecesToCreate; i++) {
+      const angle = i * angleStep;
+
+      this.blobs.push({
+        id: randomId(),
+        x: sourceBlob.x,
+        y: sourceBlob.y,
+        mass: newMass,
+        vx: Math.cos(angle) * VIRUS_SPLIT_FORCE,
+        vy: Math.sin(angle) * VIRUS_SPLIT_FORCE,
+        mergeCooldown: computeMergeCooldown(newMass),
+        splitOrder: ++this._splitOrderCounter,
+      });
+    }
   }
 }

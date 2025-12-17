@@ -22,5 +22,16 @@ export const EJECT_COST = MASS * 18;
 export const EJECT_MASS = MASS * 13;
 export const EJECT_SPEED = 900;
 
+export const VIRUS_BASE_MASS = 100 * MASS;
+export const VIRUS_EAT_MIN_MASS = 132 * MASS;
+export const VIRUS_MAX_FEED = 7;
+export const VIRUS_POP_PIECES = 16;
+export const VIRUS_SPLIT_FORCE = 900;
+
+export const MAX_BLOBS_PER_PLAYER = 16;
+export const MERGE_BASE_TIME = 30;
+export const MERGE_FACTOR = 0.0233;
+
 
 export const MAX_ORBS = 200;
+export const MAX_VIRUSES = 7;

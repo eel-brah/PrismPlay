@@ -74,3 +74,13 @@ export type LeaderboardEntry = {
   isMe: boolean;
 };
 
+export interface Virus {
+  id: string;
+  x: number;
+  y: number;
+  mass: number;
+  vx: number;
+  vy: number;
+  fedCount: number;   
+}
+

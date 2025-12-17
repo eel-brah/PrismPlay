@@ -1,5 +1,12 @@
-import { MAP_HEIGHT, MAP_WIDTH, ORB_MIN_MASS } from "./config";
-import { Camera, Eject, Orb } from "./types";
+import {
+  MAP_HEIGHT,
+  MAP_WIDTH,
+  MERGE_BASE_TIME,
+  MERGE_FACTOR,
+  ORB_MIN_MASS,
+  VIRUS_BASE_MASS,
+} from "./config";
+import { Camera, Eject, Orb, Virus } from "./types";
 
 export function darkenHex(color: string, amount = 0.3): string {
   let r: number, g: number, b: number;
@@ -31,8 +38,8 @@ export function darkenHex(color: string, amount = 0.3): string {
   );
 }
 
-function randomId(): string {
-  return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 9);
+export function randomId(): string {
+  return crypto.randomUUID();
 }
 
 export function randomOrb(): Orb {
@@ -42,6 +49,18 @@ export function randomOrb(): Orb {
     y: Math.random() * MAP_HEIGHT,
     mass: ORB_MIN_MASS,
     color: randomColor(),
+  };
+}
+
+export function randomViruses(): Virus {
+  return {
+    id: randomId(),
+    x: Math.random() * MAP_WIDTH,
+    y: Math.random() * MAP_HEIGHT,
+    mass: VIRUS_BASE_MASS,
+    vx: 0,
+    vy: 0,
+    fedCount: 0,
   };
 }
 
@@ -91,6 +110,46 @@ export function drawEjects(
   }
 }
 
+export function drawViruses(
+  ctx: CanvasRenderingContext2D,
+  viruses: Virus[],
+  camera: Camera,
+) {
+  for (const virus of viruses) {
+    const r = radiusFromMass(virus.mass);
+
+    if (!isInView(virus.x, virus.y, r, camera)) continue;
+
+    const screenX = virus.x - camera.x;
+    const screenY = virus.y - camera.y;
+
+    const spikes = 18;
+    const spikeDepth = r * 0.25;
+
+    ctx.beginPath();
+
+    for (let i = 0; i <= spikes; i++) {
+      const angle = (i / spikes) * Math.PI * 2;
+      const isSpike = i % 2 === 0;
+
+      const radius = isSpike ? r + spikeDepth : r;
+      const x = screenX + Math.cos(angle) * radius;
+      const y = screenY + Math.sin(angle) * radius;
+
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+
+    ctx.closePath();
+
+    ctx.fillStyle = "#2ecc71";
+    ctx.fill();
+
+    ctx.strokeStyle = "#27ae60";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+}
 export function isInView(
   x: number,
   y: number,
@@ -115,4 +174,8 @@ export function isInView(
 
 export function radiusFromMass(mass: number): number {
   return Math.sqrt(mass / Math.PI);
+}
+
+export function computeMergeCooldown(mass: number): number {
+  return MERGE_BASE_TIME + mass * MERGE_FACTOR;
 }
