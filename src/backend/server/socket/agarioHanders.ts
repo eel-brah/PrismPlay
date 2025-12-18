@@ -1,57 +1,78 @@
 import { FastifyInstance } from "fastify";
 import { Socket } from "socket.io";
-import { MAP_HEIGHT, MAP_WIDTH } from "src/shared/agario/config";
 import { Player } from "src/shared/agario/player";
-import { InputState, PlayerState } from "src/shared/agario/types";
 import { randomColor } from "src/shared/agario/utils";
+import { World, worldByRoom } from "./agario";
 
-export function agarioHandlers(
-  socket: Socket,
-  players: Record<string, PlayerState>,
-  fastify: FastifyInstance,
-) {
+function getWorld(room: string): World {
+  let w = worldByRoom.get(room);
+  if (!w) {
+    w = { players: {}, orbs: [], ejects: [], viruses: [] };
+    worldByRoom.set(room, w);
+  }
+  return w;
+}
+
+function getCtx(socket: Socket) {
+  const room = socket.data.room as string | undefined;
+  if (!room) return null;
+  const world = worldByRoom.get(room);
+  if (!world) return null;
+  const state = world.players[socket.id];
+  if (!state) return null;
+  return { room, world, state };
+}
+
+export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
   fastify.log.info({ id: socket.id }, "agario handlers attached");
 
-  socket.on("join", (data) => {
-    fastify.log.info({ id: socket.id, data }, "player join");
-    const newPlayer = new Player(
-      socket.id,
-      data.name.slice(0, 6),
-      randomColor(),
-    );
+  socket.on("agario:join-room", ({ room, name }) => {
+    //TODO: valadate roomName
+    socket.join(room);
 
-    players[socket.id] = {
+    const world = getWorld(room);
+
+    const newPlayer = new Player(socket.id, name.slice(0, 6), randomColor());
+
+    world.players[socket.id] = {
       player: newPlayer,
       input: null,
-      splitRequested: false, 
+      splitRequested: false,
       ejectRequested: false,
     };
+
+    socket.data.room = room;
 
     socket.emit("joined", newPlayer.serialize());
   });
 
-  socket.on("input", (input: InputState) => {
-    const state = players[socket.id];
-    if (!state) return;
-    state.input = input;
+  socket.on("input", (input) => {
+    const ctx = getCtx(socket);
+    if (!ctx) return;
+    ctx.state.input = input;
   });
 
   socket.on("split", () => {
-    const state = players[socket.id];
-    if (!state) return;
-    state.splitRequested = true;
+    const ctx = getCtx(socket);
+    if (!ctx) return;
+    ctx.state.splitRequested = true;
   });
 
   socket.on("eject", () => {
-    const state = players[socket.id];
-    if (!state) return;
-    state.ejectRequested = true;
+    const ctx = getCtx(socket);
+    if (!ctx) return;
+    ctx.state.ejectRequested = true;
   });
 
   socket.on("disconnect", (reason) => {
     fastify.log.info({ id: socket.id, reason }, "socket disconnected");
-    if (players[socket.id]) {
-      delete players[socket.id];
+    const ctx = getCtx(socket);
+    if (!ctx) return;
+
+    delete ctx.world.players[socket.id];
+
+    if (Object.keys(ctx.world.players).length === 0) {
+      worldByRoom.delete(ctx.room);
     }
   });
 }

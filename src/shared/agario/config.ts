@@ -5,7 +5,7 @@ export const MAX_SPEED = 400;
 export const MIN_SPEED = 50;
 
 export const MASS = 110;
-export const MAXIMUM_MASS_LIMIT = 135000;
+export const MAXIMUM_MASS_LIMIT = 1228 * MASS;
 
 // export const INIT_RADIUS = 20;
 export const ORB_RADIUS = 8;

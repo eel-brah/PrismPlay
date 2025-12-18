@@ -33,6 +33,8 @@ const Agario = () => {
   const isDeadRef = useRef(false);
 
   const [playerName, setPlayerName] = useState("");
+  const [menuMode, setMenuMode] = useState("FFA");
+  const [roomName, setRoomName] = useState("");
   const [hasJoined, setHasJoined] = useState(false);
   const [gameOver, setGameOver] = useState(false);
 
@@ -43,7 +45,7 @@ const Agario = () => {
 
 
   useEffect(() => {
-    const socket = io({ path: "/socket.io" });
+    const socket = io("/agario", { path: "/socket.io" });
     socketRef.current = socket;
 
     const canvas = canvasRef.current;
@@ -344,7 +346,7 @@ const Agario = () => {
     if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  function handleJoin() {
+  function handleJoinRoom() {
     const socket = socketRef.current;
     if (!socket) return;
 
@@ -353,7 +355,10 @@ const Agario = () => {
     setPlayerName(pName.trim());
     const name = pName || "Pl" + Math.floor(Math.random() * 1000);
 
-    socket.emit("join", { name });
+    let room = roomName.trim();
+    if (room.length === 0) room = "FFA";
+    setRoomName(room);
+    socket.emit("agario:join-room", { name, room });
   }
 
   function handleRespawn() {
@@ -366,7 +371,9 @@ const Agario = () => {
     isDeadRef.current = false;
     setGameOver(false);
 
-    socket.emit("join", { name });
+    let room = roomName;
+    if (room.length === 0) room = "FFA";
+    socket.emit("agario:join-room", { name, room });
   }
 
   return (
@@ -375,35 +382,86 @@ const Agario = () => {
         <div className="absolute inset-0 flex flex-col justify-center items-center gap-4">
           <h1 className="text-4xl mb-4 font-bold text-gray-800">Agario</h1>
 
+          {/* Name always visible */}
           <input
             className="
-            px-4 py-2
-            rounded-md
-            border-2 border-gray-400
-            text-black text-xl
-            bg-white
-            focus:outline-none
-            focus:border-gray-600
-            placeholder-gray-500
-          "
+        px-4 py-2 rounded-md border-2 border-gray-400
+        text-black text-xl bg-white focus:outline-none
+        focus:border-gray-600 placeholder-gray-500
+      "
             placeholder="Name (max 6)"
             maxLength={6}
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
           />
 
-          <button
-            onClick={handleJoin}
-            className="
-            mt-2 px-6 py-3
-            bg-gray-300 text-black
-            rounded-md text-xl
-            hover:bg-gray-400
-            transition
+          {/* Main actions */}
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                setRoomName("FFA");
+                handleJoinRoom();
+              }}
+              className="px-6 py-3 bg-gray-300 text-black rounded-md text-xl hover:bg-gray-400 transition"
+            >
+              Start (FFA)
+            </button>
+
+            <button
+              onClick={() => setMenuMode("join")}
+              className="px-6 py-3 bg-gray-300 text-black rounded-md text-xl hover:bg-gray-400 transition"
+            >
+              Join Room
+            </button>
+
+            <button
+              onClick={() => setMenuMode("create")}
+              className="px-6 py-3 bg-gray-300 text-black rounded-md text-xl hover:bg-gray-400 transition"
+            >
+              Create Room
+            </button>
+          </div>
+
+          {/* Extra room input only when needed */}
+          {(menuMode === "join" || menuMode === "create") && (
+            <>
+              <input
+                className="
+            px-4 py-2 rounded-md border-2 border-gray-400
+            text-black text-xl bg-white focus:outline-none
+            focus:border-gray-600 placeholder-gray-500
           "
-          >
-            Join
-          </button>
+                placeholder={menuMode === "join" ? "Room to join" : "Room name to create"}
+                maxLength={20}
+                value={roomName}
+                onChange={(e) => setRoomName(e.target.value)}
+              />
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    const room = roomName.trim();
+                    if (!room) return;
+
+                    handleJoinRoom();
+                  }}
+                  className="px-6 py-3 bg-gray-500 text-white rounded-md text-xl hover:bg-gray-600 transition"
+                >
+                  {menuMode === "join" ? "Join" : "Create"}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setMenuMode("ffa");
+                    setRoomName("");
+                  }}
+                  className="px-6 py-3 bg-gray-200 text-black rounded-md text-xl hover:bg-gray-300 transition"
+                >
+                  Back
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -419,14 +477,9 @@ const Agario = () => {
         </div>
       )}
 
-      {hasJoined && (
-        <Leaderboard leaderboard={leaderboard} />
-      )}
-      <canvas
-        ref={canvasRef}
-        id="agario"
-        className="w-full h-full block"
-      />
+      {hasJoined && <Leaderboard leaderboard={leaderboard} />}
+
+      <canvas ref={canvasRef} id="agario" className="w-full h-full block" />
     </div>
   );
 };

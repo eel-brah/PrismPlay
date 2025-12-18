@@ -1,18 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import { Server as SocketIOServer } from "socket.io";
-import { agarioHandlers } from "./agarioHanders";
-import { MAX_ORBS, ORB_RADIUS } from "src/shared/agario/config";
-import {
-  Eject,
-  Mouse,
-  Orb,
-  PlayerData,
-  PlayerState,
-  Virus,
-} from "src/shared/agario/types";
-import { randomOrb } from "src/shared/agario/utils";
-import { agarioEngine } from "./agarioEngine";
+import { init_agario } from "./agario";
 
 export default fp(async function socketPlugin(fastify: FastifyInstance) {
   const io = new SocketIOServer(fastify.server, {
@@ -25,22 +14,11 @@ export default fp(async function socketPlugin(fastify: FastifyInstance) {
     cors: {
       origin: "*", //TODO:
     },
-  //   transports: ["websocket"],
-  // allowUpgrades: false,
+    //   transports: ["websocket"],
+    // allowUpgrades: false,
   });
 
-  const players: Record<string, PlayerState> = {};
-  const orbs: Orb[] = [];
-  const ejects: Eject[] = [];
-  const viruses: Virus[] = [];
-
-  agarioEngine(io, players, orbs, ejects, viruses);
-
-  io.on("connection", (socket) => {
-    fastify.log.info({ id: socket.id }, "socket connected");
-
-    agarioHandlers(socket, players, fastify);
-  });
+  init_agario(io, fastify);
 
   fastify.decorate("io", io);
 });

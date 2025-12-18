@@ -10,7 +10,6 @@ import {
   VIRUS_BASE_MASS,
   VIRUS_EAT_MIN_MASS,
   VIRUS_MAX_FEED,
-  VIRUS_SPLIT_FORCE,
 } from "src/shared/agario/config";
 import {
   BlobData,
@@ -22,14 +21,14 @@ import {
   Virus,
 } from "src/shared/agario/types";
 import {
-  computeMergeCooldown,
   radiusFromMass,
   randomId,
   randomOrb,
   randomViruses,
 } from "src/shared/agario/utils";
-import type { Server as SocketIOServer } from "socket.io";
+import type { Namespace } from "socket.io";
 import { Player } from "src/shared/agario/player";
+import { World, worldByRoom } from "./agario";
 
 const TICK_RATE = 50;
 const TICK_DT = 1 / TICK_RATE;
@@ -39,19 +38,13 @@ const SPLIT_EAT_FACTOR = 1.33;
 
 const EJECT_FRICTION = 2;
 
-export function agarioEngine(
-  io: SocketIOServer,
-  players: Record<string, PlayerState>,
-  orbs: Orb[],
-  ejects: Eject[],
-  viruses: Virus[],
-) {
-  function ensureOrbs() {
+export function agarioEngine(io: Namespace) {
+  function ensureOrbs(orbs: Orb[]) {
     while (orbs.length < MAX_ORBS) {
       orbs.push(randomOrb());
     }
   }
-  function ensureViruses() {
+  function ensureViruses(viruses: Virus[]) {
     while (viruses.length < MAX_VIRUSES) {
       viruses.push(randomViruses());
     }
@@ -65,7 +58,12 @@ export function agarioEngine(
     return attacker.mass >= defender.mass * required;
   }
 
-  function simulate(dt: number) {
+  function simulate(dt: number, world: World) {
+    const players = world.players;
+    const orbs = world.orbs;
+    const viruses = world.viruses;
+    const ejects = world.ejects;
+
     const ids = Object.keys(players);
 
     for (const id of ids) {
@@ -89,17 +87,17 @@ export function agarioEngine(
       const [eatenOrbs, eatenEjects] = p.update(dt, mouse, orbs, ejects);
 
       if (eatenOrbs.length > 0) {
-        let changed = false;
+        // let changed = false;
         for (const orbId of eatenOrbs) {
           const idx = orbs.findIndex((o) => o.id === orbId);
           if (idx !== -1) {
             orbs.splice(idx, 1);
-            changed = true;
+            // changed = true;
           }
         }
-        if (changed) {
-          ensureOrbs();
-        }
+        // if (changed) {
+        //   ensureOrbs(orbs);
+        // }
       }
       if (eatenEjects.length > 0) {
         for (const ejectId of eatenEjects) {
@@ -143,10 +141,10 @@ export function agarioEngine(
     for (const id of ids) {
       handleVirusCollisions(players[id].player, viruses);
     }
-    handlePlayerCollisions();
+    handlePlayerCollisions(players);
   }
 
-  function handlePlayerCollisions() {
+  function handlePlayerCollisions(players: Record<string, PlayerState>) {
     const ids = Object.keys(players);
     const removedPlayers = new Set<string>();
 
@@ -254,7 +252,7 @@ export function agarioEngine(
 
     for (const id of removedPlayers) {
       delete players[id];
-      const client = io.sockets.sockets.get(id);
+      const client = io.sockets.get(id);
       if (client) {
         client.emit("youLost", { reason: "eaten" });
       }
@@ -330,9 +328,10 @@ export function agarioEngine(
     }
   }
 
-  function broadcastState() {
+  function broadcastState(room: string, world: World) {
     const serializedPlayers: Record<string, PlayerData> = {};
-    for (const [id, state] of Object.entries(players)) {
+
+    for (const [id, state] of Object.entries(world.players)) {
       serializedPlayers[id] = state.player.serialize();
       serializedPlayers[id].lastProcessedSeq = state.input?.seq ?? 0;
 
@@ -340,11 +339,11 @@ export function agarioEngine(
       // console.log(serializedPlayers[id].blobs[0].mass);
     }
 
-    io.sockets.emit("heartbeat", {
+    io.to(room).emit("heartbeat", {
       players: serializedPlayers,
-      orbs,
-      ejects,
-      viruses,
+      orbs: world.orbs,
+      ejects: world.ejects,
+      viruses: world.viruses,
     });
   }
 
@@ -360,19 +359,26 @@ export function agarioEngine(
     accumulator += frameDt;
 
     while (accumulator >= TICK_DT) {
-      simulate(TICK_DT);
-      ensureOrbs();
-      ensureViruses();
+      for (const [room, world] of worldByRoom) {
+        simulate(TICK_DT, world);
+        ensureOrbs(world.orbs);
+        ensureViruses(world.viruses);
+      }
       accumulator -= TICK_DT;
     }
 
-    broadcastState();
+    for (const [room, world] of worldByRoom) {
+      broadcastState(room, world);
+    }
+    // broadcastStatePerRoom();
   }, 1000 / TICK_RATE);
 
   setInterval(() => {
-    for (const orb of orbs) {
-      if (orb.mass < ORB_MAX_MASS) {
-        orb.mass = Math.min(ORB_MAX_MASS, orb.mass + ORB_GROWTH_RATE * 60);
+    for (const [room, world] of worldByRoom) {
+      for (const orb of world.orbs) {
+        if (orb.mass < ORB_MAX_MASS) {
+          orb.mass = Math.min(ORB_MAX_MASS, orb.mass + ORB_GROWTH_RATE * 60);
+        }
       }
     }
   }, 60 * 1000);

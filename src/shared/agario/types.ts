@@ -84,3 +84,9 @@ export interface Virus {
   fedCount: number;   
 }
 
+export type World = {
+  players: Record<string, PlayerState>;
+  orbs: Orb[];
+  ejects: Eject[];
+  viruses: Virus[];
+};
