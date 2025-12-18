@@ -152,23 +152,20 @@ export function agarioEngine(io: Namespace) {
       const idA = ids[i];
       if (removedPlayers.has(idA)) continue;
 
-      const playerA = players[idA]?.player;
-      if (!playerA) continue;
-
+      const playerA = players[idA].player;
       for (let j = i + 1; j < ids.length; j++) {
         const idB = ids[j];
         if (removedPlayers.has(idB)) continue;
 
-        const playerB = players[idB]?.player;
-        if (!playerB) continue;
+        const playerB = players[idB].player;
 
         const blobsA = playerA.blobs;
         const blobsB = playerB.blobs;
 
         if (blobsA.length === 0 || blobsB.length === 0) continue;
 
-        outer: for (let ai = 0; ai < blobsA.length; ai++) {
-          for (let bi = 0; bi < blobsB.length; bi++) {
+        outer: for (let ai = blobsA.length - 1; ai >= 0; ai--) {
+          for (let bi = blobsB.length - 1; bi >= 0; bi--) {
             const a = blobsA[ai];
             const b = blobsB[bi];
 
@@ -178,12 +175,6 @@ export function agarioEngine(io: Namespace) {
             const ra = radiusFromMass(a.mass);
             const rb = radiusFromMass(b.mass);
             const minDist = ra + rb;
-
-            if (distance === 0) {
-              dx = Math.random() - 0.5;
-              dy = Math.random() - 0.5;
-              distance = Math.hypot(dx, dy) || 1;
-            }
 
             if (distance >= minDist) {
               continue;
@@ -210,7 +201,6 @@ export function agarioEngine(io: Namespace) {
                 eatenBlobIndex = ai;
               }
 
-              const eaterPlayer = eaterOwnerId === idA ? playerA : playerB;
               const eatenPlayer = eatenOwnerId === idA ? playerA : playerB;
 
               const eatenBlobs = eatenPlayer.blobs;
@@ -227,9 +217,17 @@ export function agarioEngine(io: Namespace) {
                 removedPlayers.add(eatenOwnerId);
               }
 
-              break outer;
+              if (removedPlayers.has(idA) || removedPlayers.has(idB)) {
+                break outer;
+              }
+              if (eatenOwnerId === idA) continue outer;
             } else {
               const overlap = minDist - distance;
+              if (distance === 0) {
+                dx = 1e-6;
+                dy = 0;
+                distance = 1e-6;
+              }
               const nx = dx / distance;
               const ny = dy / distance;
 
@@ -242,9 +240,6 @@ export function agarioEngine(io: Namespace) {
               b.x += nx * overlap * bWeight;
               b.y += ny * overlap * bWeight;
             }
-          }
-          if (removedPlayers.has(idA) || removedPlayers.has(idB)) {
-            break outer;
           }
         }
       }

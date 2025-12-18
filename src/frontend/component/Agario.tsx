@@ -247,7 +247,7 @@ const Agario = () => {
       };
 
       // local prediction 
-      player.update(dt, worldMouse, [], [], isDeadRef.current);
+      // player.update(dt, worldMouse, [], [], isDeadRef.current);
       // const [eatenOrbs, eatenEjects] = player.update(dt, worldMouse, orbs, ejects, isDeadRef.current);
       // if (eatenOrbs.length > 0) {
       //   const eatenSet = new Set(eatenOrbs);
@@ -261,6 +261,8 @@ const Agario = () => {
       //     (e) => !eatenSet.has(e.id),
       //   );
       // }
+
+      if (isDeadRef.current) player.update(dt, worldMouse, [], [], isDeadRef.current);
 
       camera.x = player.x - camera.width / 2;
       camera.y = player.y - camera.height / 2;

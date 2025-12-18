@@ -60,8 +60,8 @@ export class Player {
           //TODO: random
           x: MAP_WIDTH / 2,
           y: MAP_HEIGHT / 2,
-          mass: INIT_MASS,
-          // mass: 50000,
+          // mass: INIT_MASS,
+          mass: 100000,
           vx: 0,
           vy: 0,
           mergeCooldown: 0,
@@ -236,14 +236,14 @@ export class Player {
         const rb = radiusFromMass(b.mass);
         const minDist = ra + rb;
 
-        if (dist === 0) {
-          dx = Math.random() - 0.5;
-          dy = Math.random() - 0.5;
-          dist = Math.hypot(dx, dy) || 1;
-        }
-
         if (dist < minDist) {
           const overlap = minDist - dist;
+          if (dist === 0) {
+            dx = 1e-6;
+            dy = 0;
+            dist = 1e-6;
+          }
+
           const nx = dx / dist;
           const ny = dy / dist;
 
