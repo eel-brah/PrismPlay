@@ -23,16 +23,77 @@ function getCtx(socket: Socket) {
   return { room, world, state };
 }
 
+type agarioPayload = {
+  room: string;
+  name: string;
+};
+const ROOM_RE = /^[A-Za-z0-9_-]{1,20}$/;
+function isValidRoomName(room: string) {
+  return ROOM_RE.test(room);
+}
+
 export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
   fastify.log.info({ id: socket.id }, "agario handlers attached");
 
-  socket.on("agario:join-room", ({ room, name }) => {
-    //TODO: valadate roomName
+  socket.on("agario:join-room", ({ room, name }: agarioPayload) => {
+    const roomName = room.trim().length > 0 ? room.trim() : "FFA";
+    if (!isValidRoomName(roomName)) {
+      socket.emit(
+        "agario:start-error",
+        "Invalid room name (use A-Z, 0-9, _ or -)",
+      );
+      return;
+    }
+
+    if (roomName === "FFA" || worldByRoom.has(roomName)) {
+      socket.join(roomName);
+      joinRoom(socket, roomName, name);
+    } else {
+      socket.emit("agario:start-error", "There is no room with this name");
+    }
+  });
+
+  socket.on("agario:create-room", ({ room, name }: agarioPayload) => {
+    const roomName = room.trim();
+    if (!isValidRoomName(roomName) || roomName === "FFA") {
+      socket.emit("agario:start-error", "Invalid room name");
+      return;
+    }
+
+    if (worldByRoom.has(roomName)) {
+      socket.emit("agario:start-error", "Room already exists");
+      return;
+    }
+
+    joinRoom(socket, roomName, name);
+  });
+
+  function joinRoom(socket: Socket, room: string, name: string) {
+    const prevRoom = socket.data.room as string | undefined;
+
+    if (prevRoom === room) {
+      socket.emit("agario:start-error", "You are already in this room");
+      return;
+    }
+
+    if (prevRoom) {
+      socket.leave(prevRoom);
+      const prevWorld = worldByRoom.get(prevRoom);
+      if (prevWorld) {
+        delete prevWorld.players[socket.id];
+        if (Object.keys(prevWorld.players).length === 0) {
+          worldByRoom.delete(prevRoom);
+        }
+      }
+    }
+
     socket.join(room);
 
     const world = getWorld(room);
 
-    const newPlayer = new Player(socket.id, name.slice(0, 6), randomColor());
+    const pname =
+      name.trim().slice(0, 6) || "Pl" + Math.floor(Math.random() * 1000);
+    const newPlayer = new Player(socket.id, pname, randomColor());
 
     world.players[socket.id] = {
       player: newPlayer,
@@ -44,7 +105,7 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
     socket.data.room = room;
 
     socket.emit("joined", newPlayer.serialize());
-  });
+  }
 
   socket.on("input", (input) => {
     const ctx = getCtx(socket);

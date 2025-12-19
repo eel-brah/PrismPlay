@@ -42,6 +42,7 @@ const Agario = () => {
   const lastProcessedSeqRef = useRef<number>(0);
 
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [startError, setStartError] = useState("");
 
 
   useEffect(() => {
@@ -74,6 +75,10 @@ const Agario = () => {
       console.log("Connected to server with socket id:", socket.id);
     });
 
+    socket.on("agario:start-error", (msg: string) => {
+      setStartError(msg);
+    });
+
     socket.on("joined", (data: PlayerData) => {
       playerRef.current = Player.deserialize(data);
       console.log(
@@ -86,6 +91,7 @@ const Agario = () => {
       isDeadRef.current = false;
       setGameOver(false);
       setHasJoined(true);
+      setStartError("");
 
       enemiesRef.current = {};
       orbsRef.current = [];
@@ -348,7 +354,7 @@ const Agario = () => {
     if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  function handleJoinRoom() {
+  function handleJoinRoom(mode: string) {
     const socket = socketRef.current;
     if (!socket) return;
 
@@ -358,24 +364,26 @@ const Agario = () => {
     const name = pName || "Pl" + Math.floor(Math.random() * 1000);
 
     let room = roomName.trim();
+    if (room.length > 20) room = room.slice(0, 20);
     if (room.length === 0) room = "FFA";
     setRoomName(room);
-    socket.emit("agario:join-room", { name, room });
+
+    if (mode == "join")
+      socket.emit("agario:join-room", { name, room });
+    else
+      socket.emit("agario:create-room", { name, room });
   }
 
   function handleRespawn() {
     const socket = socketRef.current;
     if (!socket) return;
 
-    const name =
-      playerName || "Pl" + Math.floor(Math.random() * 1000);
-
     isDeadRef.current = false;
     setGameOver(false);
 
-    let room = roomName;
+    let room = roomName.trim();
     if (room.length === 0) room = "FFA";
-    socket.emit("agario:join-room", { name, room });
+    socket.emit("agario:join-room", { playerName, room });
   }
 
   return (
@@ -396,13 +404,17 @@ const Agario = () => {
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
           />
-
+          {startError && (
+            <div className="px-4 py-2 rounded-md bg-red-100 border border-red-300 text-red-700 text-lg">
+              {startError}
+            </div>
+          )}
           {/* Main actions */}
           <div className="flex gap-3">
             <button
               onClick={() => {
                 setRoomName("FFA");
-                handleJoinRoom();
+                handleJoinRoom("join");
               }}
               className="px-6 py-3 bg-gray-300 text-black rounded-md text-xl hover:bg-gray-400 transition"
             >
@@ -410,14 +422,20 @@ const Agario = () => {
             </button>
 
             <button
-              onClick={() => setMenuMode("join")}
+              onClick={() => {
+                setStartError("");
+                setMenuMode("join")
+              }}
               className="px-6 py-3 bg-gray-300 text-black rounded-md text-xl hover:bg-gray-400 transition"
             >
               Join Room
             </button>
 
             <button
-              onClick={() => setMenuMode("create")}
+              onClick={() => {
+                setStartError("");
+                setMenuMode("create")
+              }}
               className="px-6 py-3 bg-gray-300 text-black rounded-md text-xl hover:bg-gray-400 transition"
             >
               Create Room
@@ -445,7 +463,7 @@ const Agario = () => {
                     const room = roomName.trim();
                     if (!room) return;
 
-                    handleJoinRoom();
+                    handleJoinRoom(menuMode);
                   }}
                   className="px-6 py-3 bg-gray-500 text-white rounded-md text-xl hover:bg-gray-600 transition"
                 >
@@ -454,8 +472,9 @@ const Agario = () => {
 
                 <button
                   onClick={() => {
-                    setMenuMode("ffa");
+                    setMenuMode("FFA");
                     setRoomName("");
+                    setStartError("");
                   }}
                   className="px-6 py-3 bg-gray-200 text-black rounded-md text-xl hover:bg-gray-300 transition"
                 >
