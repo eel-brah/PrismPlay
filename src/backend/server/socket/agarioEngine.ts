@@ -1,4 +1,5 @@
 import {
+    DEFAULT_ROOM,
   MAP_HEIGHT,
   MAP_WIDTH,
   MAX_BLOBS_PER_PLAYER,
@@ -59,6 +60,8 @@ export function agarioEngine(io: Namespace) {
   }
 
   function simulate(dt: number, world: World) {
+    const started = world.meta.status === "started";
+
     const players = world.players;
     const orbs = world.orbs;
     const viruses = world.viruses;
@@ -84,8 +87,29 @@ export function agarioEngine(io: Namespace) {
         state.ejectRequested = false;
       }
 
-      const [eatenOrbs, eatenEjects] = p.update(dt, mouse, orbs, ejects);
+      // if (started && state.splitRequested) {
+      //   p.split(mouse);
+      //   state.splitRequested = false;
+      // } else {
+      //   state.splitRequested = false;
+      // }
+      //
+      // if (started && state.ejectRequested) {
+      //   ejects.push(...p.eject(mouse));
+      //   state.ejectRequested = false;
+      // } else {
+      //   state.ejectRequested = false;
+      // }
 
+      const [eatenOrbs, eatenEjects] = p.update(dt, mouse, orbs, ejects);
+      // const [eatenOrbs, eatenEjects] = p.update(
+      //   dt,
+      //   mouse,
+      //   started ? orbs : [],
+      //   started ? ejects : [],
+      // );
+
+      // if (started) {
       if (eatenOrbs.length > 0) {
         // let changed = false;
         for (const orbId of eatenOrbs) {
@@ -107,7 +131,10 @@ export function agarioEngine(io: Namespace) {
           }
         }
       }
+      // }
     }
+
+    // if (!started) return;
 
     for (const e of ejects) {
       e.age += dt;
@@ -355,6 +382,20 @@ export function agarioEngine(io: Namespace) {
 
     while (accumulator >= TICK_DT) {
       for (const [room, world] of worldByRoom) {
+        if (
+          world.meta.room !== DEFAULT_ROOM && world.meta.status === "started" &&
+          world.meta.endAt &&
+          now >= world.meta.endAt
+        ) {
+          io.to(room).emit("agario:room-ended", { room });
+          worldByRoom.delete(room);
+          continue;
+        }
+
+        if (world.meta.status !== "started") {
+          continue;
+        }
+
         simulate(TICK_DT, world);
         ensureOrbs(world.orbs);
         ensureViruses(world.viruses);
@@ -363,9 +404,9 @@ export function agarioEngine(io: Namespace) {
     }
 
     for (const [room, world] of worldByRoom) {
+      if (world.meta.status !== "started") continue;
       broadcastState(room, world);
     }
-    // broadcastStatePerRoom();
   }, 1000 / TICK_RATE);
 
   setInterval(() => {

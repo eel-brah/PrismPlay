@@ -81,7 +81,7 @@ export interface Virus {
   mass: number;
   vx: number;
   vy: number;
-  fedCount: number;   
+  fedCount: number;
 }
 
 export type World = {
@@ -90,3 +90,28 @@ export type World = {
   ejects: Eject[];
   viruses: Virus[];
 };
+
+export type RoomInfo = {
+  room: string;
+  visibility: "public" | "private";
+  status: "waiting" | "started";
+  maxPlayers: number;
+  durationMin: number;
+  hostId: string;
+  youAreHost: boolean;
+  key?: string;
+  players: LobbyPlayer[];
+};
+
+export type RoomSummary = {
+  room: string;
+  visibility: "public" | "private";
+  status: "waiting" | "started";
+  playerCount: number;
+  maxPlayers: number;
+  durationMin: number;
+  timeLeftSec: number | null;
+};
+
+export type LobbyPlayer = { id: string; name: string };
+

@@ -1,3 +1,11 @@
+export const MIN_PLAYERS_PER_ROOM = 2;
+export const MAX_PLAYERS_PER_ROOM = 50;
+export const MIN_MINUTES = 1;
+export const MAX_MINUTES = 60;
+
+export const DEFAULT_ROOM = "FFA";
+export const DEFAULT_ROOM_MAX_PLAYERS = 9999;
+
 export const MAP_WIDTH = 2000;
 export const MAP_HEIGHT = 2000;
 
@@ -31,7 +39,6 @@ export const VIRUS_SPLIT_FORCE = 900;
 export const MAX_BLOBS_PER_PLAYER = 16;
 export const MERGE_BASE_TIME = 30;
 export const MERGE_FACTOR = 0.0233;
-
 
 export const MAX_ORBS = 200;
 export const MAX_VIRUSES = 7;

@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import { MAP_HEIGHT, MAP_WIDTH } from "@/../shared/agario/config";
+import { DEFAULT_ROOM, MAP_HEIGHT, MAP_WIDTH, MAX_MINUTES, MAX_PLAYERS_PER_ROOM, MIN_MINUTES, MIN_PLAYERS_PER_ROOM } from "@/../shared/agario/config";
 import { Player } from "@/../shared/agario/player";
 import {
   Camera,
   Eject,
   InputState,
   LeaderboardEntry,
+  LobbyPlayer,
   Mouse,
   Orb,
   PlayerData,
+  RoomInfo,
+  RoomSummary,
   Virus,
 } from "@/../shared/agario/types";
 import { drawEjects, drawOrbs, drawViruses } from "@/../shared/agario/utils";
@@ -33,8 +36,9 @@ const Agario = () => {
   const isDeadRef = useRef(false);
 
   const [playerName, setPlayerName] = useState("");
-  const [menuMode, setMenuMode] = useState("FFA");
+  const [menuMode, setMenuMode] = useState(DEFAULT_ROOM);
   const [roomName, setRoomName] = useState("");
+  const roomNameRef = useRef<string>("");
   const [hasJoined, setHasJoined] = useState(false);
   const [gameOver, setGameOver] = useState(false);
 
@@ -44,6 +48,15 @@ const Agario = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [startError, setStartError] = useState("");
 
+  const [rooms, setRooms] = useState<RoomSummary[]>([]);
+  const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [maxPlayers, setMaxPlayers] = useState(10);
+  const [durationMin, setDurationMin] = useState(10);
+  const [joinKey, setJoinKey] = useState("");
+  const [createdKey, setCreatedKey] = useState("");
+  const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
+  const [lobbyPlayers, setLobbyPlayers] = useState<LobbyPlayer[]>([]);
+  const roomStatusRef = useRef<"waiting" | "started">("waiting");
 
   useEffect(() => {
     const socket = io("/agario", { path: "/socket.io" });
@@ -75,8 +88,48 @@ const Agario = () => {
       console.log("Connected to server with socket id:", socket.id);
     });
 
+    const interval = setInterval(() => {
+      socket.emit("agario:list-rooms");
+    }, 1000);
+    socket.emit("agario:list-rooms");
+
     socket.on("agario:start-error", (msg: string) => {
       setStartError(msg);
+    });
+
+    socket.on("agario:room-info", (info: RoomInfo) => {
+      setRoomInfo(info);
+      setLobbyPlayers(info.players);
+      roomStatusRef.current = info.status;
+    });
+
+    socket.on("agario:room-players", (data: { players: LobbyPlayer[]; hostId: string }) => {
+      setLobbyPlayers(data.players);
+      setRoomInfo((prev) => (prev ? { ...prev, players: data.players, hostId: data.hostId } : prev));
+    });
+
+    socket.on("agario:room-status", (data: { status: "waiting" | "started" }) => {
+      setRoomInfo((prev) => (prev ? { ...prev, status: data.status } : prev));
+      roomStatusRef.current = data.status;
+    });
+
+    socket.on("agario:rooms", (list: RoomSummary[]) => {
+      setRooms(list);
+    });
+
+    socket.on("agario:room-created", (data: { key?: string }) => {
+      setCreatedKey(data.key ?? "");
+    });
+
+    socket.on("agario:room-ended", () => {
+      // back to menu
+      setHasJoined(false);
+      setMenuMode(DEFAULT_ROOM);
+      setRoomName("");
+      roomNameRef.current = "";
+      setCreatedKey("");
+      setJoinKey("");
+      setStartError("Room ended");
     });
 
     socket.on("joined", (data: PlayerData) => {
@@ -220,6 +273,8 @@ const Agario = () => {
     }
 
     function handleKeyDown(e: KeyboardEvent) {
+      if (roomStatusRef.current !== "started") return;
+
       if (e.repeat) return;
       if (e.code === "Space" || e.key === " ") {
         e.preventDefault();
@@ -239,10 +294,12 @@ const Agario = () => {
     window.addEventListener("keydown", handleKeyDown);
 
     function update(dt: number) {
+      if (roomStatusRef.current !== "started") return;
+
       const player = playerRef.current;
       const camera = cameraRef.current;
-      const orbs = orbsRef.current;
-      const ejects = ejectsRef.current;
+      // const orbs = orbsRef.current;
+      // const ejects = ejectsRef.current;
       // const viruses = virusesRef.current;
 
       if (!canvas || !player || !camera) return;
@@ -332,6 +389,7 @@ const Agario = () => {
         cancelAnimationFrame(animationIdRef.current);
       }
       socket.disconnect();
+      clearInterval(interval);
     };
   }, []);
 
@@ -358,20 +416,30 @@ const Agario = () => {
     const socket = socketRef.current;
     if (!socket) return;
 
-    let pName = playerName;
-    if (playerName.length > 6) pName = playerName.slice(0, 6);
-    setPlayerName(pName.trim());
-    const name = pName || "Pl" + Math.floor(Math.random() * 1000);
+    let name = playerName.trim();
+    if (playerName.length > 6) name = playerName.slice(0, 6);
+    name = name || "Pl" + Math.floor(Math.random() * 1000);
+    setPlayerName(name);
 
-    let room = roomName.trim();
+    let room = roomNameRef.current.trim();
+    console.log("room name: ", room)
+
     if (room.length > 20) room = room.slice(0, 20);
-    if (room.length === 0) room = "FFA";
+    if (room.length === 0) room = DEFAULT_ROOM;
     setRoomName(room);
+    roomNameRef.current = room;
 
-    if (mode == "join")
-      socket.emit("agario:join-room", { name, room });
-    else
-      socket.emit("agario:create-room", { name, room });
+    if (mode === "join") {
+      socket.emit("agario:join-room", { name, room, key: joinKey.trim() || undefined });
+    } else {
+      socket.emit("agario:create-room", {
+        name,
+        room,
+        visibility,
+        maxPlayers,
+        durationMin,
+      });
+    }
   }
 
   function handleRespawn() {
@@ -381,39 +449,45 @@ const Agario = () => {
     isDeadRef.current = false;
     setGameOver(false);
 
-    let room = roomName.trim();
-    if (room.length === 0) room = "FFA";
-    socket.emit("agario:join-room", { playerName, room });
+    let room = roomNameRef.current.trim();
+    if (room.length === 0) room = DEFAULT_ROOM;
+    socket.emit("agario:join-room", { name: playerName, room, key: joinKey.trim() || undefined });
   }
 
   return (
     <div className="fixed inset-0">
+      <div className="pointer-events-none fixed top-6 left-1/2 -translate-x-1/2 z-50">
+        <div
+          className={`px-6 py-3 rounded-md border text-lg transition-all duration-200
+      ${startError
+              ? "bg-red-100 border-red-300 text-red-700 opacity-100 translate-y-0"
+              : "opacity-0 -translate-y-2"
+            }`}
+          aria-live="polite"
+        >
+          {startError}
+        </div>
+      </div>
+
       {!hasJoined && (
         <div className="absolute inset-0 flex flex-col justify-center items-center gap-4">
           <h1 className="text-4xl mb-4 font-bold text-gray-800">Agario</h1>
 
-          {/* Name always visible */}
           <input
-            className="
-        px-4 py-2 rounded-md border-2 border-gray-400
-        text-black text-xl bg-white focus:outline-none
-        focus:border-gray-600 placeholder-gray-500
-      "
+            className="px-4 py-2 rounded-md border-2 border-gray-400 text-black text-xl bg-white focus:outline-none focus:border-gray-600 placeholder-gray-500"
             placeholder="Name (max 6)"
             maxLength={6}
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
           />
-          {startError && (
-            <div className="px-4 py-2 rounded-md bg-red-100 border border-red-300 text-red-700 text-lg">
-              {startError}
-            </div>
-          )}
-          {/* Main actions */}
+
           <div className="flex gap-3">
             <button
               onClick={() => {
-                setRoomName("FFA");
+                setStartError("");
+                setMenuMode(DEFAULT_ROOM);
+                setRoomName(DEFAULT_ROOM);
+                roomNameRef.current = DEFAULT_ROOM;
                 handleJoinRoom("join");
               }}
               className="px-6 py-3 bg-gray-300 text-black rounded-md text-xl hover:bg-gray-400 transition"
@@ -424,7 +498,7 @@ const Agario = () => {
             <button
               onClick={() => {
                 setStartError("");
-                setMenuMode("join")
+                setMenuMode("join");
               }}
               className="px-6 py-3 bg-gray-300 text-black rounded-md text-xl hover:bg-gray-400 transition"
             >
@@ -434,7 +508,7 @@ const Agario = () => {
             <button
               onClick={() => {
                 setStartError("");
-                setMenuMode("create")
+                setMenuMode("create");
               }}
               className="px-6 py-3 bg-gray-300 text-black rounded-md text-xl hover:bg-gray-400 transition"
             >
@@ -442,38 +516,182 @@ const Agario = () => {
             </button>
           </div>
 
-          {/* Extra room input only when needed */}
-          {(menuMode === "join" || menuMode === "create") && (
-            <>
+          {menuMode === "join" && (
+            <div className="w-[560px] max-w-[92vw] bg-white/95 rounded-lg p-4 border border-gray-300">
+              <div className="text-black font-bold text-xl mb-2">Rooms</div>
+
+              <div className="max-h-[260px] overflow-auto flex flex-col gap-2">
+                {rooms.length === 0 && (
+                  <div className="text-gray-700">No rooms right now.</div>
+                )}
+
+                {rooms.map((r) => (
+                  <div
+                    key={r.room}
+                    className="flex items-center justify-between border rounded p-2"
+                  >
+                    <div className="text-black">
+                      <div className="font-semibold">
+                        {r.room} {r.visibility === "private" ? "🔒" : "🌐"}
+                      </div>
+                      <div className="text-sm text-gray-700">
+                        {r.status} • {r.playerCount}/{r.maxPlayers}
+                        {r.room !== DEFAULT_ROOM && (
+                          <>
+                            {" • "}
+                            {r.durationMin}m
+                            {r.timeLeftSec != null && ` • ${r.timeLeftSec}s left`}
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        className="px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                        onClick={() => {
+                          setRoomName(r.room);
+                          roomNameRef.current = r.room;
+
+                          if (r.visibility === "public") {
+                            setJoinKey("");
+                            handleJoinRoom("join");
+                          }
+                        }}
+                      >
+                        {r.visibility === "public" ? "Join" : "Select"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 flex flex-col gap-2">
+                <input
+                  className="px-4 py-2 rounded-md border-2 border-gray-400 text-black text-xl bg-white"
+                  placeholder="Room name (or select above)"
+                  maxLength={20}
+                  value={roomName}
+                  onChange={(e) => {
+                    setRoomName(e.target.value);
+                    roomNameRef.current = e.target.value;
+                  }}
+                />
+
+                <input
+                  className="px-4 py-2 rounded-md border-2 border-gray-400 text-black text-xl bg-white"
+                  placeholder="Key (only for private rooms)"
+                  value={joinKey}
+                  onChange={(e) => setJoinKey(e.target.value)}
+                />
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleJoinRoom("join")}
+                    className="px-6 py-3 bg-gray-500 text-white rounded-md text-xl hover:bg-gray-600 transition"
+                  >
+                    Join
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setMenuMode(DEFAULT_ROOM);
+                      setRoomName("");
+                      roomNameRef.current = "";
+                      setJoinKey("");
+                      setStartError("");
+                    }}
+                    className="px-6 py-3 bg-gray-200 text-black rounded-md text-xl hover:bg-gray-300 transition"
+                  >
+                    Back
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {menuMode === "create" && (
+            <div className="w-[560px] max-w-[92vw] bg-white/95 rounded-lg p-4 border border-gray-300">
+              <div className="text-black font-bold text-xl mb-3">Create Room</div>
+
               <input
-                className="
-            px-4 py-2 rounded-md border-2 border-gray-400
-            text-black text-xl bg-white focus:outline-none
-            focus:border-gray-600 placeholder-gray-500
-          "
-                placeholder={menuMode === "join" ? "Room to join" : "Room name to create"}
+                className="px-4 py-2 rounded-md border-2 border-gray-400 text-black text-xl bg-white w-full"
+                placeholder="Room name (A-Z, 0-9, _ or -)"
                 maxLength={20}
                 value={roomName}
-                onChange={(e) => setRoomName(e.target.value)}
+                onChange={(e) => {
+                  roomNameRef.current = e.target.value;
+                  setRoomName(e.target.value);
+                }
+                }
               />
 
-              <div className="flex gap-3">
+              <div className="mt-3 flex gap-5 items-center">
+                <label className="text-black flex items-center gap-2">
+                  <input
+                    type="radio"
+                    checked={visibility === "public"}
+                    onChange={() => setVisibility("public")}
+                  />
+                  Public
+                </label>
+
+                <label className="text-black flex items-center gap-2">
+                  <input
+                    type="radio"
+                    checked={visibility === "private"}
+                    onChange={() => setVisibility("private")}
+                  />
+                  Private
+                </label>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <input
+                  className="px-4 py-2 rounded-md border-2 border-gray-400 text-black text-xl bg-white"
+                  type="number"
+                  min={MIN_PLAYERS_PER_ROOM}
+                  max={MAX_PLAYERS_PER_ROOM}
+                  value={maxPlayers > 0 ? maxPlayers : undefined}
+                  onChange={(e) => setMaxPlayers(Number(e.target.value))}
+                  placeholder="Max players"
+                />
+                <input
+                  className="px-4 py-2 rounded-md border-2 border-gray-400 text-black text-xl bg-white"
+                  type="number"
+                  min={MIN_MINUTES}
+                  max={MAX_MINUTES}
+                  value={durationMin > 0 ? durationMin : undefined}
+                  onChange={(e) => setDurationMin(Number(e.target.value))}
+                  placeholder="Duration (min)"
+                />
+              </div>
+
+              {visibility === "private" && createdKey && (
+                <div className="mt-3 px-3 py-2 rounded bg-yellow-100 border border-yellow-300 text-yellow-900">
+                  Private Key: <b>{createdKey}</b>
+                </div>
+              )}
+
+              <div className="mt-4 flex gap-3">
                 <button
                   onClick={() => {
-                    const room = roomName.trim();
-                    if (!room) return;
-
-                    handleJoinRoom(menuMode);
+                    const r = roomName.trim();
+                    if (!r || maxPlayers === 0 || durationMin === 0) return;
+                    handleJoinRoom("create");
                   }}
                   className="px-6 py-3 bg-gray-500 text-white rounded-md text-xl hover:bg-gray-600 transition"
                 >
-                  {menuMode === "join" ? "Join" : "Create"}
+                  Create
                 </button>
 
                 <button
                   onClick={() => {
-                    setMenuMode("FFA");
+                    setMenuMode(DEFAULT_ROOM);
                     setRoomName("");
+                    roomNameRef.current = "";
+                    setJoinKey("");
+                    setCreatedKey("");
                     setStartError("");
                   }}
                   className="px-6 py-3 bg-gray-200 text-black rounded-md text-xl hover:bg-gray-300 transition"
@@ -481,13 +699,13 @@ const Agario = () => {
                   Back
                 </button>
               </div>
-            </>
+            </div>
           )}
         </div>
       )}
 
       {hasJoined && gameOver && (
-        <div className="absolute inset-0 bg-black/70 flex flex-col justify-center items-center text-white text-4xl">
+        <div className="absolute inset-0 bg-black/70 flex flex-col justify-center items-center text-white text-4xl z-50">
           <div>You Died</div>
           <button
             onClick={handleRespawn}
@@ -498,7 +716,95 @@ const Agario = () => {
         </div>
       )}
 
-      {hasJoined && <Leaderboard leaderboard={leaderboard} />}
+      {hasJoined && roomInfo?.status === "waiting" && (
+        <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-40">
+          <div className="bg-white rounded-lg p-6 w-[560px] max-w-[92vw]">
+            <div className="text-2xl font-bold text-black flex items-center justify-between">
+              <span>
+                Lobby: {roomInfo.room}{" "}
+                {roomInfo.visibility === "private" ? "🔒" : "🌐"}
+              </span>
+              <span className="text-sm text-gray-600">
+                {lobbyPlayers.length}/{roomInfo.maxPlayers}
+              </span>
+            </div>
+
+            <div className="text-gray-700 mt-1">
+              Duration: {roomInfo.durationMin} minutes
+            </div>
+
+            <div className="mt-6 flex items-center justify-center">
+              <span className="text-xl font-bold text-black text-center">
+                Waiting for players to join...
+              </span>
+            </div>
+
+            {roomInfo.youAreHost &&
+              roomInfo.visibility === "private" &&
+              roomInfo.key && (
+                <div className="mt-3 px-3 py-2 rounded bg-yellow-100 border border-yellow-300 text-yellow-900">
+                  Room Key: <b>{roomInfo.key}</b>
+                </div>
+              )}
+
+            <div className="mt-4">
+              <div className="font-semibold text-black mb-2">Players</div>
+              <div className="max-h-[220px] overflow-auto border rounded">
+                {lobbyPlayers.map((p) => (
+                  <div
+                    key={p.id}
+                    className="px-3 py-2 border-b last:border-b-0 flex justify-between"
+                  >
+                    <span className="text-black">{p.name}</span>
+                    {p.id === roomInfo.hostId && (
+                      <span className="text-sm text-gray-600">Host</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4 flex gap-3 items-center">
+              {roomInfo.youAreHost ? (
+                <button
+                  onClick={() => {
+                    if (socketRef.current) {
+                      socketRef.current.emit("agario:start-room")
+                    }
+                  }}
+                  className="px-5 py-3 bg-green-600 text-white rounded hover:bg-green-700"
+                >
+                  Start Match
+                </button>
+              ) : (
+                <div className="text-gray-700">Waiting for host to start…</div>
+              )}
+
+              <button
+                onClick={() => {
+                  socketRef.current?.emit("agario:leave-room");
+                  setHasJoined(false);
+                  setRoomInfo(null);
+                  setLobbyPlayers([]);
+                  setMenuMode(DEFAULT_ROOM);
+                  setRoomName("");
+                  roomNameRef.current = "";
+                  setJoinKey("");
+                  setCreatedKey("");
+                  setStartError("");
+                }}
+                className="px-5 py-3 bg-gray-300 text-black rounded hover:bg-gray-400"
+              >
+                Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {hasJoined && roomInfo?.status === "started" && (
+        <Leaderboard leaderboard={leaderboard} />
+      )}
 
       <canvas ref={canvasRef} id="agario" className="w-full h-full block" />
     </div>
