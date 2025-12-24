@@ -15,7 +15,7 @@ import {
   RoomSummary,
   Virus,
 } from "@/../shared/agario/types";
-import { drawEjects, drawOrbs, drawViruses } from "@/../shared/agario/utils";
+import { drawEjects, drawOrbs, drawViruses, randomColor, randomId, randomPlayer } from "@/../shared/agario/utils";
 import { drawGrid } from "@/game/agario/utils";
 import { FinalLeaderboard, Leaderboard } from "./LeaderBoard";
 
@@ -34,6 +34,7 @@ const Agario = () => {
   const enemiesRef = useRef<Record<string, Player>>({});
   const inputSeqRef = useRef(0);
   const isDeadRef = useRef(false);
+  const isSpectatorRef = useRef(false);
 
   const [playerName, setPlayerName] = useState("");
   const [menuMode, setMenuMode] = useState(DEFAULT_ROOM);
@@ -49,6 +50,8 @@ const Agario = () => {
 
   const [rooms, setRooms] = useState<RoomSummary[]>([]);
   const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [allowSpectators, setAllowSpectators] = useState(false);
+  const [isSpectator, setSpectator] = useState(false);
   const [maxPlayers, setMaxPlayers] = useState(10);
   const [durationMin, setDurationMin] = useState(10);
   const [joinKey, setJoinKey] = useState("");
@@ -121,7 +124,6 @@ const Agario = () => {
     });
 
     socket.on("agario:room-ended", () => {
-      // back to menu
       setHasJoined(false);
       setMenuMode("leaderboard");
       setRoomName("");
@@ -131,14 +133,21 @@ const Agario = () => {
       setStartError("Room ended");
     });
 
-    socket.on("joined", (data: PlayerData) => {
-      playerRef.current = Player.deserialize(data);
-      console.log(
-        "Joined game as",
-        playerRef.current.id,
-        " named: ",
-        playerRef.current.name,
-      );
+    socket.on("joined", (data: PlayerData, spectator: boolean) => {
+      if (spectator) {
+        playerRef.current = randomPlayer();
+        isSpectatorRef.current = true;
+      }
+      else {
+        playerRef.current = Player.deserialize(data);
+        console.log(
+          "Joined game as",
+          playerRef.current.id,
+          " named: ",
+          playerRef.current.name,
+        );
+        isSpectatorRef.current = false;
+      }
 
       isDeadRef.current = false;
       setMenuMode(roomNameRef.current);
@@ -324,12 +333,12 @@ const Agario = () => {
       //   );
       // }
 
-      if (isDeadRef.current) player.update(dt, worldMouse, [], [], isDeadRef.current);
+      if (isSpectatorRef.current || isDeadRef.current) player.update(dt, worldMouse, [], [], true);
 
       camera.x = player.x - camera.width / 2;
       camera.y = player.y - camera.height / 2;
 
-      if (isDeadRef.current) return;
+      if (isSpectatorRef.current || isDeadRef.current) return;
 
       inputSeqRef.current += 1;
       const input: InputState = {
@@ -411,7 +420,7 @@ const Agario = () => {
     if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  function handleJoinRoom(mode: string) {
+  function handleJoinRoom(mode: "join" | "create", spectator = false) {
     const socket = socketRef.current;
     if (!socket) return;
 
@@ -421,7 +430,6 @@ const Agario = () => {
     setPlayerName(name);
 
     let room = roomNameRef.current.trim();
-    console.log("room name: ", room)
 
     if (room.length > 20) room = room.slice(0, 20);
     if (room.length === 0) room = DEFAULT_ROOM;
@@ -429,7 +437,7 @@ const Agario = () => {
     roomNameRef.current = room;
 
     if (mode === "join") {
-      socket.emit("agario:join-room", { name, room, key: joinKey.trim() || undefined });
+      socket.emit("agario:join-room", { name, room, key: joinKey.trim() || undefined, spectator });
     } else {
       socket.emit("agario:create-room", {
         name,
@@ -437,6 +445,7 @@ const Agario = () => {
         visibility,
         maxPlayers,
         durationMin,
+        allowSpectators
       });
     }
   }
@@ -454,7 +463,7 @@ const Agario = () => {
   }
 
   function backToMainMenu() {
-    // socketRef.current?.emit("agario:leave-room");
+    socketRef.current?.emit("agario:leave-room");
 
     isDeadRef.current = false;
 
@@ -564,11 +573,29 @@ const Agario = () => {
                     </div>
 
                     <div className="flex gap-2">
+                      {r.allowSpectators && (
+                        <button
+                          className="px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                          onClick={() => {
+                            setRoomName(r.room);
+                            roomNameRef.current = r.room;
+                            setSpectator(true);
+
+                            if (r.visibility === "public") {
+                              setJoinKey("");
+                              handleJoinRoom("join", true);
+                            }
+                          }}
+                        >
+                          👁 Spectate
+                        </button>
+                      )}
                       <button
-                        className="px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                        className="px-3 py-2 bg-gray-700 text-white rounded hover:bg-gray-800"
                         onClick={() => {
                           setRoomName(r.room);
                           roomNameRef.current = r.room;
+                          setSpectator(false);
 
                           if (r.visibility === "public") {
                             setJoinKey("");
@@ -578,6 +605,7 @@ const Agario = () => {
                       >
                         {r.visibility === "public" ? "Join" : "Select"}
                       </button>
+
                     </div>
                   </div>
                 ))}
@@ -604,10 +632,10 @@ const Agario = () => {
 
                 <div className="flex gap-3">
                   <button
-                    onClick={() => handleJoinRoom("join")}
+                    onClick={() => handleJoinRoom("join", isSpectator)}
                     className="px-6 py-3 bg-gray-500 text-white rounded-md text-xl hover:bg-gray-600 transition"
                   >
-                    Join
+                    {isSpectator ? "Spectate" : "Join"}
                   </button>
 
                   <button
@@ -660,6 +688,17 @@ const Agario = () => {
                     onChange={() => setVisibility("private")}
                   />
                   Private
+                </label>
+              </div>
+
+              <div className="mt-3 flex items-center">
+                <label className="text-black flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={allowSpectators}
+                    onChange={(e) => setAllowSpectators(e.target.checked)}
+                  />
+                  Allow Spectators
                 </label>
               </div>
 
@@ -731,6 +770,18 @@ const Agario = () => {
               className="px-6 py-3 bg-white text-black rounded-md text-xl hover:bg-gray-200"
             >
               Respawn
+            </button>
+
+            <button
+              onClick={() => {
+                isSpectatorRef.current = true;
+                playerRef.current = randomPlayer();
+                setStartError("");
+                setMenuMode(DEFAULT_ROOM);
+              }}
+              className="px-6 py-3 bg-white text-black rounded-md text-xl hover:bg-gray-200"
+            >
+              Spectate
             </button>
 
             <button
@@ -824,18 +875,7 @@ const Agario = () => {
               )}
 
               <button
-                onClick={() => {
-                  socketRef.current?.emit("agario:leave-room");
-                  setHasJoined(false);
-                  setRoomInfo(null);
-                  setLobbyPlayers([]);
-                  setMenuMode(DEFAULT_ROOM);
-                  setRoomName("");
-                  roomNameRef.current = "";
-                  setJoinKey("");
-                  setCreatedKey("");
-                  setStartError("");
-                }}
+                onClick={backToMainMenu}
                 className="px-5 py-3 bg-gray-300 text-black rounded hover:bg-gray-400"
               >
                 Leave

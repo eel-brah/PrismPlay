@@ -10,12 +10,14 @@ type CreateRoomPayload = {
   visibility: RoomVisibility;
   maxPlayers: number;
   durationMin: number;
+  allowSpectators: boolean;
 };
 
 type JoinRoomPayload = {
   room: string;
   name: string;
   key?: string;
+  spectator: boolean;
 };
 
 function clampInt(n: number, min: number, max: number) {
@@ -27,7 +29,7 @@ function clampInt(n: number, min: number, max: number) {
 import crypto from "crypto";
 import { RoomSummary } from "src/shared/agario/types";
 import {
-    DEFAULT_ROOM,
+  DEFAULT_ROOM,
   DEFAULT_ROOM_MAX_PLAYERS,
   MAX_MINUTES,
   MAX_PLAYERS_PER_ROOM,
@@ -120,6 +122,7 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
         startedAt: undefined,
         endAt: undefined,
         hostId: "server",
+        allowSpectators: true,
       },
     });
   }
@@ -228,6 +231,7 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
         maxPlayers: world.meta.maxPlayers,
         durationMin: world.meta.durationMin,
         timeLeftSec,
+        allowSpectators: world.meta.allowSpectators,
       });
     }
 
@@ -262,7 +266,7 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
 
     const key = visibility === "private" ? makeKey() : undefined;
 
-    const world: World = {
+    worldByRoom.set(roomName, {
       players: {},
       orbs: [],
       ejects: [],
@@ -276,10 +280,9 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
         status: "waiting",
         createdAt: nowMs(),
         hostId: socket.id,
+        allowSpectators: payload.allowSpectators,
       },
-    };
-
-    worldByRoom.set(roomName, world);
+    });
 
     joinRoom(socket, roomName, payload.name);
 
@@ -300,7 +303,7 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
     }
 
     if (roomName === DEFAULT_ROOM) {
-      joinRoom(socket, DEFAULT_ROOM, payload.name);
+      joinRoom(socket, DEFAULT_ROOM, payload.name, payload.spectator);
       return;
     }
 
@@ -317,13 +320,22 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       }
     }
 
-    const playerCount = Object.keys(world.players).length;
-    if (playerCount >= world.meta.maxPlayers) {
-      socket.emit("agario:start-error", "Room is full");
-      return;
+    const isSpectator = payload.spectator === true;
+
+    if (!isSpectator) {
+      const playerCount = Object.keys(world.players).length;
+      if (playerCount >= world.meta.maxPlayers) {
+        socket.emit("agario:start-error", "Room is full");
+        return;
+      }
+    } else {
+      if (!world.meta.allowSpectators) {
+        socket.emit("agario:start-error", "Spectators are not allowed");
+        return;
+      }
     }
 
-    joinRoom(socket, roomName, payload.name);
+    joinRoom(socket, roomName, payload.name, payload.spectator);
 
     const afterJoinCount = Object.keys(world.players).length;
     if (
@@ -337,7 +349,12 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
     }
   });
 
-  function joinRoom(socket: Socket, room: string, name: string) {
+  function joinRoom(
+    socket: Socket,
+    room: string,
+    name: string,
+    spectator: boolean = false,
+  ) {
     const prevRoom = socket.data.room as string | undefined;
 
     if (prevRoom && prevRoom !== room) {
@@ -359,6 +376,18 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
 
     //TODO: handle same player join the same room multiple times
     socket.join(room);
+    socket.data.room = room;
+    socket.data.role = spectator ? "spectator" : "player";
+
+    if (spectator) {
+      socket.emit("joined", {
+        data: undefined,
+        spectator: true,
+      });
+
+      sendRoomInfo(socket, world);
+      return;
+    }
 
     const pname =
       name.trim().slice(0, 6) || "Pl" + Math.floor(Math.random() * 1000);
@@ -371,8 +400,7 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       ejectRequested: false,
     };
 
-    socket.data.room = room;
-    socket.emit("joined", newPlayer.serialize());
+    socket.emit("joined", newPlayer.serialize(), false);
 
     sendRoomInfo(socket, world);
     broadcastPlayers(socket.nsp, room, world);
@@ -381,6 +409,7 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
   socket.on("input", (input) => {
     const ctx = getCtx(socket);
     if (!ctx) return;
+    if (socket.data.role === "spectator") return;
     if (ctx.world.meta.status !== "started") return;
     ctx.state.input = input;
   });
@@ -388,6 +417,7 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
   socket.on("split", () => {
     const ctx = getCtx(socket);
     if (!ctx) return;
+    if (socket.data.role === "spectator") return;
     if (ctx.world.meta.status !== "started") return;
     ctx.state.splitRequested = true;
   });
@@ -395,6 +425,7 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
   socket.on("eject", () => {
     const ctx = getCtx(socket);
     if (!ctx) return;
+    if (socket.data.role === "spectator") return;
     if (ctx.world.meta.status !== "started") return;
     ctx.state.ejectRequested = true;
   });

@@ -60,8 +60,8 @@ export class Player {
           //TODO: random
           x: MAP_WIDTH / 2,
           y: MAP_HEIGHT / 2,
-          // mass: INIT_MASS,
-          mass: 100000,
+          mass: INIT_MASS,
+          // mass: 100000,
           vx: 0,
           vy: 0,
           mergeCooldown: 0,

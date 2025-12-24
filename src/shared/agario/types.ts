@@ -111,6 +111,7 @@ export type RoomSummary = {
   maxPlayers: number;
   durationMin: number;
   timeLeftSec: number | null;
+  allowSpectators: boolean;
 };
 
 export type LobbyPlayer = { id: string; name: string };

@@ -20,6 +20,8 @@ export type RoomMeta = {
   endAt?: number;
 
   hostId: string;
+
+  allowSpectators: boolean;
 };
 
 export type World = {

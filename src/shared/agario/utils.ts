@@ -6,6 +6,7 @@ import {
   ORB_MIN_MASS,
   VIRUS_BASE_MASS,
 } from "./config";
+import { Player } from "./player";
 import { Camera, Eject, Orb, Virus } from "./types";
 
 export function darkenHex(color: string, amount = 0.3): string {
@@ -179,3 +180,8 @@ export function radiusFromMass(mass: number): number {
 export function computeMergeCooldown(mass: number): number {
   return MERGE_BASE_TIME + mass * MERGE_FACTOR;
 }
+
+export function randomPlayer(): Player {
+  return new Player(randomId(), " ", randomColor());
+}
+
