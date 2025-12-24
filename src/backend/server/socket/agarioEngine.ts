@@ -1,5 +1,5 @@
 import {
-    DEFAULT_ROOM,
+  DEFAULT_ROOM,
   MAP_HEIGHT,
   MAP_WIDTH,
   MAX_BLOBS_PER_PLAYER,
@@ -383,7 +383,8 @@ export function agarioEngine(io: Namespace) {
     while (accumulator >= TICK_DT) {
       for (const [room, world] of worldByRoom) {
         if (
-          world.meta.room !== DEFAULT_ROOM && world.meta.status === "started" &&
+          world.meta.room !== DEFAULT_ROOM &&
+          world.meta.status === "started" &&
           world.meta.endAt &&
           now >= world.meta.endAt
         ) {

@@ -1,5 +1,5 @@
 {
-  "watch": ["src/backend/"],
+  "watch": ["src/backend/", "src/shared/"],
   "ext": "ts,js,json",
   "ignore": ["node_modules", "dist"],
   "exec": "tsx src/backend/server/index.ts"

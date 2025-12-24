@@ -34,16 +34,6 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-
-    {
-      name: "watch-shared-folder",
-      handleHotUpdate({ file, server }) {
-        if (file.startsWith(sharedDir)) {
-          console.log("[watch] change in shared dir:", file);
-          server.ws.send({ type: "full-reload" });
-        }
-      },
-    },
   ],
   server: {
     port: 5173,
@@ -51,7 +41,7 @@ export default defineConfig({
       "/api": "https://localhost:9443",
       "/socket.io": {
         target: "https://localhost:9443",
-        ws: true, // enable websocket proxy
+        ws: true, 
         changeOrigin: true,
         secure: false,
       },

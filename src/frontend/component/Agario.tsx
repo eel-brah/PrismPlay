@@ -717,6 +717,7 @@ const Agario = () => {
                   type="number"
                   min={MIN_MINUTES}
                   max={MAX_MINUTES}
+                  //TODO: 
                   value={durationMin > 0 ? durationMin : undefined}
                   onChange={(e) => setDurationMin(Number(e.target.value))}
                   placeholder="Duration (min)"
@@ -774,10 +775,11 @@ const Agario = () => {
 
             <button
               onClick={() => {
-                isSpectatorRef.current = true;
-                playerRef.current = randomPlayer();
-                setStartError("");
-                setMenuMode(DEFAULT_ROOM);
+                // isSpectatorRef.current = true;
+                // playerRef.current = randomPlayer();
+                // setStartError("");
+                // setMenuMode(DEFAULT_ROOM);
+                handleJoinRoom("join", true);
               }}
               className="px-6 py-3 bg-white text-black rounded-md text-xl hover:bg-gray-200"
             >
