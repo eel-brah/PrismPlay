@@ -17,7 +17,7 @@ import {
 } from "@/../shared/agario/types";
 import { drawEjects, drawOrbs, drawViruses } from "@/../shared/agario/utils";
 import { drawGrid } from "@/game/agario/utils";
-import { Leaderboard } from "./LeaderBoard";
+import { FinalLeaderboard, Leaderboard } from "./LeaderBoard";
 
 const Agario = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -40,7 +40,6 @@ const Agario = () => {
   const [roomName, setRoomName] = useState("");
   const roomNameRef = useRef<string>("");
   const [hasJoined, setHasJoined] = useState(false);
-  const [gameOver, setGameOver] = useState(false);
 
   const pendingInputsRef = useRef<InputState[]>([]);
   const lastProcessedSeqRef = useRef<number>(0);
@@ -124,7 +123,7 @@ const Agario = () => {
     socket.on("agario:room-ended", () => {
       // back to menu
       setHasJoined(false);
-      setMenuMode(DEFAULT_ROOM);
+      setMenuMode("leaderboard");
       setRoomName("");
       roomNameRef.current = "";
       setCreatedKey("");
@@ -142,7 +141,7 @@ const Agario = () => {
       );
 
       isDeadRef.current = false;
-      setGameOver(false);
+      setMenuMode(roomNameRef.current);
       setHasJoined(true);
       setStartError("");
 
@@ -251,7 +250,7 @@ const Agario = () => {
 
     socket.on("youLost", () => {
       isDeadRef.current = true;
-      setGameOver(true);
+      setMenuMode("game over");
     });
 
     function handleResize() {
@@ -447,11 +446,29 @@ const Agario = () => {
     if (!socket) return;
 
     isDeadRef.current = false;
-    setGameOver(false);
+    setMenuMode(roomNameRef.current);
 
     let room = roomNameRef.current.trim();
     if (room.length === 0) room = DEFAULT_ROOM;
     socket.emit("agario:join-room", { name: playerName, room, key: joinKey.trim() || undefined });
+  }
+
+  function backToMainMenu() {
+    // socketRef.current?.emit("agario:leave-room");
+
+    isDeadRef.current = false;
+
+    setHasJoined(false);
+    setRoomInfo(null);
+    setLobbyPlayers([]);
+    setLeaderboard([]);
+
+    setMenuMode(DEFAULT_ROOM);
+    setRoomName("");
+    roomNameRef.current = "";
+    setJoinKey("");
+    setCreatedKey("");
+    setStartError("");
   }
 
   return (
@@ -704,14 +721,40 @@ const Agario = () => {
         </div>
       )}
 
-      {hasJoined && gameOver && (
-        <div className="absolute inset-0 bg-black/70 flex flex-col justify-center items-center text-white text-4xl z-50">
-          <div>You Died</div>
+      {menuMode === "game over" && (
+        <div className="absolute inset-0 bg-black/70 flex flex-col justify-center items-center text-white z-50">
+          <div className="text-4xl mb-6">You Died</div>
+
+          <div className="flex gap-4">
+            <button
+              onClick={handleRespawn}
+              className="px-6 py-3 bg-white text-black rounded-md text-xl hover:bg-gray-200"
+            >
+              Respawn
+            </button>
+
+            <button
+              onClick={backToMainMenu}
+              className="px-6 py-3 bg-gray-500 text-white rounded-md text-xl hover:bg-gray-600"
+            >
+              Back to Menu
+            </button>
+          </div>
+        </div>
+      )}
+
+      {menuMode === "leaderboard" && (
+        <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50">
+          <FinalLeaderboard
+            leaderboard={leaderboard}
+            durationMin={roomInfo?.durationMin ?? 0}
+          />
+
           <button
-            onClick={handleRespawn}
-            className="mt-4 px-6 py-3 bg-white text-black rounded-md text-xl hover:bg-gray-200"
+            onClick={backToMainMenu}
+            className="mt-8 px-6 py-3 bg-gray-600 hover:bg-gray-500 rounded-md text-lg text-white transition"
           >
-            Respawn
+            Back to Menu
           </button>
         </div>
       )}
