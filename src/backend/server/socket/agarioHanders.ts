@@ -444,8 +444,10 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
 
     if (Object.keys(ctx.world.players).length === 0) {
       const room = ctx.room;
-      socket.nsp.to(room).emit("agario:room-ended", { room });
-      worldByRoom.delete(ctx.room);
+      if (ctx.room != DEFAULT_ROOM) {
+        socket.nsp.to(room).emit("agario:room-ended", { room });
+        worldByRoom.delete(ctx.room);
+      }
     } else {
       broadcastPlayers(socket.nsp, ctx.room, ctx.world);
       for (const id of Object.keys(ctx.world.players)) {

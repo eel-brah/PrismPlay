@@ -66,6 +66,8 @@ export function agarioEngine(io: Namespace) {
     const orbs = world.orbs;
     const viruses = world.viruses;
     const ejects = world.ejects;
+    const room = world.meta.room;
+    const allowSpectators = world.meta.allowSpectators;
 
     const ids = Object.keys(players);
 
@@ -168,10 +170,10 @@ export function agarioEngine(io: Namespace) {
     for (const id of ids) {
       handleVirusCollisions(players[id].player, viruses);
     }
-    handlePlayerCollisions(players);
+    handlePlayerCollisions(players, room, allowSpectators);
   }
 
-  function handlePlayerCollisions(players: Record<string, PlayerState>) {
+  function handlePlayerCollisions(players: Record<string, PlayerState>, room:string, allowSpectators: boolean) {
     const ids = Object.keys(players);
     const removedPlayers = new Set<string>();
 
@@ -277,6 +279,8 @@ export function agarioEngine(io: Namespace) {
       const client = io.sockets.get(id);
       if (client) {
         client.emit("youLost", { reason: "eaten" });
+        if (!allowSpectators)
+          client.leave(room);
       }
     }
   }
