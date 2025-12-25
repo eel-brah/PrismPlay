@@ -84,13 +84,6 @@ export interface Virus {
   fedCount: number;
 }
 
-export type World = {
-  players: Record<string, PlayerState>;
-  orbs: Orb[];
-  ejects: Eject[];
-  viruses: Virus[];
-};
-
 export type RoomInfo = {
   room: string;
   visibility: "public" | "private";
@@ -112,6 +105,7 @@ export type RoomSummary = {
   durationMin: number;
   timeLeftSec: number | null;
   allowSpectators: boolean;
+  spectatorCount: number;
 };
 
 export type LobbyPlayer = { id: string; name: string };

@@ -22,6 +22,7 @@ export type RoomMeta = {
   hostId: string;
 
   allowSpectators: boolean;
+  spectators: Set<string>;
 };
 
 export type World = {

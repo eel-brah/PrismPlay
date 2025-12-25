@@ -42,3 +42,6 @@ export const MERGE_FACTOR = 0.0233;
 
 export const MAX_ORBS = 200;
 export const MAX_VIRUSES = 7;
+
+export const MAX_SPECTATORS_PER_ROOM = 15;
+
