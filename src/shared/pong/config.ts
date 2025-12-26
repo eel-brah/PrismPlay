@@ -1,0 +1,11 @@
+export const GAME_WIDTH = 810;
+export const GAME_HEIGHT = 600;
+export const PADDLE_WIDTH = 16;
+export const PADDLE_HEIGHT = 100;
+export const PADDLE_SPEED = 520;
+export const BALL_RADIUS = 10;
+export const INITIAL_BALL_SPEED = 380;
+export const MAX_SPEED = 900;
+export const MIN_SPEED = 140;
+export const WIN_SCORE = 5;
+export const COUNTDOWN_SECONDS = 4;
