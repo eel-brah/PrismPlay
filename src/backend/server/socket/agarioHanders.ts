@@ -132,29 +132,29 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
   socket.on("agario:start-room", () => {
     const room = socket.data.room as string | undefined;
     if (!room) {
-      socket.emit("agario:start-error", "No room name provided");
+      socket.emit("agario:error", "No room name provided");
       return;
     }
 
     const world = worldByRoom.get(room);
     if (!world) {
-      socket.emit("agario:start-error", "Room not found");
+      socket.emit("agario:error", "Room not found");
       return;
     }
 
     if (world.meta.status !== "waiting") {
-      socket.emit("agario:start-error", "Room already started");
+      socket.emit("agario:warning", "Room already started");
       return;
     }
 
     if (world.meta.hostId !== socket.id) {
-      socket.emit("agario:start-error", "Only the host can start");
+      socket.emit("agario:warning", "Only the host can start");
       return;
     }
 
     const count = Object.keys(world.players).length;
     if (count < 2) {
-      socket.emit("agario:start-error", "Need at least 2 players to start");
+      socket.emit("agario:warning", "Need at least 2 players to start");
       return;
     }
 
@@ -180,13 +180,13 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
   socket.on("agario:leave-room", () => {
     const room = socket.data.room as string | undefined;
     if (!room) {
-      socket.emit("agario:start-error", "No room name provided");
+      socket.emit("agario:error", "No room name provided");
       return;
     }
 
     const world = worldByRoom.get(room);
     if (!world) {
-      socket.emit("agario:start-error", "Room not found");
+      socket.emit("agario:error", "Room not found");
       return;
     }
 
@@ -252,11 +252,11 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
   socket.on("agario:create-room", (payload: CreateRoomPayload) => {
     const roomName = payload.room.trim();
     if (!isValidRoomName(roomName) || roomName === DEFAULT_ROOM) {
-      socket.emit("agario:start-error", "Invalid room name");
+      socket.emit("agario:error", "Invalid room name");
       return;
     }
     if (worldByRoom.has(roomName)) {
-      socket.emit("agario:start-error", "Room already exists");
+      socket.emit("agario:error", "Room already exists");
       return;
     }
 
@@ -303,7 +303,7 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       payload.room.trim().length > 0 ? payload.room.trim() : DEFAULT_ROOM;
     if (roomName !== DEFAULT_ROOM && !isValidRoomName(roomName)) {
       socket.emit(
-        "agario:start-error",
+        "agario:error",
         "Invalid room name (use A-Z, 0-9, _ or -)",
       );
       return;
@@ -311,13 +311,13 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
 
     const world = getWorld(roomName);
     if (!world) {
-      socket.emit("agario:start-error", "There is no room with this name");
+      socket.emit("agario:error", "There is no room with this name");
       return;
     }
 
     if (world.meta.visibility === "private") {
       if (!payload.key || payload.key !== world.meta.key) {
-        socket.emit("agario:start-error", "Invalid room key");
+        socket.emit("agario:error", "Invalid room key");
         return;
       }
     }
@@ -327,16 +327,16 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
     if (!isSpectator) {
       const playerCount = Object.keys(world.players).length;
       if (playerCount >= world.meta.maxPlayers) {
-        socket.emit("agario:start-error", "Room is full");
+        socket.emit("agario:error", "Room is full");
         return;
       }
     } else {
       if (!world.meta.allowSpectators) {
-        socket.emit("agario:start-error", "Spectators are not allowed");
+        socket.emit("agario:error", "Spectators are not allowed");
         return;
       }
       if (world.meta.spectators.size >= MAX_SPECTATORS_PER_ROOM) {
-        socket.emit("agario:start-error", "Spectator limit reached");
+        socket.emit("agario:error", "Spectator limit reached");
         return;
       }
     }
@@ -378,7 +378,7 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
 
     let world = worldByRoom.get(room);
     if (!world) {
-      socket.emit("agario:start-error", "Fail to join");
+      socket.emit("agario:error", "Fail to join");
       return;
     }
 
