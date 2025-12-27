@@ -68,7 +68,7 @@ function createBall(): Ball {
     y: GAME_HEIGHT / 2,
     radius: BALL_RADIUS,
     speedX: randomDirection() * INITIAL_BALL_SPEED,
-    speedY: randomDirection() * randomSpeedY(MIN_SPEED, MAX_SPEED),
+    speedY: randomDirection(),
     trail: [],
   };
 }
