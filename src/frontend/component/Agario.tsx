@@ -18,6 +18,7 @@ import {
 import { drawEjects, drawOrbs, drawViruses, randomColor, randomId, randomPlayer } from "@/../shared/agario/utils";
 import { drawGrid } from "@/game/agario/utils";
 import { FinalLeaderboard, Leaderboard } from "./LeaderBoard";
+import { TopStatusBar } from "./RoomStatusBar";
 
 type AlertType = "error" | "warning" | "info" | "";
 const alertStyles: Record<Exclude<AlertType, "">, string> = {
@@ -122,9 +123,9 @@ const Agario = () => {
       roomStatusRef.current = info.status;
     });
 
-    socket.on("agario:room-players", (data: { players: LobbyPlayer[]; hostId: string }) => {
+    socket.on("agario:room-players", (data: { players: LobbyPlayer[]; hostId: string; spectatorCount: number }) => {
       setLobbyPlayers(data.players);
-      setRoomInfo((prev) => (prev ? { ...prev, players: data.players, hostId: data.hostId } : prev));
+      setRoomInfo((prev) => (prev ? { ...prev, players: data.players, hostId: data.hostId, spectatorCount: data.spectatorCount } : prev));
     });
 
     socket.on("agario:room-status", (data: { status: "waiting" | "started" }) => {
@@ -930,6 +931,12 @@ const Agario = () => {
         )
       }
 
+      {hasJoined && roomInfo && roomInfo.status === "started" && (
+        <TopStatusBar
+          roomInfo={roomInfo}
+          onLeave={backToMainMenu}
+        />
+      )}
       <canvas ref={canvasRef} id="agario" className="w-full h-full block" />
     </div >
   );

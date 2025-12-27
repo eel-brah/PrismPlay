@@ -90,10 +90,12 @@ export type RoomInfo = {
   status: "waiting" | "started";
   maxPlayers: number;
   durationMin: number;
+  startedAt: number;
   hostId: string;
   youAreHost: boolean;
   key?: string;
   players: LobbyPlayer[];
+  spectatorCount: number;
 };
 
 export type RoomSummary = {
