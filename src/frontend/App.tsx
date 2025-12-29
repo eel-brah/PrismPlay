@@ -6,7 +6,7 @@ import LoginForm from "./component/LoginForm";
 import RegisterForm from "./component/RegisterForm";
 import SocialHub from "./component/SocialHub";
 import PlayerProfile from "./component/PlayerProfile";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, Link } from "react-router-dom";
 import Agario from "./component/Agario";
 import OnlinePong from "./component/OnlinePong";
 
@@ -15,6 +15,7 @@ export default function App() {
     | "login"
     | "loginForm"
     | "register"
+    | "gameSelect"
     | "landing"
     | "landingGuest"
     | "offline"
@@ -25,6 +26,7 @@ export default function App() {
   const isLogin = page === "login";
   const isLoginForm = page === "loginForm";
   const isRegister = page === "register";
+  const isGameSelect = page === "gameSelect";
   const isLanding = page === "landing";
   const isLandingGuest = page === "landingGuest";
   const isOffline = page === "offline";
@@ -73,7 +75,7 @@ export default function App() {
                     setPage("loginForm");
                   } else {
                     setSessionMode("guest");
-                    setPage("landingGuest");
+                    setPage("gameSelect");
                   }
                 }}
               />
@@ -90,7 +92,7 @@ export default function App() {
                 onSubmit={() => {
                   // Frontend-only: after "login" just go to landing
                   setSessionMode("user");
-                  setPage("landing");
+                  setPage("gameSelect");
                 }}
                 onReturn={() => setPage("login")}
                 onRegister={() => setPage("register")}
@@ -108,10 +110,80 @@ export default function App() {
                 onSubmit={() => {
                   // Frontend-only: after "register" go to landing
                   setSessionMode("user");
-                  setPage("landing");
+                  setPage("gameSelect");
                 }}
                 onReturn={() => setPage("loginForm")}
               />
+            </div>
+
+            <div
+              className={`absolute inset-0 flex flex-col items-center justify-center p-8 page-transition ${
+                isGameSelect ? "page-shown pointer-events-auto" : "page-hidden"
+              }`}
+              aria-hidden={!isGameSelect}
+            >
+              <div className="absolute top-4 right-4 z-50 flex gap-2">
+                <button
+                  onClick={() => setPage("login")}
+                  className="bg-gray-800/80 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-all"
+                >
+                  Return
+                </button>
+              </div>
+              <h1 className="text-4xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                Choose Your Game
+              </h1>
+              <p className="text-gray-300 mb-8">Select which game you want to play</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
+                <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-gray-700">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-14 h-14 rounded-xl bg-purple-700/40 border border-purple-500/50 flex items-center justify-center">
+                      <span className="text-2xl">🏓</span>
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold text-purple-400">PingPong Craft</h2>
+                      <p className="text-gray-300">Classic arcade ping pong</p>
+                    </div>
+                  </div>
+                  <ul className="text-sm text-gray-400 mb-6 space-y-1">
+                    <li>• Multiple game modes</li>
+                    <li>• Character customization</li>
+                    <li>• Real-time gameplay</li>
+                    <li>• Track your stats</li>
+                  </ul>
+                  <button
+                    onClick={() => setPage(sessionMode === "guest" ? "landingGuest" : "landing")}
+                    className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
+                  >
+                    Play Pong
+                  </button>
+                </div>
+
+                <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-gray-700">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-14 h-14 rounded-xl bg-blue-700/40 border border-blue-500/50 flex items-center justify-center">
+                      <span className="text-2xl">🔵</span>
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold text-blue-400">Agar.io Style</h2>
+                      <p className="text-gray-300">Eat to grow, avoid being eaten!</p>
+                    </div>
+                  </div>
+                  <ul className="text-sm text-gray-400 mb-6 space-y-1">
+                    <li>• Grow by eating pellets</li>
+                    <li>• Avoid larger players</li>
+                    <li>• Split mechanics</li>
+                    <li>• Compete for high score</li>
+                  </ul>
+                  <Link
+                    to="/agario"
+                    className="block w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg text-center"
+                  >
+                    Play Agar.io
+                  </Link>
+                </div>
+              </div>
             </div>
 
             {/* Landing View */}
