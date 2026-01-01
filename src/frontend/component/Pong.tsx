@@ -68,6 +68,7 @@ class Particle {
 
 const Pong: React.FC<{ onReturn?: () => void }> = ({ onReturn }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const arenaContainerRef = useRef<HTMLDivElement | null>(null);
   const [gameMode, setGameMode] = useState<"menu" | "playing">("menu");
   const [isSingle, setIsSingle] = useState<boolean>(false);
   const [isAI, setIsAI] = useState<boolean>(false);
@@ -499,11 +500,14 @@ useEffect(() => {
 
     
     const resizeCanvas = () => {
-      if (!canvasRef.current?.parentElement) return;
-      const parent = canvasRef.current.parentElement;
+      const parent =
+        arenaContainerRef.current ??
+        canvasRef.current?.parentElement ??
+        null;
+      if (!parent) return;
       const rect = parent.getBoundingClientRect();
       const ratio = 810 / 600;
-      const scale = 0.80; 
+      const scale = 1.0;
       const effectiveScale = Math.min(scale, 1);
       let w = rect.width;
       let h = rect.height;
@@ -526,6 +530,9 @@ useEffect(() => {
       observer.disconnect();
     };
   }, [, gameMode,]);
+
+  const leftIsAI = isAI && (!isSingle || aiPos === "left");
+  const rightIsAI = isAI && (!isSingle || aiPos === "right");
 
   return (
     <>
@@ -617,36 +624,202 @@ useEffect(() => {
 
       {/* PLAYING - FULL SCREEN */}
       {gameMode === "playing" && (
-        <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">
-          {/* Top-right controls */}
-          <div className="absolute top-4 right-4 flex gap-2 z-50">
-            <button
-              onClick={() => setSoundOn(!soundOn)}
-              className="bg-gray-800/80 hover:bg-gray-800 text-white p-3 rounded-lg transition-all"
-            >
-              {soundOn ? <Volume2 size={20} /> : <VolumeX size={20} />}
-            </button>
-            <button
-              onClick={() => {
-                // In-game Return goes back to the internal menu
-                setGameMode("menu");
-              }}
-              className="bg-gray-800/80 hover:bg-gray-800 text-white p-3 rounded-lg transition-all"
-            >
-              Return
-            </button>
-            {/* Menu button removed: Return already navigates to menu */}
+        <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">
+          
+          {/* Header */}
+          <div className="absolute top-16 text-center space-y-1 z-10">
+            <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400 flex items-center justify-center gap-2">
+              <span className="text-3xl">🏓</span> PingPong Craft Arena
+            </h1>
+            <p className="text-gray-400 text-sm">Use arrow keys or W/S to control your paddle</p>
           </div>
 
-          <canvas
-            ref={canvasRef}
-            width={810}
-            height={600}
-            className="max-w-full max-h-full w-auto h-auto border-4 border-gray-700 rounded-lg shadow-2xl"
-            style={{ imageRendering: "auto" }}
-          />
-        </div>
-      )}
+           <div className="flex w-full max-w-[1400px] gap-6 items-center justify-center mt-12 h-[70vh]">
+             {/* Left Player Panel */}
+             <div className="w-80 bg-gray-900/80 border border-gray-700 rounded-2xl p-6 flex flex-col h-full relative overflow-hidden shadow-2xl">
+               <div className={`${leftIsAI ? "bg-blue-600" : "bg-purple-600"} text-white text-xs font-bold px-3 py-1 rounded-full w-fit mb-6`}>
+                 {leftIsAI ? "AI Opponent" : "Player"}
+               </div>
+               
+               <div className="bg-gray-800/50 rounded-xl p-6 mb-6 flex flex-col items-center border border-gray-700/50">
+                 <div className="w-16 h-16 rounded-full bg-gray-700 mb-3 overflow-hidden flex items-center justify-center">
+                    {leftIsAI ? <span className="text-3xl">🤖</span> : <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=Player1`} alt="P1" className="w-full h-full" />}
+                 </div>
+                 <h3 className={`text-lg font-semibold ${leftIsAI ? "text-blue-300" : "text-purple-300"}`}>{leftIsAI ? "AI Opponent" : "Player 1"}</h3>
+                 <p className="text-xs text-gray-400 mt-1">Left Paddle</p>
+               </div>
+ 
+               <div className="space-y-4 flex-1">
+                 <div className="bg-gray-800/30 rounded-lg p-3 flex justify-between items-center">
+                    <span className="text-gray-400 text-sm flex items-center gap-2">
+                      🏆 Score
+                    </span>
+                    <span className="text-2xl font-bold text-white">{0 /* Score handled in canvas, maybe reflect here? */}</span>
+                 </div>
+                 <div className="bg-gray-800/30 rounded-lg p-3 flex justify-between items-center">
+                    <span className="text-gray-400 text-sm">Total Wins</span>
+                    <span className="text-green-400 font-mono">40</span>
+                 </div>
+                 <div className="bg-gray-800/30 rounded-lg p-3 flex justify-between items-center">
+                    <span className="text-gray-400 text-sm">Losses</span>
+                    <span className="text-red-400 font-mono">11</span>
+                 </div>
+                 
+                 <div className="mt-4">
+                   <div className="flex justify-between text-xs text-gray-400 mb-1">
+                     <span>Win Rate</span>
+                     <span>78%</span>
+                   </div>
+                   <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                     <div className="h-full bg-purple-500 w-[78%]"></div>
+                   </div>
+                 </div>
+               </div>
+
+               {!leftIsAI ? (
+                 <div className="mt-6 bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
+                   <p className="text-xs text-gray-400 mb-2">Controls:</p>
+                   <div className="flex gap-2">
+                     <div className="flex flex-col gap-1">
+                       <div className="w-8 h-8 rounded border border-gray-600 flex items-center justify-center text-xs text-gray-300">W</div>
+                       <div className="w-8 h-8 rounded border border-gray-600 flex items-center justify-center text-xs text-gray-300">S</div>
+                     </div>
+                     <div className="flex flex-col justify-center text-xs text-gray-500 gap-3 ml-2">
+                       <span>Move Up</span>
+                       <span>Move Down</span>
+                     </div>
+                   </div>
+                 </div>
+               ) : (
+                 <div className="mt-6 bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
+                   <p className="text-xs text-gray-400 mb-2">AI Behavior:</p>
+                   <ul className="text-xs text-gray-500 space-y-1 list-disc list-inside">
+                     <li>Tracks ball movement</li>
+                     <li>Adjusts paddle position</li>
+                     <li>{difficulty} difficulty</li>
+                     <li>Fair gameplay</li>
+                   </ul>
+                 </div>
+               )}
+             </div>
+ 
+             {/* Middle Game Arena */}
+             <div className="flex-1 h-full flex flex-col relative">
+               <div className="absolute top-4 right-6 z-20 font-mono text-2xl text-white font-bold tracking-wider">
+                 {/* Score Placeholder - Canvas draws it, but we can overlay too if needed, or rely on canvas */}
+                 {/* 0 - 0 */}
+               </div>
+               
+               <div ref={arenaContainerRef} className="flex-shrink-0 bg-gray-900 border-2 border-purple-500/30 rounded-2xl relative shadow-[0_0_50px_rgba(168,85,247,0.2)]">
+                 <div className="absolute top-4 left-6 text-gray-400 font-medium">Game Arena</div>
+                 <canvas
+                   ref={canvasRef}
+                   width={810}
+                   height={600}
+                   className="max-w-full max-h-full w-auto h-auto"
+                   style={{ imageRendering: "auto" }}
+                 />
+               </div>
+               
+               <div className="mt-6 flex justify-center gap-3 items-center">
+                  <button 
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-12 rounded-xl shadow-lg shadow-blue-900/20 transform transition hover:scale-105 active:scale-95"
+                    onClick={() => {
+                      // Trigger start logic manually if needed
+                      const event = new KeyboardEvent('keydown', { key: ' ' });
+                      document.dispatchEvent(event);
+                    }}
+                  >
+                    Start Game
+                  </button>
+                  <button
+                    onClick={() => setSoundOn(!soundOn)}
+                    className="bg-gray-800/80 hover:bg-gray-800 text-white px-4 py-3 rounded-xl transition-all flex items-center gap-2"
+                  >
+                    {soundOn ? <Volume2 size={20} /> : <VolumeX size={20} />}
+                    {soundOn ? "Sound: On" : "Sound: Off"}
+                  </button>
+               </div>
+             </div>
+ 
+             {/* Right Player Panel */}
+             <div className="w-80 bg-gray-900/80 border border-gray-700 rounded-2xl p-6 flex flex-col h-full relative overflow-hidden shadow-2xl">
+               <div className={`${rightIsAI ? "bg-blue-600" : "bg-purple-600"} text-white text-xs font-bold px-3 py-1 rounded-full w-fit mb-6`}>
+                 {rightIsAI ? "AI Opponent" : "Player"}
+               </div>
+               
+               <div className="bg-gray-800/50 rounded-xl p-6 mb-6 flex flex-col items-center border border-gray-700/50">
+                 <div className="w-16 h-16 rounded-full bg-gray-700 mb-3 overflow-hidden flex items-center justify-center">
+                    {rightIsAI ? <span className="text-3xl">🤖</span> : <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=Player2`} alt="P2" className="w-full h-full" />}
+                 </div>
+                 <h3 className={`text-lg font-semibold ${rightIsAI ? "text-blue-300" : "text-purple-300"}`}>{rightIsAI ? "AI Opponent" : "Player 2"}</h3>
+                 <p className="text-xs text-gray-400 mt-1">Right Paddle {rightIsAI && "(AI)"}</p>
+               </div>
+ 
+               <div className="space-y-4 flex-1">
+                 <div className="bg-gray-800/30 rounded-lg p-3 flex justify-between items-center">
+                    <span className="text-gray-400 text-sm flex items-center gap-2">
+                      🏆 Score
+                    </span>
+                    <span className="text-2xl font-bold text-white">{0 /* Score */}</span>
+                 </div>
+                 
+                 {rightIsAI && (
+                   <div className="bg-gray-800/30 rounded-lg p-3 flex justify-between items-center">
+                      <span className="text-gray-400 text-sm flex items-center gap-2">
+                        🤖 AI Level
+                      </span>
+                      <span className="text-blue-400 font-medium capitalize">{difficulty}</span>
+                   </div>
+                 )}
+                 
+                 <div className="bg-gray-800/30 rounded-lg p-3 flex justify-between items-center">
+                    <span className="text-gray-400 text-sm flex items-center gap-2">
+                      ⚡ Status
+                    </span>
+                    <span className="text-green-400 text-sm">Active</span>
+                 </div>
+ 
+                 <div className="mt-4">
+                   <div className="flex justify-between text-xs text-gray-400 mb-1">
+                     <span>Match Progress</span>
+                     <span className="text-blue-400">Live</span>
+                   </div>
+                   <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                     <div className="h-full bg-blue-500 w-[45%] animate-pulse"></div>
+                   </div>
+                 </div>
+               </div>
+ 
+               {rightIsAI ? (
+                 <div className="mt-6 bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
+                   <p className="text-xs text-gray-400 mb-2">AI Behavior:</p>
+                   <ul className="text-xs text-gray-500 space-y-1 list-disc list-inside">
+                     <li>Tracks ball movement</li>
+                     <li>Adjusts paddle position</li>
+                     <li>{difficulty} difficulty</li>
+                     <li>Fair gameplay</li>
+                   </ul>
+                 </div>
+               ) : (
+                 <div className="mt-6 bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
+                   <p className="text-xs text-gray-400 mb-2">Controls:</p>
+                   <div className="flex gap-2">
+                     <div className="flex flex-col gap-1">
+                       <div className="w-8 h-8 rounded border border-gray-600 flex items-center justify-center text-xs text-gray-300">↑</div>
+                       <div className="w-8 h-8 rounded border border-gray-600 flex items-center justify-center text-xs text-gray-300">↓</div>
+                     </div>
+                     <div className="flex flex-col justify-center text-xs text-gray-500 gap-3 ml-2">
+                       <span>Move Up</span>
+                       <span>Move Down</span>
+                     </div>
+                   </div>
+                 </div>
+               )}
+             </div>
+           </div>
+         </div>
+       )}
     </>
   );
 };
