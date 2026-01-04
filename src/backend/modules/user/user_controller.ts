@@ -1,114 +1,101 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { Prisma } from "@prisma/client";
 import {
   createRevokedToken,
   createUser,
-  deleteUserById,
   findUserByEmail,
   findUserById,
-  getUsers,
   updateUserById,
 } from "./user_service.ts";
-import type {
-  CreateUserInput,
-  GetUserParams,
-  LoginInput,
-  UpdateUserBody,
-} from "./user_schema.ts";
+import type { CreateUserInput, LoginInput, UpdateUserBody } from "./user_schema.ts";
 import { verifyPassword } from "../../utils/hash.ts";
-import server from "../../server/server.ts";
 
-export async function getUsersHandler() {
-  const users = await getUsers();
-
-  return users;
+function extractBearerToken(authHeader: string): string | null {
+  const [scheme, token] = authHeader.split(" ");
+  if (scheme !== "Bearer" || !token) return null;
+  return token;
 }
 
-export async function getUserByIdHandler(
-  req: FastifyRequest<{ Params: GetUserParams }>,
-  rep: FastifyReply,
-) {
-  const { id } = req.params;
-  const user = await findUserById(Number(id));
-  if (!user) {
-    return rep.status(404).send({ message: "User not found" });
-  }
-  return rep.send(user);
-}
-
-export async function updateUserHandler(
-  req: FastifyRequest<{ Params: GetUserParams; Body: UpdateUserBody }>,
-  rep: FastifyReply,
-) {
-  const { id } = req.params;
-  const data = req.body;
-
-  try {
-    const updatedUser = await updateUserById(Number(id), data);
-    if (updatedUser === null)
-      return rep.status(404).send({ message: "User not found" });
-    return rep.send(updatedUser);
-  } catch (err) {
-    return rep.status(400).send({ message: "Error updating user" });
-  }
-}
-
-export async function deleteUserHandler(
-  req: FastifyRequest<{ Params: GetUserParams }>,
-  rep: FastifyReply,
-) {
-  const { id } = req.params;
-
-  const user = await deleteUserById(Number(id));
-  if (user === null) {
-    return rep.status(404).send({ message: "User not found" });
-  }
-  return rep.status(204).send();
-}
-
-export async function registerUserHander(
+export async function registerUserHandler(
   req: FastifyRequest<{ Body: CreateUserInput }>,
   rep: FastifyReply,
 ) {
-  const body = req.body;
+  try {
+    const user = await createUser(req.body);
+    return rep.status(201).send(user);
+  } catch (err: unknown) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return rep.code(409).send({ message: "Email or username already exists" });
+    }
+    return rep.code(400).send({ message: "Error creating user" });
+  }
+}
 
-  const user = await createUser(body);
-  return rep.status(201).send(user);
+export async function loginHandler(
+  req: FastifyRequest<{ Body: LoginInput }>,
+  rep: FastifyReply,
+) {
+  const { email, password } = req.body;
+
+  const user = await findUserByEmail(email);
+  if (!user) return rep.code(401).send({ message: "Invalid email or password" });
+
+  const ok = await verifyPassword(password, user.passwordHash);
+  if (!ok) return rep.code(401).send({ message: "Invalid email or password" });
+
+  const accessToken = await rep.jwtSign(
+    { id: user.id },
+    { sign: { expiresIn: "15m" } },
+  );
+
+  return rep.send({
+    accessToken,
+    user: { id: user.id, username: user.username, email: user.email },
+  });
 }
 
 export async function logoutHandler(req: FastifyRequest, rep: FastifyReply) {
-  const authHeader = req.headers.authorization;
+  const auth = req.headers.authorization;
+  if (!auth) return rep.code(400).send({ message: "Missing Authorization header" });
 
-  if (!authHeader) {
-    return rep.code(400).send({ message: "Missing Authorization header" });
-  }
-
-  const token = authHeader.replace("Bearer ", "");
+  const token = extractBearerToken(auth);
+  if (!token) return rep.code(400).send({ message: "Invalid Authorization header" });
 
   try {
     await createRevokedToken(token);
     return rep.status(200).send({ message: "Logged out successfully" });
-  } catch (err) {
-    return rep.status(200).send({ message: "Token already revoked" });
+  } catch {
+    return rep.status(200).send({ message: "Logged out successfully" });
   }
 }
 
-export async function loginHander(
-  req: FastifyRequest<{ Body: LoginInput }>,
+export async function getMeHandler(req: FastifyRequest, rep: FastifyReply) {
+  const userId = req.user.id;
+  const user = await findUserById(userId);
+
+  if (!user) return rep.code(404).send({ message: "User not found" });
+
+  return rep.send(user);
+}
+
+export async function updateMeHandler(
+  req: FastifyRequest<{ Body: UpdateUserBody }>,
   rep: FastifyReply,
 ) {
-  const body = req.body;
+  const userId = req.user.id;
 
-  const user = await findUserByEmail(body.email);
-  if (!user) {
-    return rep.code(401).send({ message: "Invalid email or password" });
+  if (!req.body || Object.keys(req.body).length === 0) {
+    return rep.code(400).send({ message: "At least one field is required" });
   }
 
-  const isPassCorrect = await verifyPassword(body.password, user.passwordHash);
-
-  if (isPassCorrect) {
-    const { passwordHash, ...rest } = user;
-    return { accessToken: server.jwt.sign(rest) };
+  try {
+    const updated = await updateUserById(userId, req.body);
+    if (!updated) return rep.code(404).send({ message: "User not found" });
+    return rep.send(updated);
+  } catch (err: unknown) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return rep.code(409).send({ message: "Email or username already exists" });
+    }
+    return rep.code(400).send({ message: "Error updating user" });
   }
-
-  return rep.code(401).send({ message: "Invalid email or password" });
 }

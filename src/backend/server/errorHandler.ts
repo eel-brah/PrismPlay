@@ -13,29 +13,33 @@ import {
 export function setGlobalErrorHandler(server: FastifyInstance) {
   server.setErrorHandler(
     (error: FastifyError, req: FastifyRequest, rep: FastifyReply) => {
-
-      if (error.code === 'FST_ERR_CTP_INVALID_MEDIA_TYPE') {
+      if (error.code === "FST_ERR_CTP_INVALID_MEDIA_TYPE") {
         return rep.status(415).send({ message: error.message });
       }
-      if (error.code === 'FST_ERR_CTP_INVALID_JSON_BODY') {
+      if (error.code === "FST_ERR_CTP_INVALID_JSON_BODY") {
         return rep.status(400).send({ message: error.message });
       }
-      if (error.code === "FST_JWT_NO_AUTHORIZATION_IN_HEADER") {
-        return rep.status(401).send({ message: error.message });
+
+      if (
+        error.code === "FST_JWT_NO_AUTHORIZATION_IN_HEADER" ||
+        error.code === "FST_JWT_AUTHORIZATION_TOKEN_INVALID" ||
+        error.code === "FAST_JWT_MISSING_SIGNATURE" ||
+        error.code === "FAST_JWT_INVALID_SIGNATURE" ||
+        error.code === "FAST_JWT_EXPIRED"
+      ) {
+        return rep.status(401).send({ message: "Unauthorized" });
       }
-      if (error.code === 'FST_JWT_AUTHORIZATION_TOKEN_INVALID') {
-        return rep.status(500).send({ message: error.message });
-      }
+
       if (hasZodFastifySchemaValidationErrors(error)) {
-        let message = error.validation.map((v) => v.message).join(", ");
+        const message = error.validation.map((v) => v.message).join(", ");
         return rep.code(400).send({
           error: "Validation Error",
           message,
           statusCode: 400,
           details: {
-          issues: error.validation,
-          method: req.method,
-          url: req.url,
+            issues: error.validation,
+            method: req.method,
+            url: req.url,
           },
         });
       }
@@ -44,7 +48,6 @@ export function setGlobalErrorHandler(server: FastifyInstance) {
         return rep.code(500).send({
           error: "Internal Server Error",
           message: "Response doesn't match the schema",
-          // statusCode: 500,
           details: {
             issues: error.cause.issues,
             method: error.method,

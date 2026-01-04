@@ -3,90 +3,57 @@ import { hashPassword } from "../../utils/hash.ts";
 import prisma from "../../utils/prisma.ts";
 import type { UpdateUserBody, CreateUserInput } from "./user_schema.ts";
 
+const safeSelect = {
+  id: true,
+  username: true,
+  email: true,
+} as const;
+
 export async function createUser(input: CreateUserInput) {
   const { password, ...rest } = input;
-  const hash = await hashPassword(password);
+  const passwordHash = await hashPassword(password);
 
-  const user = await prisma.user.create({
-    data: { ...rest, passwordHash: hash },
+  return prisma.user.create({
+    data: { ...rest, passwordHash },
+    select: safeSelect, 
   });
-
-  return user;
 }
 
-export async function getUsers() {
-  return prisma.user.findMany({
-    select: {
-      email: true,
-      username: true,
-      id: true,
-    },
-  });
+export async function findUserByEmail(email: string) {
+  return prisma.user.findUnique({ where: { email } });
 }
 
 export async function findUserById(id: number) {
   return prisma.user.findUnique({
     where: { id },
-    select: {
-      email: true,
-      username: true,
-      id: true,
-    },
-  });
-}
-
-export async function findUserByUsername(username: string) {
-  return prisma.user.findUnique({
-    where: { username },
-    select: {
-      email: true,
-      username: true,
-      id: true,
-    },
-  });
-}
-
-export async function findUserByEmail(email: string) {
-  return prisma.user.findUnique({
-    where: { email },
+    select: safeSelect,
   });
 }
 
 export async function updateUserById(id: number, data: UpdateUserBody) {
-  const updateData: any = { ...data };
+  const updateData: Record<string, unknown> = { ...data };
 
   if (data.password) {
-    const hashed = await hashPassword(data.password);
-    updateData.passwordHash = hashed;
+    updateData.passwordHash = await hashPassword(data.password);
     delete updateData.password;
   }
 
-  return prisma.user.update({
-    where: { id },
-    data: updateData,
-    select: { email: true, username: true, id: true },
-  });
-}
-
-export async function deleteUserById(id: number) {
   try {
-    await prisma.user.delete({ where: { id } });
-    return true;
-  } catch (error: unknown) {
-    // Prisma errors are instances of Prisma.PrismaClientKnownRequestError
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === "P2025") return null; // record not found
+    return await prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: safeSelect,
+    });
+  } catch (err: unknown) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError) {
+      if (err.code === "P2025") return null; // not found
     }
-
-    // Re-throw for unhandled cases
-    throw error;
+    throw err;
   }
 }
 
 export async function createRevokedToken(token: string) {
-  await prisma.revokedToken.create({
-    data: { token },
-  });
+  await prisma.revokedToken.create({ data: { token } });
 }
 
 export async function findToken(token: string) {
