@@ -106,8 +106,12 @@ export async function loginHander(
   const isPassCorrect = await verifyPassword(body.password, user.passwordHash);
 
   if (isPassCorrect) {
-    const { passwordHash, ...rest } = user;
-    return { accessToken: server.jwt.sign(rest) };
+    // const { passwordHash, ...rest } = user;
+    const data = {
+      id: user.id,
+      email: user.email,
+    };
+    return { accessToken: server.jwt.sign(data) };
   }
 
   return rep.code(401).send({ message: "Invalid email or password" });
