@@ -21,8 +21,39 @@ model User {
   oauthId           String?
   createdAt         DateTime  @default(now())
   lastLogin         DateTime?
+
+  games     AgarioGameResult[]
 }
 
+model Guest {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  lastSeen  DateTime @default(now())
+
+  games     AgarioGameResult[]
+}
+
+model AgarioGameResult {
+  id         Int      @id @default(autoincrement())
+
+  userId     Int?
+  guestId    String?
+
+  room       String
+  durationMs Int
+  maxMass    Float
+  rank       Int
+  kills      Int
+  isWinner   Boolean
+
+  createdAt  DateTime @default(now())
+
+  user  User?  @relation(fields: [userId], references: [id])
+  guest Guest? @relation(fields: [guestId], references: [id])
+
+  @@index([userId])
+  @@index([guestId])
+}
 
 model RevokedToken {
   id         Int      @id @default(autoincrement())
