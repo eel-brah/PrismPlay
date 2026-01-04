@@ -1,36 +1,42 @@
 import fjwt from "@fastify/jwt";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { JWT_SECRET } from "./config";
-import prisma from "../utils/prisma";
 import { findToken } from "../modules/user/user_service";
-import { type AuthHeaderSchema } from "../modules/user/user_schema";
+
+function extractBearerToken(authHeader: string): string | null {
+  const [scheme, token] = authHeader.split(" ");
+  if (scheme !== "Bearer" || !token) return null;
+  return token;
+}
 
 export async function setupAuth(server: FastifyInstance) {
   server.register(fjwt, { secret: JWT_SECRET });
 
   server.decorate(
     "auth",
-    async (
-      req: FastifyRequest<{ Headers: AuthHeaderSchema }>,
-      rep: FastifyReply,
-    ) => {
+    async (req: FastifyRequest, rep: FastifyReply): Promise<void> => {
+      const auth = req.headers.authorization;
+      if (!auth) {
+        rep.code(401).send({ message: "Missing Authorization header" });
+        return;
+      }
+
+      const token = extractBearerToken(auth);
+      if (!token) {
+        rep.code(401).send({ message: "Invalid Authorization header" });
+        return;
+      }
+
       try {
-        const token = req.headers.authorization.replace("Bearer ", "");
-        const decoded = await req.jwtVerify();
+        await req.jwtVerify();
 
         const revoked = await findToken(token);
         if (revoked) {
-          return rep.code(401).send({ message: "Token revoked" });
+          rep.code(401).send({ message: "Token revoked" });
+          return;
         }
-
-        req.user = decoded;
-      } catch (err: any) {
-        if (err?.errors) {
-          return rep.code(400).send({
-            message: err.errors.map((e: any) => e.message).join(", "),
-          });
-        }
-        return rep.code(401).send({ message: "Unauthorized" });
+      } catch {
+        rep.code(401).send({ message: "Unauthorized" });
       }
     },
   );
@@ -38,6 +44,13 @@ export async function setupAuth(server: FastifyInstance) {
 
 declare module "fastify" {
   interface FastifyInstance {
-    auth: any;
+    auth: (req: FastifyRequest, rep: FastifyReply) => Promise<void>;
+  }
+}
+
+declare module "@fastify/jwt" {
+  interface FastifyJWT {
+    payload: { id: number };
+    user: { id: number };
   }
 }

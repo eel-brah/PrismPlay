@@ -1,119 +1,64 @@
 import type { FastifyInstance } from "fastify";
 import {
-  registerUserHander,
-  getUsersHandler,
-  loginHander,
-  getUserByIdHandler,
-  updateUserHandler,
-  deleteUserHandler,
+  registerUserHandler,
+  loginHandler,
   logoutHandler,
+  getMeHandler,
+  updateMeHandler,
 } from "./user_controller.ts";
 import {
   createResponseSchema,
-  userResponseSchema,
   createUserSchema,
-  getUserParamsSchema,
   loginResponseSchema,
   loginSchema,
   messageResponseSchema,
   updateUserSchema,
-  usersResponseSchema,
+  userResponseSchema,
 } from "./user_schema.ts";
 
 export async function authRoutes(server: FastifyInstance) {
-  server.post(
-    "/login",
-    {
-      schema: {
-        body: loginSchema,
-        response: {
-          200: loginResponseSchema,
-        },
-      },
+  server.post("/login", {
+    schema: {
+      body: loginSchema,
+      response: { 200: loginResponseSchema },
     },
-    loginHander,
-  );
-  server.post(
-    "/sign_up",
-    {
-      schema: {
-        body: createUserSchema,
-        response: {
-          201: userResponseSchema,
-        },
-      },
-    },
-    registerUserHander,
-  );
+    handler: loginHandler,
+  });
 
-  server.post(
-    "/logout",
-    {
-      preHandler: [server.auth],
-      schema: {
-        response: createResponseSchema(messageResponseSchema, [200, 400]),
-      },
+  server.post("/sign_up", {
+    schema: {
+      body: createUserSchema,
+      response: { 201: userResponseSchema },
     },
-    logoutHandler,
-  );
+    handler: registerUserHandler,
+  });
+
+  server.post("/logout", {
+    preHandler: [server.auth],
+    schema: {
+      response: createResponseSchema(messageResponseSchema, [200, 400]),
+    },
+    handler: logoutHandler,
+  });
 }
 
 export async function userRoutes(server: FastifyInstance) {
-  // server.addHook("preHandler", server.auth);
+  server.get("/me", {
+    preHandler: [server.auth],
+    schema: { response: { 200: userResponseSchema } },
+    handler: getMeHandler,
+  });
 
-  server.get(
-    "/",
-    {
-      preHandler: [server.auth],
-      schema: {
-        response: {
-          200: usersResponseSchema,
-        },
+  server.patch("/me", {
+    preHandler: [server.auth],
+    schema: {
+      body: updateUserSchema,
+      response: {
+        200: userResponseSchema,
+        400: messageResponseSchema,
+        409: messageResponseSchema,
       },
     },
-    getUsersHandler,
-  );
-  server.get(
-    "/:id",
-    {
-      preHandler: [server.auth],
-      schema: {
-        params: getUserParamsSchema,
-        response: {
-          404: messageResponseSchema,
-          200: userResponseSchema,
-        },
-      },
-    },
-    getUserByIdHandler,
-  );
-  server.patch(
-    "/:id",
-    {
-      preHandler: [server.auth],
-      schema: {
-        params: getUserParamsSchema,
-        body: updateUserSchema,
-        response: {
-          400: messageResponseSchema,
-          404: messageResponseSchema,
-          200: userResponseSchema,
-        },
-      },
-    },
-    updateUserHandler,
-  );
-  server.delete(
-    "/:id",
-    {
-      preHandler: [server.auth],
-      schema: {
-        params: getUserParamsSchema,
-        response: {
-          404: messageResponseSchema,
-        },
-      },
-    },
-    deleteUserHandler,
-  );
+    handler: updateMeHandler,
+  });
 }
