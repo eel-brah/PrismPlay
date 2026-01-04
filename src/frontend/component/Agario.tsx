@@ -15,7 +15,7 @@ import {
   RoomSummary,
   Virus,
 } from "@/../shared/agario/types";
-import { drawEjects, drawOrbs, drawViruses, randomColor, randomId, randomPlayer } from "@/../shared/agario/utils";
+import { drawEjects, drawOrbs, drawViruses, getOrCreateGuestId, randomColor, randomId, randomPlayer } from "@/../shared/agario/utils";
 import { drawGrid } from "@/game/agario/utils";
 import { FinalLeaderboard, Leaderboard } from "./LeaderBoard";
 import { TopStatusBar } from "./RoomStatusBar";
@@ -72,8 +72,17 @@ const Agario = () => {
   const [lobbyPlayers, setLobbyPlayers] = useState<LobbyPlayer[]>([]);
   const roomStatusRef = useRef<"waiting" | "started">("waiting");
 
+  // localStorage.setItem("access_token", token);
+  const authToken = localStorage.getItem("access_token");
   useEffect(() => {
-    const socket = io("/agario", { path: "/socket.io" });
+    const socket = io("/agario", {
+      path: "/socket.io",
+      auth: {
+        sessionId: crypto.randomUUID(),
+        token: authToken ?? undefined,
+        guestId: authToken ? null : getOrCreateGuestId(),
+      }
+    });
     socketRef.current = socket;
 
     const canvas = canvasRef.current;
@@ -274,6 +283,10 @@ const Agario = () => {
         setLeaderboard(finalBoard);
       },
     );
+
+    socket.on("agario:backtomenu", () => {
+      clearing()
+    })
 
     socket.on("youLost", () => {
       isDeadRef.current = true;
@@ -482,6 +495,9 @@ const Agario = () => {
   function backToMainMenu() {
     socketRef.current?.emit("agario:leave-room");
 
+    clearing();
+  }
+  function clearing() {
     isDeadRef.current = false;
 
     setHasJoined(false);
@@ -495,6 +511,7 @@ const Agario = () => {
     setJoinKey("");
     setCreatedKey("");
     setAlert({ type: "", message: "" });
+
   }
 
   return (
