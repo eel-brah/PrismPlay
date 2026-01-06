@@ -111,6 +111,10 @@ const Agario = () => {
       console.log("Connected to server with socket id:", socket.id);
     });
 
+    socket.on("connect_error", (err) => {
+      setAlert({ type: "error", message: err.name });
+    });
+
     const interval = setInterval(() => {
       socket.emit("agario:list-rooms");
     }, 1000);

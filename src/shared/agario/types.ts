@@ -61,6 +61,10 @@ export interface InputState {
 
 export interface PlayerState {
   player: Player;
+  startTime: number;
+  endTime: number;
+  maxMass: number;
+  kills: number;
   input: InputState | null;
   splitRequested: boolean;
   ejectRequested: boolean;

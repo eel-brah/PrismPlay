@@ -5,11 +5,14 @@ import { agarioHandlers } from "./agarioHanders";
 import { FastifyInstance } from "fastify";
 import { Prisma } from "@prisma/client";
 import prisma from "../../utils/prisma.ts";
+import { createGuestDb } from "src/backend/modules/agario/agario_service.ts";
+import { socketAuthSchema } from "src/backend/modules/agario/agario_schema.ts";
 
 export type RoomVisibility = "public" | "private";
 export type RoomStatus = "waiting" | "started";
 
 export type RoomMeta = {
+  roomId?: number;
   room: string;
   visibility: RoomVisibility;
   key?: string;
@@ -21,14 +24,22 @@ export type RoomMeta = {
   startedAt?: number;
   endAt?: number;
 
-  hostId: string;
+  hostId: number;
 
   allowSpectators: boolean;
   spectators: Set<string>;
 };
 
+export type WorldHistory = {
+  playerName: string;
+  maxMass: number;
+  kills: number;
+  durationMs: number;
+};
+
 export type World = {
   players: Record<string, PlayerState>;
+  history: Map<string, WorldHistory>;
   orbs: Orb[];
   ejects: Eject[];
   viruses: Virus[];
@@ -39,8 +50,14 @@ export const worldByRoom = new Map<string, World>();
 
 export function init_agario(io: SocketIOServer, fastify: FastifyInstance) {
   const agario = io.of("/agario");
+
   agario.use(async (socket, next) => {
-    const { token, guestId, sessionId } = socket.handshake.auth;
+    const parsed = socketAuthSchema.safeParse(socket.handshake.auth);
+    if (!parsed.success) {
+      return next(new Error(parsed.error.message));
+    }
+
+    const { sessionId, token, guestId } = parsed.data;
 
     if (!sessionId) {
       return next(new Error("Missing sessionId"));
@@ -48,28 +65,20 @@ export function init_agario(io: SocketIOServer, fastify: FastifyInstance) {
 
     socket.data.sessionId = sessionId;
     if (token) {
-      const decoded = fastify.jwt.verify(token);
-
-      socket.data.userId = decoded.id; 
-      socket.data.identityType = "user";
-
+      try {
+        socket.data.guestId = undefined;
+        const decoded = fastify.jwt.verify(token);
+        socket.data.userId = decoded.id as number;
+      } catch {
+        return next(new Error("Invalid credentials"));
+      }
       return next();
     }
-    // if (token) {
-    //   const user = verifyJWT(token); // your logic
-    //   socket.data.userId = user.id;
-    //   return next();
-    // }
 
     if (guestId) {
+      socket.data.userId = undefined;
       socket.data.guestId = guestId;
-
-      // await prisma.guest.upsert({
-      //   where: { id: guestId },
-      //   create: { id: guestId },
-      //   update: {},
-      // });
-
+      await createGuestDb(guestId);
       return next();
     }
 
