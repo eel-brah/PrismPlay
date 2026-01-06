@@ -6,12 +6,11 @@ import LoginForm from "./component/LoginForm";
 import RegisterForm from "./component/RegisterForm";
 import SocialHub from "./component/SocialHub";
 import PlayerProfile from "./component/PlayerProfile";
-import { Route, Routes, Link, useNavigate, useLocation } from "react-router-dom";
+import { Route, Routes, Link } from "react-router-dom";
 import Agario from "./component/Agario";
 import OnlinePong from "./component/OnlinePong";
 
 export default function App() {
-  const navigate = useNavigate();
   const [page, setPage] = useState<
     | "login"
     | "loginForm"
@@ -34,33 +33,6 @@ export default function App() {
   const isOnline = page === "online";
   const [showSocial, setShowSocial] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const showNav = !isLogin && !isLoginForm && !isRegister;
-  const location = useLocation();
-  const [lastPlace, setLastPlace] = useState<{ path: string; page?: typeof page } | null>(null);
-  const getCurrentPlace = () => ({ path: location.pathname, page });
-  const goTo = (path: string, nextPage?: typeof page) => {
-    setLastPlace(getCurrentPlace());
-    if (path !== location.pathname) navigate(path);
-    if (path === "/" && typeof nextPage !== "undefined") setPage(nextPage);
-  };
-  const handleBack = () => {
-    // If currently in any game-related internal view, always go to Select Game
-    const inGameContext =
-      location.pathname === "/" &&
-      (page === "offline" || page === "online" || page === "landing" || page === "landingGuest");
-    if (inGameContext) {
-      setPage("gameSelect");
-      return;
-    }
-    if (lastPlace) {
-      const prev = lastPlace;
-      setLastPlace(null);
-      navigate(prev.path);
-      if (prev.path === "/") setPage(prev.page!);
-    } else {
-      navigate(-1);
-    }
-  };
   const getUUID = () =>
     globalThis.crypto && typeof globalThis.crypto.randomUUID === "function"
       ? globalThis.crypto.randomUUID()
@@ -84,137 +56,11 @@ export default function App() {
   return (
     <Routes>
       <Route path="/agario" element={<Agario />} />
-      <Route
-        path="/social"
-        element={
-          sessionMode === "user" ? (
-            <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
-              <div className="fixed top-0 left-0 right-0 h-12 bg-gray-900/95 border-b border-gray-700 z-50 flex items-center justify-between px-4">
-                <div className="flex items-center gap-2 opacity-0 pointer-events-none select-none">
-                  <span className="text-pink-300">🏓</span>
-                  <span className="text-sm text-green-400">PingPong Craft</span>
-                </div>
-                <div className="flex items-center gap-6 text-sm">
-                  <button
-                    onClick={() => goTo("/", "gameSelect")}
-                    className="text-gray-300 hover:text-white"
-                  >
-                    Game
-                  </button>
-                  <span className="text-white">SocialHub</span>
-                  <Link to="/profile" onClick={() => setLastPlace(getCurrentPlace())} className="text-gray-300 hover:text-white">Profile</Link>
-                </div>
-                <button
-                  onClick={handleBack}
-                  className="px-3 py-1 rounded-md bg-gray-800/80 hover:bg-gray-800 text-sm text-white"
-                >
-                  Back
-                </button>
-              </div>
-              <div className="pt-12 h-full">
-                <SocialHub onClose={() => navigate("/")} />
-              </div>
-            </div>
-          ) : (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
-              <div className="bg-gray-800/80 rounded-xl p-6 border border-gray-700 text-center">
-                <div className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mb-2">
-                  Not available for guests
-                </div>
-                <p className="text-gray-300 mb-4">Please log in to access SocialHub.</p>
-                <button
-                  onClick={handleBack}
-                  className="px-4 py-2 rounded-md bg-gray-800/80 hover:bg-gray-800 text-white"
-                >
-                  Back
-                </button>
-              </div>
-            </div>
-          )
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          sessionMode === "user" ? (
-            <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
-              <div className="fixed top-0 left-0 right-0 h-12 bg-gray-900/95 border-b border-gray-700 z-50 flex items-center justify-between px-4">
-                <div className="flex items-center gap-2 opacity-0 pointer-events-none select-none">
-                  <span className="text-pink-300">🏓</span>
-                  <span className="text-sm text-green-400">PingPong Craft</span>
-                </div>
-                <div className="flex items-center gap-6 text-sm">
-                  <button
-                    onClick={() => goTo("/", "gameSelect")}
-                    className="text-gray-300 hover:text-white"
-                  >
-                    Game
-                  </button>
-                  <Link to="/social" onClick={() => setLastPlace(getCurrentPlace())} className="text-gray-300 hover:text-white">SocialHub</Link>
-                  <span className="text-white">Profile</span>
-                </div>
-                <button
-                  onClick={handleBack}
-                  className="px-3 py-1 rounded-md bg-gray-800/80 hover:bg-gray-800 text-sm text-white"
-                >
-                  Back
-                </button>
-              </div>
-              <div className="pt-12 h-full">
-                <PlayerProfile onClose={() => navigate("/")} />
-              </div>
-            </div>
-          ) : (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
-              <div className="bg-gray-800/80 rounded-xl p-6 border border-gray-700 text-center">
-                <div className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mb-2">
-                  Not available for guests
-                </div>
-                <p className="text-gray-300 mb-4">Please log in to access Profile.</p>
-                <button
-                  onClick={handleBack}
-                  className="px-4 py-2 rounded-md bg-gray-800/80 hover:bg-gray-800 text-white"
-                >
-                  Back
-                </button>
-              </div>
-            </div>
-          )
-        }
-      />
 
       <Route
         path="/"
         element={
           <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
-            {showNav && (
-              <div className="fixed top-0 left-0 right-0 h-12 bg-gray-900/95 border-b border-gray-700 z-50 flex items-center justify-between px-4">
-                <div className="flex items-center gap-2 opacity-0 pointer-events-none select-none">
-                  <span className="text-pink-300">🏓</span>
-                  <span className="text-sm text-green-400">PingPong Craft</span>
-                </div>
-                <div className="flex items-center gap-6 text-sm">
-                  <button
-                    onClick={() => goTo("/", "gameSelect")}
-                    className="text-white"
-                  >
-                    Game
-                  </button>
-                  {sessionMode === "user" && (
-                    <>
-                      <Link to="/social" onClick={() => setLastPlace(getCurrentPlace())} className="text-gray-300 hover:text-white">SocialHub</Link>
-                      <Link to="/profile" onClick={() => setLastPlace(getCurrentPlace())} className="text-gray-300 hover:text-white">Profile</Link>
-                    </>
-                  )}
-                </div>
-                <button
-                  onClick={handleBack}
-                  className="px-3 py-1 rounded-md bg-gray-800/80 hover:bg-gray-800 text-sm text-white"
-                >
-                  Back
-                </button>
-              </div>
-            )}
             {/* Login View */}
             <div
               className={`absolute inset-0 flex items-center justify-center page-transition ${
@@ -270,23 +116,20 @@ export default function App() {
               />
             </div>
 
-            {/* Game Select View */}
             <div
               className={`absolute inset-0 flex flex-col items-center justify-center p-8 page-transition ${
                 isGameSelect ? "page-shown pointer-events-auto" : "page-hidden"
               }`}
               aria-hidden={!isGameSelect}
             >
-              {!showNav && (
-                <div className="absolute top-4 right-4 z-50 flex gap-2">
-                  <button
-                    onClick={() => setPage("login")}
-                    className="bg-gray-800/80 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-all"
-                  >
-                    Return
-                  </button>
-                </div>
-              )}
+              <div className="absolute top-4 right-4 z-50 flex gap-2">
+                <button
+                  onClick={() => setPage("login")}
+                  className="bg-gray-800/80 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-all"
+                >
+                  Return
+                </button>
+              </div>
               <h1 className="text-4xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                 Choose Your Game
               </h1>
@@ -310,7 +153,7 @@ export default function App() {
                     <li>• Track your stats</li>
                   </ul>
                   <button
-                    onClick={() => goTo("/", sessionMode === "guest" ? "landingGuest" : "landing")}
+                    onClick={() => setPage(sessionMode === "guest" ? "landingGuest" : "landing")}
                     className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
                   >
                     Play Pong
@@ -335,7 +178,6 @@ export default function App() {
                   </ul>
                   <Link
                     to="/agario"
-                    onClick={() => setLastPlace(getCurrentPlace())}
                     className="block w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg text-center"
                   >
                     Play Agar.io
@@ -351,6 +193,37 @@ export default function App() {
               }`}
               aria-hidden={!isLanding}
             >
+              {/* Top-right controls */}
+              <div className="absolute top-4 right-4 z-50 flex gap-2">
+                {sessionMode === "user" && (
+                  <button
+                    onClick={() => {
+                      setShowSocial(true);
+                      setShowProfile(false);
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all"
+                  >
+                    Social
+                  </button>
+                )}
+                {sessionMode === "user" && (
+                  <button
+                    onClick={() => {
+                      setShowProfile(true);
+                      setShowSocial(false);
+                    }}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-all"
+                  >
+                    Profile
+                  </button>
+                )}
+                <button
+                  onClick={() => setPage("login")}
+                  className="bg-gray-800/80 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-all"
+                >
+                  Return
+                </button>
+              </div>
               <h1 className="text-4xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                 Select Game Mode
               </h1>
@@ -369,16 +242,12 @@ export default function App() {
                     <li>• No internet required</li>
                   </ul>
                   <button
-                    onClick={() => {
-                      setLastPlace(getCurrentPlace());
-                      setPage("offline");
-                    }}
+                    onClick={() => setPage("offline")}
                     className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
                   >
                     Play Offline
                   </button>
                 </div>
-
 
                 {/* Online Mode */}
                 <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-gray-700">
@@ -394,10 +263,7 @@ export default function App() {
                     <li>• Real-time gameplay</li>
                   </ul>
                   <button
-                    onClick={() => {
-                      setLastPlace(getCurrentPlace());
-                      setPage("online");
-                    }}
+                    onClick={() => setPage("online")}
                     className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
                   >
                     Play Online
@@ -424,6 +290,29 @@ export default function App() {
                 </div>
               </div>
             </div>
+
+            {/* Social Hub Overlay – only for logged-in users */}
+            {sessionMode === "user" && (
+              <div
+                className={`fixed top-0 right-0 h-full w-full sm:w-[480px] md:w-[clamp(520px,40vw,900px)] border-l border-gray-700 shadow-2xl page-transition ${
+                  showSocial ? "page-shown pointer-events-auto" : "page-hidden"
+                }`}
+                aria-hidden={!showSocial}
+              >
+                <SocialHub onClose={() => setShowSocial(false)} />
+              </div>
+            )}
+
+            {sessionMode === "user" && (
+              <div
+                className={`fixed top-0 right-0 h-full w-full sm:w-[480px] md:w-[clamp(520px,40vw,900px)] border-l border-gray-700 shadow-2xl page-transition ${
+                  showProfile ? "page-shown pointer-events-auto" : "page-hidden"
+                }`}
+                aria-hidden={!showProfile}
+              >
+                <PlayerProfile onClose={() => setShowProfile(false)} />
+              </div>
+            )}
 
             {/* Guest Landing View (Offline-only) */}
             <div
@@ -463,10 +352,7 @@ export default function App() {
                     <li>• No internet required</li>
                   </ul>
                   <button
-                    onClick={() => {
-                      setLastPlace(getCurrentPlace());
-                      setPage("offline");
-                    }}
+                    onClick={() => setPage("offline")}
                     className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
                   >
                     Play Offline
@@ -483,10 +369,9 @@ export default function App() {
               aria-hidden={!isOffline}
             >
               <Pong
-                onReturn={() => {
-                  setLastPlace({ path: "/", page: "offline" });
-                  setPage(sessionMode === "guest" ? "landingGuest" : "landing");
-                }}
+                onReturn={() =>
+                  setPage(sessionMode === "guest" ? "landingGuest" : "landing")
+                }
               />
             </div>
             {/* Online View */}
@@ -499,10 +384,11 @@ export default function App() {
               {isOnline && (
                 <OnlinePong
                   profile={onlineProfile}
-                  onReturn={() => {
-                    setLastPlace({ path: "/", page: "online" });
-                    setPage(sessionMode === "guest" ? "landingGuest" : "landing");
-                  }}
+                  onReturn={() =>
+                    setPage(
+                      sessionMode === "guest" ? "landingGuest" : "landing"
+                    )
+                  }
                 />
               )}
             </div>
