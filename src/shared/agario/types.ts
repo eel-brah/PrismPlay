@@ -62,9 +62,11 @@ export interface InputState {
 export interface PlayerState {
   player: Player;
   startTime: number;
-  endTime: number;
+  endTime?: number;
   maxMass: number;
   kills: number;
+  userId?: number;
+  guestId?: string;
   input: InputState | null;
   splitRequested: boolean;
   ejectRequested: boolean;
@@ -115,4 +117,3 @@ export type RoomSummary = {
 };
 
 export type LobbyPlayer = { id: string; name: string };
-

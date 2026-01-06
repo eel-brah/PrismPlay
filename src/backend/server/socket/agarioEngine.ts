@@ -30,7 +30,16 @@ import {
 import type { Namespace } from "socket.io";
 import { Player } from "src/shared/agario/player";
 import { World, worldByRoom } from "./agario";
-import { endRoomDb } from "src/backend/modules/agario/agario_service";
+import {
+  createPlayerHistoryDb,
+  endRoomDb,
+  finalizeRoomResultsDb,
+} from "src/backend/modules/agario/agario_service";
+import {
+  broadcastPlayers,
+  removeActivePlayer,
+  sendRoomInfo,
+} from "./agarioHanders";
 
 const TICK_RATE = 50;
 const TICK_DT = 1 / TICK_RATE;
@@ -60,7 +69,7 @@ export function agarioEngine(io: Namespace) {
     return attacker.mass >= defender.mass * required;
   }
 
-  function simulate(dt: number, world: World) {
+  async function simulate(dt: number, world: World) {
     const started = world.meta.status === "started";
 
     const players = world.players;
@@ -105,6 +114,7 @@ export function agarioEngine(io: Namespace) {
       // }
 
       const [eatenOrbs, eatenEjects] = p.update(dt, mouse, orbs, ejects);
+      state.maxMass = Math.max(state.maxMass, state.player.getTotalMass());
       // const [eatenOrbs, eatenEjects] = p.update(
       //   dt,
       //   mouse,
@@ -172,10 +182,10 @@ export function agarioEngine(io: Namespace) {
     for (const id of ids) {
       handleVirusCollisions(players[id], viruses);
     }
-    handlePlayerCollisions(players, room, allowSpectators);
+    await handlePlayerCollisions(players, room, allowSpectators);
   }
 
-  function handlePlayerCollisions(
+  async function handlePlayerCollisions(
     players: Record<string, PlayerState>,
     room: string,
     allowSpectators: boolean,
@@ -288,17 +298,52 @@ export function agarioEngine(io: Namespace) {
     }
 
     for (const id of removedPlayers) {
-      worldByRoom.get(room)?.history.set(id, {
-        playerName: players[id].player.name,
-        maxMass: players[id].maxMass,
-        kills: players[id].kills,
-        durationMs: players[id].endTime - players[id].startTime,
-      });
-      delete players[id];
-      const client = io.sockets.get(id);
-      if (client) {
-        client.emit("youLost", { reason: "eaten" });
-        if (!allowSpectators) client.leave(room);
+      const world = worldByRoom.get(room);
+      if (world) {
+        const state = players[id];
+        const socket = io.sockets.get(id);
+
+        try {
+          await createPlayerHistoryDb(
+            world.meta.roomId!,
+            state.endTime! - state.startTime,
+            state.maxMass,
+            state.kills,
+            state.userId,
+            state.guestId,
+          );
+        } catch (err) {
+          //TODO: log error
+          if (err instanceof Error) {
+            socket!.emit("agario:error", err.message);
+          } else {
+            socket!.emit("agario:error", "Unknown error");
+          }
+        }
+
+        world.history.set(id, {
+          playerName: state.player.name,
+          maxMass: state.maxMass,
+          kills: state.kills,
+          durationMs: state.endTime! - state.startTime,
+        });
+        if (world.meta.hostId === state.userId) {
+          // TODO:
+          // world.meta.hostId = Object.keys(world.players)[0] ?? world.meta.hostId;
+        }
+
+        delete players[id];
+        if (socket) {
+          socket.leave(room);
+          removeActivePlayer(socket);
+          socket.emit("youLost", { reason: "eaten" });
+          if (!allowSpectators) socket.leave(room);
+          broadcastPlayers(socket.nsp, room, world);
+          for (const id of Object.keys(world.players)) {
+            const client = socket.nsp.sockets.get(id);
+            if (client) sendRoomInfo(client, world);
+          }
+        }
       }
     }
   }
@@ -322,6 +367,8 @@ export function agarioEngine(io: Namespace) {
         if (blob.mass < VIRUS_EAT_MIN_MASS) continue;
 
         blob.mass += virus.mass;
+        if (blob.mass > MAXIMUM_MASS_LIMIT) blob.mass = MAXIMUM_MASS_LIMIT;
+        state.maxMass = Math.max(state.maxMass, state.player.getTotalMass());
 
         viruses.splice(i, 1);
 
@@ -331,7 +378,6 @@ export function agarioEngine(io: Namespace) {
         return;
       }
     }
-    state.maxMass = Math.max(state.maxMass, state.player.getTotalMass());
   }
 
   function handleVirusFeeding(viruses: Virus[], ejects: Eject[]) {
@@ -397,7 +443,7 @@ export function agarioEngine(io: Namespace) {
   let lastTime = Date.now();
   let accumulator = 0;
 
-  setInterval(() => {
+  setInterval(async () => {
     const now = Date.now();
     let frameDt = (now - lastTime) / 1000;
     lastTime = now;
@@ -415,7 +461,31 @@ export function agarioEngine(io: Namespace) {
         ) {
           io.to(room).emit("agario:room-ended", { room });
           //TODO: store history
-          endRoomDb(world.meta.roomId!);
+          const ids = Object.keys(world.players);
+          for (const id of ids) {
+            world.players[id].endTime = Date.now();
+            const state = world.players[id];
+            const socket = io.sockets.get(id);
+            try {
+              await createPlayerHistoryDb(
+                world.meta.roomId!,
+                state.endTime! - state.startTime,
+                state.maxMass,
+                state.kills,
+                state.userId,
+                state.guestId,
+              );
+            } catch (err) {
+              //TODO: log error
+              if (err instanceof Error) {
+                socket!.emit("agario:error", err.message);
+              } else {
+                socket!.emit("agario:error", "Unknown error");
+              }
+            }
+          }
+          await finalizeRoomResultsDb(world.meta.roomId!);
+          // endRoomDb(world.meta.roomId!);
           worldByRoom.delete(room);
           continue;
         }
@@ -424,7 +494,7 @@ export function agarioEngine(io: Namespace) {
           continue;
         }
 
-        simulate(TICK_DT, world);
+        await simulate(TICK_DT, world);
         ensureOrbs(world.orbs);
         ensureViruses(world.viruses);
       }

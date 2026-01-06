@@ -37,7 +37,7 @@ type ActivePlayer = {
 
 const activePlayers = new Map<string, ActivePlayer>();
 
-function removeActivePlayer(socket: Socket) {
+export function removeActivePlayer(socket: Socket) {
   const key = identityKey(getIdentity(socket));
   const activePlayer = activePlayers.get(key);
   if (activePlayer?.socketId == socket.id) {
@@ -70,6 +70,7 @@ import {
   DEFAULT_ROOM,
   DEFAULT_ROOM_MAX_PLAYERS,
   INIT_MASS,
+  MASS,
   MAX_MINUTES,
   MAX_PLAYERS_PER_ROOM,
   MAX_SPECTATORS_PER_ROOM,
@@ -78,8 +79,10 @@ import {
 } from "src/shared/agario/config";
 import prisma from "src/backend/utils/prisma";
 import {
+  createPlayerHistoryDb,
   createRoomDb,
   endRoomDb,
+  finalizeRoomResultsDb,
   startRoomDb,
 } from "src/backend/modules/agario/agario_service";
 function makeKey() {
@@ -90,7 +93,7 @@ function nowMs() {
   return Date.now();
 }
 
-function startRoom(world: World) {
+async function startRoom(world: World) {
   if (world.meta.status === "started") return;
   world.meta.status = "started";
   world.meta.startedAt = nowMs();
@@ -101,7 +104,7 @@ function startRoom(world: World) {
     s.splitRequested = false;
     s.ejectRequested = false;
   }
-  startRoomDb(world.meta.roomId!);
+  await startRoomDb(world.meta.roomId!);
 }
 
 function getWorld(room: string): World | undefined {
@@ -130,7 +133,7 @@ function listPlayers(world: World) {
   }));
 }
 
-function sendRoomInfo(socket: Socket, world: World) {
+export function sendRoomInfo(socket: Socket, world: World) {
   const youAreHost = world.meta.hostId === socket.data.userId;
 
   socket.emit("agario:room-info", {
@@ -151,7 +154,7 @@ function sendRoomInfo(socket: Socket, world: World) {
   });
 }
 
-function broadcastPlayers(ioNs: Namespace, room: string, world: World) {
+export function broadcastPlayers(ioNs: Namespace, room: string, world: World) {
   ioNs.to(room).emit("agario:room-players", {
     players: listPlayers(world),
     hostId: world.meta.hostId,
@@ -159,11 +162,11 @@ function broadcastPlayers(ioNs: Namespace, room: string, world: World) {
   });
 }
 
-export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
+export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
   fastify.log.info({ id: socket.id }, "agario handlers attached");
 
   if (!worldByRoom.has(DEFAULT_ROOM)) {
-    worldByRoom.set(DEFAULT_ROOM, {
+    const defaultWorld: World = {
       players: {},
       history: new Map(),
       orbs: [],
@@ -182,10 +185,21 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
         allowSpectators: true,
         spectators: new Set(),
       },
-    });
+    };
+    try {
+      const roomDb = await createRoomDb(defaultWorld.meta);
+      defaultWorld.meta.roomId = roomDb.id;
+      worldByRoom.set(DEFAULT_ROOM, defaultWorld);
+    } catch (err) {
+      if (err instanceof Error) {
+        socket.emit("agario:error", err.message);
+      } else {
+        socket.emit("agario:error", "Unknown error");
+      }
+    }
   }
 
-  socket.on("agario:start-room", () => {
+  socket.on("agario:start-room", async () => {
     const room = socket.data.room as string | undefined;
     if (!room) {
       socket.emit("agario:error", "No room name provided");
@@ -203,6 +217,7 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       return;
     }
 
+    console.log("IDDD: ", world.meta.hostId , socket.data.userId) ;
     if (world.meta.hostId !== socket.data.userId) {
       socket.emit("agario:warning", "Only the host can start");
       return;
@@ -214,7 +229,7 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       return;
     }
 
-    startRoom(world);
+    await startRoom(world);
 
     socket.nsp.to(room).emit("agario:room-status", { status: "started" });
 
@@ -258,10 +273,11 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
   });
 
   socket.on("agario:create-room", async (payload: CreateRoomPayload) => {
-    if (!socket.data.userId) {
-      socket.emit("agario:error", "You must be logged in to create a room");
-      return;
-    }
+    //TODO: 
+    // if (!socket.data.userId) {
+    //   socket.emit("agario:error", "You must be logged in to create a room");
+    //   return;
+    // }
 
     const roomName = payload.room.trim();
     if (!isValidRoomName(roomName) || roomName === DEFAULT_ROOM) {
@@ -304,31 +320,39 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
         spectators: new Set(),
       },
     };
-    //TODO: check for errors
-    const roomDb = await createRoomDb(world.meta);
-    world.meta.roomId = roomDb.id;
-    worldByRoom.set(roomName, world);
+    try {
+      const roomDb = await createRoomDb(world.meta);
+      world.meta.roomId = roomDb.id;
+      worldByRoom.set(roomName, world);
+    } catch (err) {
+      if (err instanceof Error) {
+        socket.emit("agario:error", err.message);
+      } else {
+        socket.emit("agario:error", "Unknown error");
+      }
+      return;
+    }
 
     const identity = getIdentity(socket);
     socket.data.identity = identity;
-    joinRoom(socket, roomName, payload.name);
+    await joinRoom(socket, roomName, payload.name);
 
     socket.emit("agario:room-created", {
       key,
     });
   });
 
-  function forceLeave(socket: Socket) {
+  async function forceLeave(socket: Socket) {
     const room = socket.data.room as string | undefined;
     if (!room) {
       socket.emit("agario:error", "No room name provided");
       return;
     }
 
-    deletePlayer(socket, room);
+    await deletePlayer(socket, room);
   }
 
-  socket.on("agario:join-room", (payload: JoinRoomPayload) => {
+  socket.on("agario:join-room", async (payload: JoinRoomPayload) => {
     const roomName =
       payload.room.trim().length > 0 ? payload.room.trim() : DEFAULT_ROOM;
     if (roomName !== DEFAULT_ROOM && !isValidRoomName(roomName)) {
@@ -371,7 +395,7 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       }
     }
 
-    joinRoom(socket, roomName, payload.name, payload.spectator);
+    await joinRoom(socket, roomName, payload.name, payload.spectator);
 
     if (roomName === DEFAULT_ROOM) return;
 
@@ -380,14 +404,14 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       world.meta.status === "waiting" &&
       afterJoinCount == world.meta.maxPlayers
     ) {
-      startRoom(world);
+      await startRoom(world);
       socket.nsp
         .to(roomName)
         .emit("agario:room-status", { status: world.meta.status });
     }
   });
 
-  function joinRoom(
+  async function joinRoom(
     socket: Socket,
     room: string,
     name: string,
@@ -395,7 +419,9 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
   ) {
     const prevRoom = socket.data.room as string | undefined;
     if (prevRoom && prevRoom !== room) {
-      deletePlayer(socket, room);
+      //TODO: Correct this
+      socket.emit("agario:info", "You have joined another room");
+      await deletePlayer(socket, room);
     }
 
     let world = worldByRoom.get(room);
@@ -422,7 +448,7 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       const oldSocket = socket.nsp.sockets.get(existing.socketId);
       if (oldSocket) {
         oldSocket.emit("agario:backtomenu");
-        forceLeave(oldSocket);
+        await forceLeave(oldSocket);
       }
     }
 
@@ -466,8 +492,10 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       startTime: nowMs(),
       endTime: nowMs(),
       kills: 0,
-      maxMass: INIT_MASS,
+      maxMass: INIT_MASS / MASS,
       input: null,
+      userId: socket.data.userId,
+      guestId: socket.data.guestId,
       splitRequested: false,
       ejectRequested: false,
     };
@@ -502,7 +530,7 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
     ctx.state.ejectRequested = true;
   });
 
-  socket.on("agario:leave-room", () => {
+  socket.on("agario:leave-room", async () => {
     const room = socket.data.room as string | undefined;
 
     if (!room) {
@@ -510,11 +538,11 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       return;
     }
 
-    deletePlayer(socket, room);
+    await deletePlayer(socket, room);
 
     // socket.emit("agario:left-room");
   });
-  socket.on("disconnect", (reason) => {
+  socket.on("disconnect", async (reason) => {
     fastify.log.info({ id: socket.id, reason }, "socket disconnected");
 
     const ap = activePlayers.get(identityKey(getIdentity(socket)));
@@ -528,12 +556,12 @@ export function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
 
     // await saveGameResult(socket.id);
 
-    deletePlayer(socket, ap.roomName);
+    await deletePlayer(socket, ap.roomName);
     // }, 5000);
   });
 }
 
-function deletePlayer(socket: Socket, roomName: string) {
+async function deletePlayer(socket: Socket, roomName: string) {
   const world = worldByRoom.get(roomName);
   if (!world) {
     socket.emit("agario:error", "Room not found");
@@ -558,18 +586,38 @@ function deletePlayer(socket: Socket, roomName: string) {
   removeActivePlayer(socket);
 
   if (isPlayer) {
+    const state = world.players[socket.id];
+    state.endTime = Date.now();
+    if (world.meta.status == "started") {
+      try {
+        await createPlayerHistoryDb(
+          world.meta.roomId!,
+          state.endTime! - state.startTime,
+          state.maxMass,
+          state.kills,
+          socket.data.userId,
+          socket.data.guestId,
+        );
+      } catch (err) {
+        //TODO: log error
+        if (err instanceof Error) {
+          socket.emit("agario:error", err.message);
+        } else {
+          socket.emit("agario:error", "Unknown error");
+        }
+      }
+    }
     world.history.set(socket.id, {
-      playerName: world.players[socket.id].player.name,
-      maxMass: world.players[socket.id].maxMass,
-      kills: world.players[socket.id].kills,
-      durationMs:
-        world.players[socket.id].endTime - world.players[socket.id].startTime,
+      playerName: state.player.name,
+      maxMass: state.maxMass,
+      kills: state.kills,
+      durationMs: state.endTime! - state.startTime,
     });
 
     delete world.players[socket.id];
   } else world.meta.spectators.delete(socket.id);
 
-  if (world.meta.hostId === socket.data.userId){
+  if (world.meta.hostId === socket.data.userId) {
     // TODO:
     // world.meta.hostId = Object.keys(world.players)[0] ?? world.meta.hostId;
   }
@@ -577,7 +625,8 @@ function deletePlayer(socket: Socket, roomName: string) {
   if (Object.keys(world.players).length === 0 && roomName !== DEFAULT_ROOM) {
     socket.nsp.to(roomName).emit("agario:room-ended");
     //TODO: store history
-    endRoomDb(world.meta.roomId!);
+    await finalizeRoomResultsDb(world.meta.roomId!);
+    // await  endRoomDb(world.meta.roomId!);
     worldByRoom.delete(roomName);
   } else {
     broadcastPlayers(socket.nsp, roomName, world);

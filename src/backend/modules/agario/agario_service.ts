@@ -10,16 +10,39 @@ export function createGuestDb(guestId: string) {
   });
 }
 
-export function createRoomDb(meta: RoomMeta) {
-  return prisma.room.create({
-    data: {
-      name: meta.room,
-      isDefault: meta.room === DEFAULT_ROOM,
-      maxDurationMin: meta.durationMin,
-      maxPlayers: meta.maxPlayers,
-      createdById: meta.hostId,
-      visibility: meta.visibility,
-    },
+export async function createRoomDb(meta: RoomMeta) {
+  return prisma.$transaction(async (tx) => {
+    if (meta.room === DEFAULT_ROOM) {
+      const existing = await tx.room.findFirst({
+        where: { isDefault: true },
+      });
+
+      if (existing) {
+        return existing;
+      }
+    }
+
+    const activeRoom = await tx.room.findFirst({
+      where: {
+        name: meta.room,
+        endedAt: null,
+      },
+    });
+
+    if (activeRoom) {
+      throw new Error("Room name already in use");
+    }
+
+    return tx.room.create({
+      data: {
+        name: meta.room,
+        isDefault: meta.room === DEFAULT_ROOM,
+        maxDurationMin: meta.durationMin,
+        maxPlayers: meta.maxPlayers,
+        createdById: meta.hostId === -1 ? null : meta.hostId,
+        visibility: meta.visibility,
+      },
+    });
   });
 }
 
@@ -32,44 +55,45 @@ export function startRoomDb(roomId: number) {
   });
 }
 
-
 export function endRoomDb(roomId: number) {
   return prisma.room.update({
-    where: { id: roomId},
+    where: { id: roomId },
     data: {
       endedAt: new Date(),
     },
   });
 }
-export function createPlayerHistory(params: {
-  roomId: number;
-  durationMs: number;
-  maxMass: number;
-  kills: number;
-  userId?: number | null;
-  guestId?: string | null;
-}) {
+
+export function createPlayerHistoryDb(
+  roomId: number,
+  durationMs: number,
+  maxMass: number,
+  kills: number,
+  userId?: number | null,
+  guestId?: string | null,
+) {
+  if (!guestId && !userId) throw new Error("Either userId or guestId is required");
+
   return prisma.playerHistory.create({
     data: {
-      roomId: params.roomId,
-      durationMs: params.durationMs,
-      maxMass: params.maxMass,
-      kills: params.kills,
-      userId: params.userId,
-      guestId: params.guestId,
+      roomId,
+      durationMs,
+      maxMass,
+      kills,
+      userId,
+      guestId,
     },
   });
 }
 
-// export function endRoom(roomId: number) {
-//   return prisma.room.update({
-//     where: { id: roomId },
-//     data: {
-//       endedAt: new Date(),
-//     },
-//   });
-// }
-export async function finalizeRoomResults(roomId: number) {
+export async function finalizeRoomResultsDb(roomId: number) {
+  // const room = prisma.playerHistory.findFirst({
+  //   where: { roomId },
+  // });
+  // if (room.room.name === DEFAULT_ROOM)
+  //   throw new Error("Default room cannot have a duration");
+  // }
+
   return prisma.$transaction(async (tx) => {
     const players = await tx.playerHistory.findMany({
       where: { roomId },

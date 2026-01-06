@@ -34,7 +34,7 @@ model Room {
   isDefault       Boolean   @default(false)
   maxDurationMin  Int?
   maxPlayers      Int?
-  visibility      Boolean
+  visibility      String
   startedAt       DateTime?
   endedAt         DateTime?
 

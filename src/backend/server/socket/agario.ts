@@ -86,8 +86,8 @@ export function init_agario(io: SocketIOServer, fastify: FastifyInstance) {
   });
 
   agarioEngine(agario);
-  agario.on("connection", (socket) => {
+  agario.on("connection", async (socket) => {
     fastify.log.info({ id: socket.id }, "socket connected");
-    agarioHandlers(socket, fastify);
+    await agarioHandlers(socket, fastify);
   });
 }
