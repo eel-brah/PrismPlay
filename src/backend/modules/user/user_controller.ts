@@ -1,4 +1,4 @@
-import type { FastifyReply, FastifyRequest } from "fastify";
+import { type FastifyReply, type FastifyRequest } from "fastify";
 import { Prisma } from "@prisma/client";
 import {
   createRevokedToken,
