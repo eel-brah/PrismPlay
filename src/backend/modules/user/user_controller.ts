@@ -47,10 +47,10 @@ export async function loginHandler(
     { id: user.id },
     { sign: { expiresIn: "15m" } },
   );
-
+  console.log("uder is ", user)
   return rep.send({
     accessToken,
-    user: { id: user.id, username: user.username, email: user.email },
+    user: { id: user.id, username: user.username, email: user.email , createdAt : user.createdAt, lastLogin : user.lastLogin, avatarUrl : user.avatarUrl},
   });
 }
 
@@ -72,7 +72,7 @@ export async function logoutHandler(req: FastifyRequest, rep: FastifyReply) {
 export async function getMeHandler(req: FastifyRequest, rep: FastifyReply) {
   const userId = req.user.id;
   const user = await findUserById(userId);
-
+  console.log(Object.keys(user ?? {}), user);
   if (!user) return rep.code(404).send({ message: "User not found" });
 
   return rep.send(user);

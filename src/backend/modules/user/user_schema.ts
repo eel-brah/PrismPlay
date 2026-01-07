@@ -18,7 +18,12 @@ const usernameSchema = z
   .min(5, { error: "username must be at least 5 characters" });
 
 const passwordSchema = z
-    .string()
+    .string({
+    error: (issue) =>
+      issue.input === undefined || issue.input === ""
+        ? "Password is required"
+        : "Password must be a string",
+  })
     .min(6, "Password must be at least 6 characters");
 
 
@@ -31,10 +36,13 @@ export const createUserSchema = z.object({
   ...userCore,
   password: passwordSchema,
 });
-
+const isoDateOrDate = z.union([z.iso.datetime(), z.date()]);
 export const userResponseSchema = z.object({
   id: z.number(),
   ...userCore,
+  createdAt: isoDateOrDate,
+  lastLogin: isoDateOrDate.nullable(),
+  avatarUrl: z.string().url().nullable(),
 });
 
 export const usersResponseSchema = z.array(userResponseSchema);
