@@ -1,3 +1,4 @@
+import { nanoid } from "nanoid"
 import {
   MAP_HEIGHT,
   MAP_WIDTH,
@@ -188,7 +189,7 @@ export function randomPlayer(): Player {
 export function getOrCreateGuestId(): string {
   let id = localStorage.getItem("guestId");
   if (!id) {
-    id = crypto.randomUUID();
+    id = nanoid();
     localStorage.setItem("guestId", id);
   }
   return id;

@@ -19,6 +19,7 @@ import { drawEjects, drawOrbs, drawViruses, getOrCreateGuestId, randomColor, ran
 import { drawGrid } from "@/game/agario/utils";
 import { FinalLeaderboard, Leaderboard } from "./LeaderBoard";
 import { TopStatusBar } from "./RoomStatusBar";
+import { nanoid } from "nanoid"
 
 type AlertType = "error" | "warning" | "info" | "";
 const alertStyles: Record<Exclude<AlertType, "">, string> = {
@@ -78,7 +79,7 @@ const Agario = () => {
     const socket = io("/agario", {
       path: "/socket.io",
       auth: {
-        sessionId: crypto.randomUUID(),
+        sessionId: nanoid(),
         token: authToken ?? undefined,
         guestId: authToken ? null : getOrCreateGuestId(),
       }
