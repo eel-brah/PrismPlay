@@ -1,4 +1,4 @@
 node_modules
 dist
 mytodo.txt
-./prisma/dev.db
+prisma/dev.db

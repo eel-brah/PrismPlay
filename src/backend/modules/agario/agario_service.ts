@@ -2,6 +2,7 @@ import { RoomMeta } from "src/backend/server/socket/agario";
 import prisma from "src/backend/utils/prisma";
 import { DEFAULT_ROOM } from "src/shared/agario/config";
 
+//TODO: try catch all db functions
 export function createGuestDb(guestId: string) {
   return prisma.guest.upsert({
     where: { id: guestId },
