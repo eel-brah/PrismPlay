@@ -7,6 +7,9 @@ const safeSelect = {
   id: true,
   username: true,
   email: true,
+  createdAt: true,
+  avatarUrl: true,
+  lastLogin: true,
 } as const;
 
 export async function createUser(input: CreateUserInput) {
@@ -15,7 +18,7 @@ export async function createUser(input: CreateUserInput) {
 
   return prisma.user.create({
     data: { ...rest, passwordHash },
-    select: safeSelect, 
+    select: safeSelect,
   });
 }
 
