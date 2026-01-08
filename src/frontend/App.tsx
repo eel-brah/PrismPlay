@@ -4,6 +4,7 @@ import Pong from "./component/Pong";
 import LoginPage from "./component/LoginPage";
 import LoginForm from "./component/LoginForm";
 import RegisterForm from "./component/RegisterForm";
+import HomePage from "./component/HomePage";
 import SocialHub from "./component/SocialHub";
 import PlayerProfile from "./component/PlayerProfile";
 import {
@@ -45,11 +46,20 @@ export default function App() {
     location.pathname === "/register" || location.pathname.startsWith("/login");
   const showTopBar = !hideTopBar;
   const topPaddingClass = showTopBar ? "pt-16" : "";
-  const activeSection = location.pathname.startsWith("/social")
-    ? "social"
-    : location.pathname.startsWith("/profile")
-      ? "profile"
-      : "games";
+  const activeSection = location.pathname === "/home"
+    ? "home"
+    : location.pathname === "/games" ||
+        location.pathname === "/landing" ||
+        location.pathname === "/guest" ||
+        location.pathname === "/offline" ||
+        location.pathname === "/online" ||
+        location.pathname === "/agario"
+      ? "games"
+      : location.pathname.startsWith("/social")
+        ? "social"
+        : location.pathname.startsWith("/profile")
+          ? "profile"
+          : "none";
 
   const handleReturn = () => {
     if (globalThis.history.length > 1) {
@@ -68,6 +78,16 @@ export default function App() {
               <div className="h-16 flex items-center justify-between">
                 <div className="w-24" />
                 <div className="flex-1 flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => navigate("/home")}
+                    className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+                      activeSection === "home"
+                        ? "text-green-400 bg-white/5"
+                        : "text-gray-200 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    Home
+                  </button>
                   <button
                     onClick={() => navigate("/games")}
                     className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
@@ -116,7 +136,21 @@ export default function App() {
       )}
 
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Navigate to="/home" replace />} />
+        <Route
+          path="/home"
+          element={
+            <div
+              className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass} flex items-center justify-center`}
+            >
+              <HomePage
+                onPlay={() => navigate("/games")}
+                onLogin={() => navigate("/login")}
+                loggedIn={sessionMode === "user"}
+              />
+            </div>
+          }
+        />
         <Route
           path="/agario"
           element={
