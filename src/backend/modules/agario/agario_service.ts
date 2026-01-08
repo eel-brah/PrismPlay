@@ -1,6 +1,7 @@
 import { RoomMeta } from "src/backend/server/socket/agario";
 import prisma from "src/backend/utils/prisma";
 import { DEFAULT_ROOM } from "src/shared/agario/config";
+import { FinalLeaderboardEntry } from "src/shared/agario/types";
 
 //TODO: try catch all db functions
 export function createGuestDb(guestId: string) {
@@ -47,33 +48,26 @@ export async function createRoomDb(meta: RoomMeta) {
   });
 }
 
-export function startRoomDb(roomId: number) {
-  return prisma.room.update({
-    where: { id: roomId },
-    data: {
-      startedAt: new Date(),
-    },
-  });
-}
-
-export function endRoomDb(roomId: number) {
-  return prisma.room.update({
-    where: { id: roomId },
-    data: {
-      endedAt: new Date(),
-    },
-  });
-}
+// export function endRoomDb(roomId: number) {
+//   return prisma.room.update({
+//     where: { id: roomId },
+//     data: {
+//       endedAt: new Date(),
+//     },
+//   });
+// }
 
 export function createPlayerHistoryDb(
   roomId: number,
   durationMs: number,
   maxMass: number,
   kills: number,
+  name: string,
   userId?: number | null,
   guestId?: string | null,
 ) {
-  if (!guestId && !userId) throw new Error("Either userId or guestId is required");
+  if (!guestId && !userId)
+    throw new Error("Either userId or guestId is required");
 
   return prisma.playerHistory.create({
     data: {
@@ -83,6 +77,7 @@ export function createPlayerHistoryDb(
       kills,
       userId,
       guestId,
+      name,
     },
   });
 }
@@ -125,5 +120,30 @@ export async function finalizeRoomResultsDb(roomId: number) {
     });
 
     return { updated: players.length };
+  });
+}
+
+export async function getRoomLeaderboard(
+  roomId: number,
+): Promise<FinalLeaderboardEntry[]> {
+  const players = await prisma.playerHistory.findMany({
+    where: { roomId },
+    include: {
+      user: true,
+      guest: true,
+    },
+    orderBy: [{ kills: "desc" }, { maxMass: "desc" }, { durationMs: "desc" }],
+  });
+
+  return players.map((p, index) => {
+    const isUser = !!p.user;
+
+    return {
+      id: isUser ? `user-${p.userId}` : `guest-${p.guestId}`,
+      name: p.name,
+      rank: p.rank ?? index + 1,
+      kills: p.kills,
+      maxMass: p.maxMass,
+    };
   });
 }

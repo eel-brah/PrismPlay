@@ -35,7 +35,7 @@ model Room {
   maxDurationMin  Int?
   maxPlayers      Int?
   visibility      String
-  startedAt       DateTime?
+  startedAt       DateTime  @default(now())
   endedAt         DateTime?
 
   createdById     Int?
@@ -52,6 +52,7 @@ model PlayerHistory {
   roomId        Int
   userId        Int?
   guestId       String?
+  name          String
 
   durationMs    Int
   maxMass       Float

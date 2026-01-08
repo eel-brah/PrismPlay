@@ -117,3 +117,18 @@ export type RoomSummary = {
 };
 
 export type LobbyPlayer = { id: string; name: string };
+
+export type FinalLeaderboardEntry = {
+  id: string;
+  name: string;
+  rank: number;
+  kills: number;
+  maxMass: number;
+};
+
+export type FinalStatus = {
+  id: string;
+  name: string;
+  kills: number;
+  maxMass: number;
+};

@@ -5,6 +5,8 @@ import { Player } from "@/../shared/agario/player";
 import {
   Camera,
   Eject,
+  FinalLeaderboardEntry,
+  FinalStatus,
   InputState,
   LeaderboardEntry,
   LobbyPlayer,
@@ -20,6 +22,7 @@ import { drawGrid } from "@/game/agario/utils";
 import { FinalLeaderboard, Leaderboard } from "./LeaderBoard";
 import { TopStatusBar } from "./RoomStatusBar";
 import { nanoid } from "nanoid"
+import { FinalStatusOverlay } from "./FinalStatusOverlay";
 
 type AlertType = "error" | "warning" | "info" | "";
 const alertStyles: Record<Exclude<AlertType, "">, string> = {
@@ -27,6 +30,8 @@ const alertStyles: Record<Exclude<AlertType, "">, string> = {
   warning: "bg-yellow-100 border-yellow-300 text-yellow-800",
   info: "bg-blue-100 border-blue-300 text-blue-700",
 };
+
+const HOME_PAGE = "home"
 
 const Agario = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -46,7 +51,7 @@ const Agario = () => {
   const isSpectatorRef = useRef(false);
 
   const [playerName, setPlayerName] = useState("");
-  const [menuMode, setMenuMode] = useState(DEFAULT_ROOM);
+  const [menuMode, setMenuMode] = useState(HOME_PAGE);
   const [roomName, setRoomName] = useState("");
   const roomNameRef = useRef<string>("");
   const [hasJoined, setHasJoined] = useState(false);
@@ -55,6 +60,8 @@ const Agario = () => {
   const lastProcessedSeqRef = useRef<number>(0);
 
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [finalLeaderboard, setFinalLeaderboard] = useState<FinalLeaderboardEntry[]>([]);
+  const [finalStatus, setFinalStatus] = useState<FinalStatus | null>(null);
 
   const [alert, setAlert] = useState<{
     type: AlertType;
@@ -156,14 +163,20 @@ const Agario = () => {
     });
 
     socket.on("agario:room-ended", () => {
-      setHasJoined(false);
-      setMenuMode("leaderboard");
-      setRoomName("");
-      roomNameRef.current = "";
-      setCreatedKey("");
-      setJoinKey("");
+      clearing("leaderboard")
       setAlert({ type: "info", message: "Room ended" });
     });
+
+    socket.on("agario:leaderboard", setFinalLeaderboard);
+    // socket.on("leaderboard:final", setLeaderboard);
+
+    socket.once("agario:left-room", () => {
+      clearing(Object.keys(enemiesRef.current).length ? HOME_PAGE : "leaderboard");
+    });
+
+    socket.once("agario:final-status", (status: FinalStatus) => {
+      setFinalStatus(status);
+    })
 
     socket.on("joined", (data: PlayerData, spectator: boolean) => {
       if (spectator) {
@@ -497,12 +510,16 @@ const Agario = () => {
     socket.emit("agario:join-room", { name: playerName, room, key: joinKey.trim() || undefined });
   }
 
-  function backToMainMenu() {
-    socketRef.current?.emit("agario:leave-room");
-
+  function backToMainMenu(leave: boolean = false) {
+    if (leave) socketRef.current?.emit("agario:leave-room");
     clearing();
   }
-  function clearing() {
+
+  function leaveRoom() {
+    socketRef.current?.emit("agario:leave-room");
+  }
+
+  function clearing(mode = HOME_PAGE) {
     isDeadRef.current = false;
 
     setHasJoined(false);
@@ -510,7 +527,7 @@ const Agario = () => {
     setLobbyPlayers([]);
     setLeaderboard([]);
 
-    setMenuMode(DEFAULT_ROOM);
+    setMenuMode(mode);
     setRoomName("");
     roomNameRef.current = "";
     setJoinKey("");
@@ -551,7 +568,7 @@ const Agario = () => {
             <button
               onClick={() => {
                 setAlert({ type: "", message: "" });
-                setMenuMode(DEFAULT_ROOM);
+                setMenuMode(HOME_PAGE);
                 setRoomName(DEFAULT_ROOM);
                 roomNameRef.current = DEFAULT_ROOM;
                 handleJoinRoom("join");
@@ -688,7 +705,7 @@ const Agario = () => {
 
                   <button
                     onClick={() => {
-                      setMenuMode(DEFAULT_ROOM);
+                      setMenuMode(HOME_PAGE);
                       setRoomName("");
                       roomNameRef.current = "";
                       setJoinKey("");
@@ -797,7 +814,7 @@ const Agario = () => {
 
                 <button
                   onClick={() => {
-                    setMenuMode(DEFAULT_ROOM);
+                    setMenuMode(HOME_PAGE);
                     setRoomName("");
                     roomNameRef.current = "";
                     setJoinKey("");
@@ -842,7 +859,7 @@ const Agario = () => {
               </button>
 
               <button
-                onClick={backToMainMenu}
+                onClick={() => { backToMainMenu(false); }}
                 className="px-6 py-3 bg-gray-500 text-white rounded-md text-xl hover:bg-gray-600"
               >
                 Back to Menu
@@ -856,12 +873,12 @@ const Agario = () => {
         menuMode === "leaderboard" && (
           <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50">
             <FinalLeaderboard
-              leaderboard={leaderboard}
+              leaderboard={finalLeaderboard}
               durationMin={roomInfo?.durationMin ?? 0}
             />
 
             <button
-              onClick={backToMainMenu}
+              onClick={() => { backToMainMenu(false); }}
               className="mt-8 px-6 py-3 bg-gray-600 hover:bg-gray-500 rounded-md text-lg text-white transition"
             >
               Back to Menu
@@ -936,7 +953,7 @@ const Agario = () => {
                 )}
 
                 <button
-                  onClick={backToMainMenu}
+                  onClick={() => { backToMainMenu(true); }}
                   className="px-5 py-3 bg-gray-300 text-black rounded hover:bg-gray-400"
                 >
                   Leave
@@ -947,6 +964,15 @@ const Agario = () => {
         )
       }
 
+      {finalStatus && (
+        <FinalStatusOverlay
+          status={finalStatus}
+          onClose={() => {
+            setFinalStatus(null);
+            backToMainMenu(false);
+          }}
+        />
+      )}
       {
         hasJoined && roomInfo?.status === "started" && (
           <Leaderboard leaderboard={leaderboard} />
@@ -956,7 +982,7 @@ const Agario = () => {
       {hasJoined && roomInfo && roomInfo.status === "started" && (
         <TopStatusBar
           roomInfo={roomInfo}
-          onLeave={backToMainMenu}
+          onLeave={() => { leaveRoom(); }}
         />
       )}
       <canvas ref={canvasRef} id="agario" className="w-full h-full block" />

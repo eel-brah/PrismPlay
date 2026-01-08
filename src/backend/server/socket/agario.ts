@@ -3,8 +3,6 @@ import { Eject, Orb, PlayerState, Virus } from "src/shared/agario/types";
 import { agarioEngine } from "./agarioEngine";
 import { agarioHandlers } from "./agarioHanders";
 import { FastifyInstance } from "fastify";
-import { Prisma } from "@prisma/client";
-import prisma from "../../utils/prisma.ts";
 import { createGuestDb } from "src/backend/modules/agario/agario_service.ts";
 import { socketAuthSchema } from "src/backend/modules/agario/agario_schema.ts";
 
@@ -39,7 +37,6 @@ export type WorldHistory = {
 
 export type World = {
   players: Record<string, PlayerState>;
-  history: Map<string, WorldHistory>;
   orbs: Orb[];
   ejects: Eject[];
   viruses: Virus[];
@@ -78,14 +75,20 @@ export function init_agario(io: SocketIOServer, fastify: FastifyInstance) {
     if (guestId) {
       socket.data.userId = undefined;
       socket.data.guestId = guestId;
-      await createGuestDb(guestId);
+      try {
+        await createGuestDb(guestId);
+      } catch (err) {
+        let errorMessage = err instanceof Error ? err.message : "Unknown error";
+        fastify.log.error({ id: socket.id }, errorMessage);
+        socket.emit("agario:error", errorMessage);
+      }
       return next();
     }
 
     return next(new Error("No identity"));
   });
 
-  agarioEngine(agario);
+  agarioEngine(fastify.log, agario);
   agario.on("connection", async (socket) => {
     fastify.log.info({ id: socket.id }, "socket connected");
     await agarioHandlers(socket, fastify);

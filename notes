@@ -1,10 +1,6 @@
-pnpm prisma init --datasource-provider sqlite
-
-pnpm install
-pnpm prisma migrate 
+pnpm prisma db push && pnpm prisma generate
 
 pnpm prisma migrate dev --name init
-pnpm prisma db push
 
 react
 prisma

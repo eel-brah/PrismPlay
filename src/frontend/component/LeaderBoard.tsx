@@ -1,4 +1,5 @@
-import { LeaderboardEntry } from "src/shared/agario/types";
+import { FinalLeaderboardEntry, LeaderboardEntry } from "src/shared/agario/types";
+import { StatsRow } from "./FinalStatusOverlay";
 
 type LeaderboardProps = {
   leaderboard: LeaderboardEntry[];
@@ -23,9 +24,8 @@ export const Leaderboard = ({ leaderboard }: LeaderboardProps) => {
         {leaderboard.map((p) => (
           <li
             key={p.id}
-            className={`flex justify-between ${
-              p.isMe ? "text-yellow-300 font-semibold" : ""
-            }`}
+            className={`flex justify-between ${p.isMe ? "text-yellow-300 font-semibold" : ""
+              }`}
           >
             <span>
               {p.rank}. {p.name}
@@ -38,15 +38,15 @@ export const Leaderboard = ({ leaderboard }: LeaderboardProps) => {
   );
 };
 
-type FinalLeaderboardProps = {
-  leaderboard: LeaderboardEntry[];
+type Props = {
+  leaderboard: FinalLeaderboardEntry[];
   durationMin: number;
 };
 
 export const FinalLeaderboard = ({
   leaderboard,
   durationMin,
-}: FinalLeaderboardProps) => {
+}: Props) => {
   if (leaderboard.length === 0) return null;
 
   const winner = leaderboard[0];
@@ -66,39 +66,41 @@ export const FinalLeaderboard = ({
 
   return (
     <div className="w-[480px] max-w-[92vw] bg-zinc-900 rounded-xl shadow-xl p-6 text-white">
-      {/* Winner Banner */}
+      {/* Header */}
       <div className="text-center mb-6">
         <div className="text-3xl font-bold text-yellow-400">
           🏆 {winner.name} Wins!
         </div>
-        <div className="text-sm text-gray-400 mt-1">
+        <div className="text-sm text-gray-400">
           Match duration: {durationMin} minutes
         </div>
       </div>
 
-      {/* Leaderboard */}
+      {/* Scrollable leaderboard */}
       <div className="border border-white/10 rounded-lg overflow-hidden">
-        {leaderboard.map((p) => (
-          <div
-            key={p.id}
-            className={`
-              flex justify-between items-center
-              px-4 py-3
-              border-b last:border-b-0 border-white/10
-              ${p.isMe ? "bg-white/10 font-semibold" : ""}
-            `}
-          >
-            <div className={`flex items-center gap-3 ${medalStyle(p.rank)}`}>
-              <span className="w-6 text-right">{p.rank}</span>
-              <span>{p.name}</span>
-              {p.rank <= 3 && <span>★</span>}
-            </div>
+        <div className="max-h-[320px] overflow-y-auto">
+          {leaderboard.map((p) => (
+            <div
+              key={p.id}
+              className={`
+                flex justify-between items-center
+                px-4 py-3
+                border-b last:border-b-0 border-white/10
+              `}
+            >
+              <div className={`flex items-center gap-3 ${medalStyle(p.rank)}`}>
+                <span className="w-6 text-right">{p.rank}</span>
+                <span>{p.name}</span>
+                {p.rank <= 3 && <span>★</span>}
+              </div>
 
-            <div className="text-sm text-gray-300">
-              {Math.floor(p.totalMass)}
+              <StatsRow
+                kills={p.kills}
+                maxMass={p.maxMass}
+              />
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );

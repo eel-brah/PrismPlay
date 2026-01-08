@@ -28,18 +28,19 @@ import {
   randomViruses,
 } from "src/shared/agario/utils";
 import type { Namespace } from "socket.io";
-import { Player } from "src/shared/agario/player";
 import { World, worldByRoom } from "./agario";
 import {
   createPlayerHistoryDb,
-  endRoomDb,
   finalizeRoomResultsDb,
+  getRoomLeaderboard,
 } from "src/backend/modules/agario/agario_service";
 import {
   broadcastPlayers,
   removeActivePlayer,
   sendRoomInfo,
 } from "./agarioHanders";
+import { FastifyBaseLogger } from "fastify";
+import { Player } from "src/shared/agario/player";
 
 const TICK_RATE = 50;
 const TICK_DT = 1 / TICK_RATE;
@@ -49,7 +50,12 @@ const SPLIT_EAT_FACTOR = 1.33;
 
 const EJECT_FRICTION = 2;
 
-export function agarioEngine(io: Namespace) {
+interface Death {
+  state: PlayerState;
+  socketId: string;
+}
+
+export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
   function ensureOrbs(orbs: Orb[]) {
     while (orbs.length < MAX_ORBS) {
       orbs.push(randomOrb());
@@ -69,7 +75,7 @@ export function agarioEngine(io: Namespace) {
     return attacker.mass >= defender.mass * required;
   }
 
-  async function simulate(dt: number, world: World) {
+  function simulate(dt: number, world: World) {
     const started = world.meta.status === "started";
 
     const players = world.players;
@@ -182,10 +188,10 @@ export function agarioEngine(io: Namespace) {
     for (const id of ids) {
       handleVirusCollisions(players[id], viruses);
     }
-    await handlePlayerCollisions(players, room, allowSpectators);
+    return handlePlayerCollisions(players, room, allowSpectators);
   }
 
-  async function handlePlayerCollisions(
+  function handlePlayerCollisions(
     players: Record<string, PlayerState>,
     room: string,
     allowSpectators: boolean,
@@ -297,52 +303,57 @@ export function agarioEngine(io: Namespace) {
       }
     }
 
+    const deaths: Death[] = [];
     for (const id of removedPlayers) {
       const world = worldByRoom.get(room);
       if (world) {
         const state = players[id];
-        const socket = io.sockets.get(id);
+        deaths.push({ state, socketId: id });
 
-        try {
-          await createPlayerHistoryDb(
-            world.meta.roomId!,
-            state.endTime! - state.startTime,
-            state.maxMass,
-            state.kills,
-            state.userId,
-            state.guestId,
-          );
-        } catch (err) {
-          //TODO: log error
-          if (err instanceof Error) {
-            socket!.emit("agario:error", err.message);
-          } else {
-            socket!.emit("agario:error", "Unknown error");
-          }
-        }
-
-        world.history.set(id, {
-          playerName: state.player.name,
-          maxMass: state.maxMass,
-          kills: state.kills,
-          durationMs: state.endTime! - state.startTime,
-        });
         if (world.meta.hostId === state.userId) {
           // TODO:
           // world.meta.hostId = Object.keys(world.players)[0] ?? world.meta.hostId;
         }
 
         delete players[id];
+        const socket = io.sockets.get(id);
         if (socket) {
-          socket.leave(room);
           removeActivePlayer(socket);
-          socket.emit("youLost", { reason: "eaten" });
-          if (!allowSpectators) socket.leave(room);
-          broadcastPlayers(socket.nsp, room, world);
-          for (const id of Object.keys(world.players)) {
-            const client = socket.nsp.sockets.get(id);
-            if (client) sendRoomInfo(client, world);
-          }
+        }
+      }
+    }
+    return deaths;
+  }
+
+  async function processDeaths(world: World, deaths: Death[]) {
+    for (const death of deaths) {
+      const state = death.state;
+      const socket = io.sockets.get(death.socketId);
+      try {
+        await createPlayerHistoryDb(
+          world.meta.roomId!,
+          state.endTime! - state.startTime,
+          state.maxMass,
+          state.kills,
+          state.player.name,
+          state.userId,
+          state.guestId,
+        );
+      } catch (err) {
+        let errorMessage = err instanceof Error ? err.message : "Unknown error";
+        if (socket) {
+          logger.error({ id: socket.id }, errorMessage);
+          socket.emit("agario:error", errorMessage);
+        }
+      }
+
+      if (socket) {
+        if (!world.meta.allowSpectators) socket.leave(world.meta.room);
+        socket.emit("youLost", { reason: "eaten" });
+        broadcastPlayers(socket.nsp, world.meta.room, world);
+        for (const id of Object.keys(world.players)) {
+          const client = socket.nsp.sockets.get(id);
+          if (client) sendRoomInfo(client, world);
         }
       }
     }
@@ -443,69 +454,100 @@ export function agarioEngine(io: Namespace) {
   let lastTime = Date.now();
   let accumulator = 0;
 
-  setInterval(async () => {
-    const now = Date.now();
-    let frameDt = (now - lastTime) / 1000;
-    lastTime = now;
+  const FRAME_MS = 1000 / TICK_RATE;
+  const MAX_CATCHUP_STEPS = 5;
+
+  async function gameLoop() {
+    const frameStart = Date.now();
+
+    let frameDt = (frameStart - lastTime) / 1000;
+    lastTime = frameStart;
 
     frameDt = Math.min(frameDt, 0.1);
     accumulator += frameDt;
 
-    while (accumulator >= TICK_DT) {
+    let steps = 0;
+
+    while (accumulator >= TICK_DT && steps < MAX_CATCHUP_STEPS) {
+      const roomsToDelete: string[] = [];
+      const roomFinalizationJobs: Promise<void>[] = [];
+      const tickNow = Date.now();
+
       for (const [room, world] of worldByRoom) {
-        if (
+        if (world.meta.status !== "started") continue;
+
+        const roomEnded =
           world.meta.room !== DEFAULT_ROOM &&
-          world.meta.status === "started" &&
           world.meta.endAt &&
-          now >= world.meta.endAt
-        ) {
-          io.to(room).emit("agario:room-ended", { room });
-          //TODO: store history
-          const ids = Object.keys(world.players);
-          for (const id of ids) {
-            world.players[id].endTime = Date.now();
-            const state = world.players[id];
-            const socket = io.sockets.get(id);
-            try {
-              await createPlayerHistoryDb(
-                world.meta.roomId!,
-                state.endTime! - state.startTime,
-                state.maxMass,
-                state.kills,
-                state.userId,
-                state.guestId,
-              );
-            } catch (err) {
-              //TODO: log error
-              if (err instanceof Error) {
-                socket!.emit("agario:error", err.message);
-              } else {
-                socket!.emit("agario:error", "Unknown error");
+          tickNow >= world.meta.endAt;
+
+        if (roomEnded) {
+          const snapshotPlayers = Object.values(world.players);
+
+          const saveJobs = snapshotPlayers.map((player) =>
+            createPlayerHistoryDb(
+              world.meta.roomId!,
+              tickNow - player.startTime,
+              player.maxMass,
+              player.kills,
+              player.player.name,
+              player.userId,
+              player.guestId,
+            ).catch((err) => {
+              const socket = io.sockets.get(player.player.id);
+              if (socket) {
+                logger.error({ id: socket.id }, err);
+                socket.emit("agario:error", "Failed to save match history");
               }
-            }
-          }
-          await finalizeRoomResultsDb(world.meta.roomId!);
-          // endRoomDb(world.meta.roomId!);
-          worldByRoom.delete(room);
+            }),
+          );
+
+          roomFinalizationJobs.push(
+            (async () => {
+              await Promise.all(saveJobs);
+
+              await finalizeRoomResultsDb(world.meta.roomId!);
+
+              const leaderboard = await getRoomLeaderboard(world.meta.roomId!);
+
+              io.to(room).emit("agario:leaderboard-update", leaderboard);
+              io.to(room).emit("agario:room-ended", { room });
+            })(),
+          );
+
+          roomsToDelete.push(room);
           continue;
         }
 
-        if (world.meta.status !== "started") {
-          continue;
-        }
-
-        await simulate(TICK_DT, world);
+        const deaths = simulate(TICK_DT, world);
         ensureOrbs(world.orbs);
         ensureViruses(world.viruses);
+
+        void processDeaths(world, deaths);
       }
+
+      for (const room of roomsToDelete) {
+        worldByRoom.delete(room);
+      }
+
+      void Promise.all(roomFinalizationJobs).catch((err) =>
+        logger.error({ err }, "Room finalization failed"),
+      );
+
       accumulator -= TICK_DT;
+      steps++;
     }
 
     for (const [room, world] of worldByRoom) {
       if (world.meta.status !== "started") continue;
       broadcastState(room, world);
     }
-  }, 1000 / TICK_RATE);
+
+    const elapsed = Date.now() - frameStart;
+    setTimeout(gameLoop, Math.max(0, FRAME_MS - elapsed));
+  }
+
+  gameLoop();
 
   setInterval(() => {
     for (const [room, world] of worldByRoom) {
