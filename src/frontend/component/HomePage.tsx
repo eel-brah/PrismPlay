@@ -3,10 +3,16 @@ import React from "react";
 type HomePageProps = {
   onPlay: () => void;
   onLogin: () => void;
+  onLogout: () => void;
   loggedIn: boolean;
 };
 
-export default function HomePage({ onPlay, onLogin, loggedIn }: HomePageProps) {
+export default function HomePage({
+  onPlay,
+  onLogin,
+  onLogout,
+  loggedIn,
+}: HomePageProps) {
   return (
     <div className="mx-auto max-w-6xl px-6 py-12 min-h-[calc(100vh-4rem)] flex items-center justify-center">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center justify-center">
@@ -29,15 +35,14 @@ export default function HomePage({ onPlay, onLogin, loggedIn }: HomePageProps) {
               Play
             </button>
             <button
-              onClick={onLogin}
-              disabled={loggedIn}
+              onClick={loggedIn ? onLogout : onLogin}
               className={`px-6 py-3 rounded-xl font-semibold border border-white/10 transition-colors ${
                 loggedIn
-                  ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                  ? "bg-gray-800/70 hover:bg-gray-800 text-gray-100"
                   : "bg-gray-800/70 hover:bg-gray-800 text-gray-100"
               }`}
             >
-              Log In
+              {loggedIn ? "Log Out" : "Log In"}
             </button>
           </div>
           <div className="mt-6 text-sm text-gray-400">
