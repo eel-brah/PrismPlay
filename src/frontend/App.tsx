@@ -6,7 +6,7 @@ import LoginForm from "./component/LoginForm";
 import RegisterForm from "./component/RegisterForm";
 import SocialHub from "./component/SocialHub";
 import PlayerProfile from "./component/PlayerProfile";
-import { Route, Routes, Link, Navigate, useNavigate, Outlet } from "react-router-dom";
+import { Route, Routes, Link, Navigate, useNavigate } from "react-router-dom";
 import Agario from "./component/Agario";
 import OnlinePong from "./component/OnlinePong";
 
@@ -88,7 +88,7 @@ export default function App() {
       <Route
         path="/games"
         element={
-          <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+          <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
             <div className="absolute top-4 right-4 z-50 flex gap-2">
               <button
                 onClick={() => navigate("/login")}
@@ -157,11 +157,11 @@ export default function App() {
       <Route
         path="/landing"
         element={
-          <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+          <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
             <div className="absolute top-4 right-4 z-50 flex gap-2">
               {sessionMode === "user" && (
                 <button
-                  onClick={() => navigate("/landing/social")}
+                  onClick={() => navigate("/social")}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all"
                 >
                   Social
@@ -169,7 +169,7 @@ export default function App() {
               )}
               {sessionMode === "user" && (
                 <button
-                  onClick={() => navigate("/landing/profile")}
+                  onClick={() => navigate("/profile")}
                   className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-all"
                 >
                   Profile
@@ -232,39 +232,37 @@ export default function App() {
                 </div>
               </div>
             </div>
-            <Outlet />
           </div>
         }
-      >
-        <Route
-          path="social"
-          element={
-            sessionMode === "user" ? (
-              <div className="fixed top-0 right-0 h-full w-full sm:w-[480px] md:w-[clamp(520px,40vw,900px)] border-l border-gray-700 shadow-2xl">
-                <SocialHub onClose={() => navigate("/landing")} />
-              </div>
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="profile"
-          element={
-            sessionMode === "user" ? (
-              <div className="fixed top-0 right-0 h-full w-full sm:w-[480px] md:w-[clamp(520px,40vw,900px)] border-l border-gray-700 shadow-2xl">
-                <PlayerProfile onClose={() => navigate("/landing")} />
-              </div>
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-      </Route>
+      />
+      <Route
+        path="/social"
+        element={
+          sessionMode === "user" ? (
+            <div className="relative h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+              <SocialHub onClose={() => navigate("/landing")} />
+            </div>
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          sessionMode === "user" ? (
+            <div className="relative h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+              <PlayerProfile onClose={() => navigate("/landing")} />
+            </div>
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
       <Route
         path="/guest"
         element={
-          <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+          <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
             <div className="absolute top-4 right-4 z-50">
               <button
                 onClick={() => navigate("/login")}
