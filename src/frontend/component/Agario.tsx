@@ -685,19 +685,6 @@ const Agario = () => {
                   >
                     {isSpectator ? "Spectate" : "Join"}
                   </button>
-
-                  <button
-                    onClick={() => {
-                      setMenuMode(DEFAULT_ROOM);
-                      setRoomName("");
-                      roomNameRef.current = "";
-                      setJoinKey("");
-                      setAlert({ type: "", message: "" });
-                    }}
-                    className="px-6 py-3 bg-gray-200 text-black rounded-md text-xl hover:bg-gray-300 transition"
-                  >
-                    Back
-                  </button>
                 </div>
               </div>
             </div>
@@ -794,20 +781,6 @@ const Agario = () => {
                 >
                   Create
                 </button>
-
-                <button
-                  onClick={() => {
-                    setMenuMode(DEFAULT_ROOM);
-                    setRoomName("");
-                    roomNameRef.current = "";
-                    setJoinKey("");
-                    setCreatedKey("");
-                    setAlert({ type: "", message: "" });
-                  }}
-                  className="px-6 py-3 bg-gray-200 text-black rounded-md text-xl hover:bg-gray-300 transition"
-                >
-                  Back
-                </button>
               </div>
             </div>
           )}
@@ -840,13 +813,6 @@ const Agario = () => {
               >
                 Spectate
               </button>
-
-              <button
-                onClick={backToMainMenu}
-                className="px-6 py-3 bg-gray-500 text-white rounded-md text-xl hover:bg-gray-600"
-              >
-                Back to Menu
-              </button>
             </div>
           </div>
         )
@@ -859,13 +825,6 @@ const Agario = () => {
               leaderboard={leaderboard}
               durationMin={roomInfo?.durationMin ?? 0}
             />
-
-            <button
-              onClick={backToMainMenu}
-              className="mt-8 px-6 py-3 bg-gray-600 hover:bg-gray-500 rounded-md text-lg text-white transition"
-            >
-              Back to Menu
-            </button>
           </div>
         )
       }

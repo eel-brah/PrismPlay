@@ -3,11 +3,7 @@ import { MessageCircle, Gamepad2, UserPlus, UserMinus, Search, Clock, Send, Mess
 
 type TabKey = "friends" | "chat" | "groups";
 
-interface SocialHubProps {
-  onClose: () => void;
-}
-
-export default function SocialHub({ onClose }: SocialHubProps) {
+export default function SocialHub() {
   const [activeTab, setActiveTab] = useState<TabKey>("friends");
 
   const [friends, setFriends] = useState<
@@ -156,10 +152,7 @@ export default function SocialHub({ onClose }: SocialHubProps) {
 
   return (
     <div className="w-full h-full text-white">
-      <div className="max-w-6xl mx-auto px-6 pt-8 pb-4 relative">
-        <button onClick={onClose} className="absolute right-6 top-8 px-3 py-1 rounded-md bg-gray-800/80 hover:bg-gray-800">
-          Back
-        </button>
+      <div className="max-w-6xl mx-auto px-6 pt-8 pb-4">
         <div className="text-center">
           <h2 className="text-2xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
             Social Hub

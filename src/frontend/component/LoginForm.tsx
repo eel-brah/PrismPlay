@@ -2,26 +2,16 @@ import React, { useState } from "react";
 
 type Props = {
   onSubmit: (username: string, password: string) => void;
-  onReturn?: () => void;
   onRegister?: () => void;
 };
 
-export default function LoginForm({ onSubmit, onReturn, onRegister }: Props) {
+export default function LoginForm({ onSubmit, onRegister }: Props) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   return (
     <div className="flex flex-col items-center justify-center w-full p-8">
       <div className="relative bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-gray-700 w-full max-w-md">
-        {onReturn && (
-          <button
-            onClick={onReturn}
-            className="absolute top-3 right-3 bg-gray-700/80 hover:bg-gray-700 text-white px-3 py-1 rounded-md text-sm"
-          >
-            Return
-          </button>
-        )}
-
         <h2 className="text-2xl font-semibold text-center mb-1 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
           Log In
         </h2>

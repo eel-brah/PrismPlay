@@ -66,7 +66,7 @@ class Particle {
   }
 }
 
-const Pong: React.FC<{ onReturn?: () => void }> = ({ onReturn }) => {
+const Pong: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [gameMode, setGameMode] = useState<"menu" | "playing">("menu");
   const [isSingle, setIsSingle] = useState<boolean>(false);
@@ -567,14 +567,6 @@ useEffect(() => {
             >
               AIs
             </button>
-            <button
-              onClick={() => {
-                if (onReturn) onReturn();
-              }}
-              className="w-full bg-gray-700 hover:bg-gray-600 text-white py-4 rounded-lg font-semibold transition-all shadow-lg"
-            >
-              Return
-            </button>
           </div>
 
           <div className="border-t border-gray-700 pt-6 space-y-4">
@@ -619,23 +611,13 @@ useEffect(() => {
       {gameMode === "playing" && (
         <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">
           {/* Top-right controls */}
-          <div className="absolute top-4 right-4 flex gap-2 z-50">
+          <div className="absolute top-20 right-4 flex gap-2 z-50">
             <button
               onClick={() => setSoundOn(!soundOn)}
               className="bg-gray-800/80 hover:bg-gray-800 text-white p-3 rounded-lg transition-all"
             >
               {soundOn ? <Volume2 size={20} /> : <VolumeX size={20} />}
             </button>
-            <button
-              onClick={() => {
-                // In-game Return goes back to the internal menu
-                setGameMode("menu");
-              }}
-              className="bg-gray-800/80 hover:bg-gray-800 text-white p-3 rounded-lg transition-all"
-            >
-              Return
-            </button>
-            {/* Menu button removed: Return already navigates to menu */}
           </div>
 
           <canvas

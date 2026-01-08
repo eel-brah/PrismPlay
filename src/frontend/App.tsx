@@ -51,47 +51,64 @@ export default function App() {
       ? "profile"
       : "games";
 
+  const handleReturn = () => {
+    if (globalThis.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate("/games");
+  };
+
   return (
     <>
       {showTopBar && (
-        <div className="fixed top-0 left-0 right-0 z-50">
+        <div className="fixed top-0 left-0 right-0 z-[100]">
           <div className="bg-gray-950/50 backdrop-blur-md border-b border-white/10">
             <div className="mx-auto max-w-6xl px-4">
-              <div className="h-16 flex items-center justify-center gap-2">
+              <div className="h-16 flex items-center justify-between">
+                <div className="w-24" />
+                <div className="flex-1 flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => navigate("/games")}
+                    className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+                      activeSection === "games"
+                        ? "text-green-400 bg-white/5"
+                        : "text-gray-200 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    Games
+                  </button>
+                  {sessionMode === "user" && (
+                    <button
+                      onClick={() => navigate("/social")}
+                      className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+                        activeSection === "social"
+                          ? "text-green-400 bg-white/5"
+                          : "text-gray-200 hover:text-white hover:bg-white/5"
+                      }`}
+                    >
+                      Social
+                    </button>
+                  )}
+                  {sessionMode === "user" && (
+                    <button
+                      onClick={() => navigate("/profile")}
+                      className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+                        activeSection === "profile"
+                          ? "text-green-400 bg-white/5"
+                          : "text-gray-200 hover:text-white hover:bg-white/5"
+                      }`}
+                    >
+                      Profile
+                    </button>
+                  )}
+                </div>
                 <button
-                  onClick={() => navigate("/games")}
-                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
-                    activeSection === "games"
-                      ? "text-green-400 bg-white/5"
-                      : "text-gray-200 hover:text-white hover:bg-white/5"
-                  }`}
+                  onClick={handleReturn}
+                  className="px-4 py-2 rounded-md text-sm font-semibold text-gray-200 hover:text-white hover:bg-white/5 transition-colors"
                 >
-                  Games
+                  Return
                 </button>
-                {sessionMode === "user" && (
-                  <button
-                    onClick={() => navigate("/social")}
-                    className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
-                      activeSection === "social"
-                        ? "text-green-400 bg-white/5"
-                        : "text-gray-200 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    Social
-                  </button>
-                )}
-                {sessionMode === "user" && (
-                  <button
-                    onClick={() => navigate("/profile")}
-                    className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
-                      activeSection === "profile"
-                        ? "text-green-400 bg-white/5"
-                        : "text-gray-200 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    Profile
-                  </button>
-                )}
               </div>
             </div>
           </div>
@@ -136,7 +153,6 @@ export default function App() {
                   setSessionMode("user");
                   navigate("/games");
                 }}
-                onReturn={() => navigate("/login")}
                 onRegister={() => navigate("/register")}
               />
             </div>
@@ -151,7 +167,6 @@ export default function App() {
                   setSessionMode("user");
                   navigate("/games");
                 }}
-                onReturn={() => navigate("/login/form")}
               />
             </div>
           }
@@ -162,18 +177,6 @@ export default function App() {
             <div
               className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center ${topPaddingClass}`}
             >
-              <div
-                className={`absolute ${
-                  showTopBar ? "top-20" : "top-4"
-                } right-4 z-50 flex gap-2`}
-              >
-                <button
-                  onClick={() => navigate("/login")}
-                  className="bg-gray-800/80 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-all"
-                >
-                  Return
-                </button>
-              </div>
               <div className="flex flex-col items-center justify-center p-8">
                 <h1 className="text-4xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                   Choose Your Game
@@ -247,18 +250,6 @@ export default function App() {
             <div
               className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center ${topPaddingClass}`}
             >
-              <div
-                className={`absolute ${
-                  showTopBar ? "top-20" : "top-4"
-                } right-4 z-50 flex gap-2`}
-              >
-                <button
-                  onClick={() => navigate("/login")}
-                  className="bg-gray-800/80 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-all"
-                >
-                  Return
-                </button>
-              </div>
               <div className="flex flex-col items-center justify-center p-8">
                 <h1 className="text-4xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                   Select Game Mode
@@ -330,7 +321,7 @@ export default function App() {
               <div
                 className={`relative h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass}`}
               >
-                <SocialHub onClose={() => navigate("/landing")} />
+                <SocialHub />
               </div>
             ) : (
               <Navigate to="/login" replace />
@@ -344,7 +335,7 @@ export default function App() {
               <div
                 className={`relative h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass}`}
               >
-                <PlayerProfile onClose={() => navigate("/landing")} />
+                <PlayerProfile />
               </div>
             ) : (
               <Navigate to="/login" replace />
@@ -357,16 +348,6 @@ export default function App() {
             <div
               className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center ${topPaddingClass}`}
             >
-              <div
-                className={`absolute ${showTopBar ? "top-20" : "top-4"} right-4 z-50`}
-              >
-                <button
-                  onClick={() => navigate("/login")}
-                  className="bg-gray-800/80 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-all"
-                >
-                  Return
-                </button>
-              </div>
               <div className="flex flex-col items-center justify-center p-8">
                 <h1 className="text-4xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                   Guest Mode
@@ -403,11 +384,7 @@ export default function App() {
             <div
               className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-8 ${topPaddingClass}`}
             >
-              <Pong
-                onReturn={() =>
-                  navigate(sessionMode === "guest" ? "/guest" : "/landing")
-                }
-              />
+              <Pong />
             </div>
           }
         />
@@ -419,9 +396,6 @@ export default function App() {
             >
               <OnlinePong
                 profile={onlineProfile}
-                onReturn={() =>
-                  navigate(sessionMode === "guest" ? "/guest" : "/landing")
-                }
               />
             </div>
           }

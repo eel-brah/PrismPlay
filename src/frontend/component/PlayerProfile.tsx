@@ -3,11 +3,7 @@ import { Trophy, User2, Gamepad2, BarChart3 } from "lucide-react";
 
 type Tab = "profile" | "achievements" | "history";
 
-interface PlayerProfileProps {
-  onClose: () => void;
-}
-
-export default function PlayerProfile({ onClose }: PlayerProfileProps) {
+export default function PlayerProfile() {
   const [tab, setTab] = useState<Tab>("profile");
   const [user, setUser] = useState(() => {
     const raw = localStorage.getItem("profile_data");
@@ -70,10 +66,7 @@ export default function PlayerProfile({ onClose }: PlayerProfileProps) {
   };
   return (
     <div className="w-full h-full text-white">
-      <div className="max-w-6xl mx-auto px-6 pt-8 pb-4 relative">
-        <button onClick={onClose} className="absolute right-6 top-8 px-3 py-1 rounded-md bg-gray-800/80 hover:bg-gray-800">
-          Back
-        </button>
+      <div className="max-w-6xl mx-auto px-6 pt-8 pb-4">
         <div className="text-center">
           <h2 className="text-2xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
             Player Profile
