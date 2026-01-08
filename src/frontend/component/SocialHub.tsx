@@ -1,23 +1,43 @@
 import React, { useMemo, useState } from "react";
+import { MessageCircle, Gamepad2, UserPlus, UserMinus, Search, Clock, Send, MessageSquarePlus } from "lucide-react";
 
 type TabKey = "friends" | "chat" | "groups";
 
-interface SocialHubProps {
-  onClose: () => void;
-}
-
-export default function SocialHub({ onClose }: SocialHubProps) {
+export default function SocialHub() {
   const [activeTab, setActiveTab] = useState<TabKey>("friends");
 
-  // Friends state (frontend-only mock)
   const [friends, setFriends] = useState<
-    { id: string; name: string; status: "online" | "offline" | "busy" }[]
+    {
+      id: string;
+      name: string;
+      status: "online" | "offline" | "busy" | "away" | "in_game";
+      lastSeen: string;
+      gamesPlayed: number;
+      winRate: number;
+      mutualFriends: number;
+      avatarUrl?: string;
+    }[]
   >([
-    { id: "1", name: "Aria", status: "online" },
-    { id: "2", name: "Kai", status: "busy" },
-    { id: "3", name: "Nova", status: "offline" },
+    { id: "1", name: "Alice", status: "online", lastSeen: "Online now", gamesPlayed: 45, winRate: 78, mutualFriends: 3 },
+    { id: "2", name: "Bob", status: "in_game", lastSeen: "Playing now", gamesPlayed: 67, winRate: 65, mutualFriends: 5 },
+    { id: "3", name: "Charlie", status: "away", lastSeen: "2 hours ago", gamesPlayed: 23, winRate: 52, mutualFriends: 1 },
+    { id: "4", name: "Diana", status: "offline", lastSeen: "1 day ago", gamesPlayed: 89, winRate: 82, mutualFriends: 7 },
   ]);
-  const [friendName, setFriendName] = useState("");
+  const [requests, setRequests] = useState<
+    { id: string; name: string; avatarUrl?: string; mutualFriends?: number }[]
+  >([
+    { id: "r1", name: "Ethan", mutualFriends: 2 },
+    { id: "r2", name: "Mia", mutualFriends: 1 },
+  ]);
+  const [suggestions, setSuggestions] = useState<
+    { id: string; name: string; avatarUrl?: string; mutualFriends?: number }[]
+  >([
+    { id: "s1", name: "Noah", mutualFriends: 4 },
+    { id: "s2", name: "Ava", mutualFriends: 3 },
+    { id: "s3", name: "Liam", mutualFriends: 2 },
+  ]);
+  const [friendSearch, setFriendSearch] = useState("");
+  const [friendsSubTab, setFriendsSubTab] = useState<"friends" | "requests" | "suggestions">("friends");
 
   // Chat state (frontend-only mock)
   type Message = { id: string; author: string; text: string; ts: number };
@@ -38,6 +58,11 @@ export default function SocialHub({ onClose }: SocialHubProps) {
   });
   const [messagesByDM, setMessagesByDM] = useState<Record<string, Message[]>>({});
   const [chatInput, setChatInput] = useState("");
+  const [unreadByDM, setUnreadByDM] = useState<Record<string, number>>({
+    "2": 2,
+    "3": 1,
+  });
+  const [dmSearch, setDmSearch] = useState("");
 
   // Groups state (frontend-only mock)
   const [groups, setGroups] = useState<
@@ -55,15 +80,23 @@ export default function SocialHub({ onClose }: SocialHubProps) {
     g3: [{ id: "gmsg3", author: "System", text: "Welcome to Weekend Warriors", ts: Date.now() - 180_000 }],
   });
   const [groupChatInput, setGroupChatInput] = useState("");
+  const [groupSearch, setGroupSearch] = useState("");
 
-  const addFriend = () => {
-    const name = friendName.trim();
-    if (!name) return;
+  const addFriend = (name: string) => {
+    const n = name.trim();
+    if (!n) return;
     setFriends((prev) => [
       ...prev,
-      { id: Math.random().toString(36).slice(2), name, status: "offline" },
+      {
+        id: Math.random().toString(36).slice(2),
+        name: n,
+        status: "offline",
+        lastSeen: "Just now",
+        gamesPlayed: 0,
+        winRate: 0,
+        mutualFriends: 0,
+      },
     ]);
-    setFriendName("");
   };
 
   const removeFriend = (id: string) => {
@@ -118,184 +151,373 @@ export default function SocialHub({ onClose }: SocialHubProps) {
   };
 
   return (
-    <div className="h-full w-full flex flex-col bg-gray-900/95 text-white">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-700">
-        <div>
-          <h2 className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+    <div className="w-full h-full text-white">
+      <div className="max-w-6xl mx-auto px-6 pt-8 pb-4">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
             Social Hub
           </h2>
-          <p className="text-xs text-gray-400">Friends, chat, and groups (frontend-only)</p>
+          <p className="text-sm text-gray-400 mt-1">Friends, chat, and groups</p>
         </div>
-        <button
-          onClick={onClose}
-          className="px-3 py-1 rounded-md bg-gray-800/80 hover:bg-gray-800 transition-colors"
-        >
-          Close
-        </button>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 p-3 border-b border-gray-700">
-        {(["friends", "chat", "groups"] as TabKey[]).map((key) => (
-          <button
-            key={key}
-            onClick={() => setActiveTab(key)}
-            className={`px-3 py-1 rounded-md transition-colors ${
-              activeTab === key
-                ? "bg-blue-600 text-white"
-                : "bg-gray-800/80 text-gray-300 hover:bg-gray-800"
-            }`}
-          >
-            {key[0].toUpperCase() + key.slice(1)}
-          </button>
-        ))}
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {activeTab === "friends" && (
-          <div className="space-y-4">
-            <div className="flex gap-2">
-              <input
-                value={friendName}
-                onChange={(e) => setFriendName(e.target.value)}
-                placeholder="Add friend by name"
-                className="flex-1 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none"
-              />
+        <div className="mt-6 flex items-center justify-center">
+          <div className="inline-flex rounded-full bg-gray-800/60 p-1">
+            {(["friends", "chat", "groups"] as TabKey[]).map((key) => (
               <button
-                onClick={addFriend}
-                className="px-4 py-2 rounded-md bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`px-4 py-1 rounded-full text-sm transition-colors ${
+                  activeTab === key ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-800"
+                }`}
               >
-                Add
+                {key[0].toUpperCase() + key.slice(1)}
               </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {activeTab === "friends" && (
+          <div className="max-w-6xl mx-auto px-6 pb-10 space-y-6">
+            <div className="max-w-3xl mx-auto">
+              <div className="relative">
+                <input
+                  value={friendSearch}
+                  onChange={(e) => setFriendSearch(e.target.value)}
+                  placeholder="Search friends..."
+                  className="w-full px-4 py-2 rounded-xl bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700"
+                />
+                <Search className="w-4 h-4 text-gray-400 absolute right-3 top-2.5" />
+              </div>
             </div>
-            <ul className="divide-y divide-gray-700">
-              {friends.map((f) => (
-                <li key={f.id} className="flex items-center justify-between py-3">
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`inline-block w-2 h-2 rounded-full ${
-                        f.status === "online"
-                          ? "bg-green-400"
-                          : f.status === "busy"
-                          ? "bg-yellow-400"
-                          : "bg-gray-500"
-                      }`}
-                    />
-                    <span className="font-medium">{f.name}</span>
-                    <span className="text-xs text-gray-400">{f.status}</span>
-                  </div>
+            <div className="flex items-center justify-center">
+              <div className="inline-flex rounded-full bg-gray-800/60 p-1">
+                {(["friends", "requests", "suggestions"] as const).map((t) => (
                   <button
-                    onClick={() => removeFriend(f.id)}
-                    className="px-3 py-1 rounded-md bg-gray-800/80 hover:bg-gray-800"
+                    key={t}
+                    onClick={() => setFriendsSubTab(t)}
+                    className={`px-4 py-1 rounded-full text-sm transition-colors ${
+                      friendsSubTab === t ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-800"
+                    }`}
                   >
-                    Remove
+                    {t === "friends" && `Friends (${friends.length})`}
+                    {t === "requests" && `Requests (${requests.length})`}
+                    {t === "suggestions" && `Suggestions (${suggestions.length})`}
                   </button>
-                </li>
-              ))}
-            </ul>
+                ))}
+              </div>
+            </div>
+            {friendsSubTab === "friends" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl-grid-cols-3 xl:grid-cols-3 gap-6">
+                {friends
+                  .filter((f) => f.name.toLowerCase().includes(friendSearch.toLowerCase()))
+                  .map((f) => {
+                    const pill =
+                      f.status === "online"
+                        ? { text: "Online", cls: "bg-green-600 text-white" }
+                        : f.status === "in_game"
+                        ? { text: "In Game", cls: "bg-blue-600 text-white" }
+                        : f.status === "away"
+                        ? { text: "Away", cls: "bg-yellow-600 text-black" }
+                        : { text: "Offline", cls: "bg-gray-600 text-white" };
+                    return (
+                      <div key={f.id} className="rounded-2xl border border-white/10 bg-gray-900/60 shadow-xl p-5">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            {f.avatarUrl ? (
+                              <img src={f.avatarUrl} alt={f.name} className="w-10 h-10 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
+                            )}
+                            <div>
+                              <div className="font-semibold text-gray-100">{f.name}</div>
+                              <div className="text-xs text-gray-400 flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                <span>{f.lastSeen}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <span className={`text-xs px-2 py-1 rounded-full ${pill.cls}`}>{pill.text}</span>
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                          <div className="text-gray-300">Games played</div>
+                          <div className="text-right text-gray-100">{f.gamesPlayed}</div>
+                          <div className="text-gray-300">Win rate</div>
+                          <div className="text-right text-gray-100">{f.winRate}%</div>
+                          <div className="text-gray-300">Mutual friends</div>
+                          <div className="text-right text-gray-100">{f.mutualFriends}</div>
+                        </div>
+                        <div className="mt-5 flex items-center gap-3">
+                          <button
+                            onClick={() => {
+                              setSelectedFriendId(f.id);
+                              setChatMode("dm");
+                              setActiveTab("chat");
+                            }}
+                            className="px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white"
+                          >
+                            Chat
+                          </button>
+                          <button
+                            onClick={() => {}}
+                            className="px-4 py-2 rounded-md bg-gray-800/80 hover:bg-gray-800 text-gray-200 flex items-center gap-2"
+                          >
+                            <Gamepad2 className="w-4 h-4" />
+                            <span>Play</span>
+                          </button>
+                          <button
+                            onClick={() => removeFriend(f.id)}
+                            className="ml-auto p-2 rounded-md bg-gray-800/60 hover:bg-gray-800 text-gray-300"
+                          >
+                            <UserMinus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+            {friendsSubTab === "requests" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl-grid-cols-3 xl:grid-cols-3 gap-6">
+                {requests
+                  .filter((r) => r.name.toLowerCase().includes(friendSearch.toLowerCase()))
+                  .map((r) => (
+                    <div key={r.id} className="rounded-2xl border border-white/10 bg-gray-900/60 shadow-xl p-5">
+                      <div className="flex items-center gap-3">
+                        {r.avatarUrl ? (
+                          <img src={r.avatarUrl} alt={r.name} className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
+                        )}
+                        <div>
+                          <div className="font-semibold text-gray-100">{r.name}</div>
+                          <div className="text-xs text-gray-400">{r.mutualFriends || 0} mutual friends</div>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex gap-3">
+                        <button
+                          onClick={() => {
+                            addFriend(r.name);
+                            setRequests((prev) => prev.filter((x) => x.id !== r.id));
+                          }}
+                          className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={() => setRequests((prev) => prev.filter((x) => x.id !== r.id))}
+                          className="px-4 py-2 rounded-md bg-gray-800/80 hover:bg-gray-800 text-gray-200"
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+            {friendsSubTab === "suggestions" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl-grid-cols-3 xl:grid-cols-3 gap-6">
+                {suggestions
+                  .filter((s) => s.name.toLowerCase().includes(friendSearch.toLowerCase()))
+                  .map((s) => (
+                    <div key={s.id} className="rounded-2xl border border-white/10 bg-gray-900/60 shadow-xl p-5">
+                      <div className="flex items-center gap-3">
+                        {s.avatarUrl ? (
+                          <img src={s.avatarUrl} alt={s.name} className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
+                        )}
+                        <div>
+                          <div className="font-semibold text-gray-100">{s.name}</div>
+                          <div className="text-xs text-gray-400">{s.mutualFriends || 0} mutual friends</div>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex gap-3">
+                        <button
+                          onClick={() => {
+                            addFriend(s.name);
+                            setSuggestions((prev) => prev.filter((x) => x.id !== s.id));
+                          }}
+                          className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                        >
+                          <UserPlus className="w-4 h-4" />
+                          <span>Add</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === "chat" && (
-          <div className="grid grid-cols-3 gap-4">
-            {/* Left: Channels + Friends */}
-            <div className="col-span-1 border border-gray-700 rounded-lg overflow-hidden">
-              <div className="bg-gray-800/60 px-3 py-2 text-sm font-semibold">Channels</div>
-              <ul className="divide-y divide-gray-700">
-                {channels.map((c) => (
-                  <li key={c}>
+          <div className="max-w-6xl mx-auto px-6 pb-10">
+            <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6">
+              <div className="space-y-6">
+                <div className="rounded-2xl border border-white/10 bg-gray-900/60 p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-gray-200">
+                      <MessageCircle className="w-4 h-4" />
+                      <span className="text-sm font-semibold">Private Chats</span>
+                    </div>
                     <button
                       onClick={() => {
-                        setSelectedChannel(c);
-                        setChatMode("channel");
-                        setSelectedFriendId(null);
+                        setActiveTab("friends");
+                        setFriendsSubTab("suggestions");
                       }}
-                      className={`w-full text-left px-3 py-2 transition-colors ${
-                        chatMode === "channel" && selectedChannel === c ? "bg-blue-600/40" : "hover:bg-gray-800/60"
-                      }`}
+                      className="p-2 rounded-md bg-gray-800/60 hover:bg-gray-800"
                     >
-                      #{c}
+                      <UserPlus className="w-4 h-4" />
                     </button>
-                  </li>
-                ))}
-              </ul>
-              <div className="bg-gray-800/60 px-3 py-2 text-sm font-semibold border-t border-gray-700">Friends</div>
-              <ul className="divide-y divide-gray-700">
-                {friends.map((f) => (
-                  <li key={f.id}>
-                    <button
-                      onClick={() => {
-                        setSelectedFriendId(f.id);
-                        setChatMode("dm");
-                      }}
-                      className={`w-full text-left px-3 py-2 transition-colors flex items-center gap-2 ${
-                        chatMode === "dm" && selectedFriendId === f.id ? "bg-blue-600/40" : "hover:bg-gray-800/60"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block w-2 h-2 rounded-full ${
-                          f.status === "online"
-                            ? "bg-green-400"
-                            : f.status === "busy"
-                            ? "bg-yellow-400"
-                            : "bg-gray-500"
-                        }`}
-                      />
-                      <span>{f.name}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Right: Messages */}
-            <div className="col-span-2 border border-gray-700 rounded-lg flex flex-col">
-              <div className="bg-gray-800/60 px-3 py-2 text-sm font-semibold border-b border-gray-700">
-                {chatMode === "channel" ? `#${selectedChannel}` : `@${friends.find((x) => x.id === selectedFriendId)?.name || "Select a friend"}`}
-              </div>
-              <div className="flex-1 p-3 space-y-2 overflow-y-auto">
-                {(chatMode === "channel"
-                  ? (messagesByChannel[selectedChannel] || [])
-                  : selectedFriendId
-                  ? (messagesByDM[selectedFriendId] || [])
-                  : ([] as Message[])
-                ).map((m) => (
-                  <div key={m.id} className="">
-                    <span className="text-blue-300 font-semibold mr-2">{m.author}</span>
-                    <span className="text-gray-200">{m.text}</span>
-                    <span className="text-xs text-gray-500 ml-2">
-                      {new Date(m.ts).toLocaleTimeString()}
-                    </span>
+                </div>
+                <div className="mt-3">
+                  <div className="relative">
+                    <input
+                      value={dmSearch}
+                      onChange={(e) => setDmSearch(e.target.value)}
+                      placeholder="Search chats..."
+                      className="w-full px-4 py-2 rounded-xl bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700"
+                    />
+                    <Search className="w-4 h-4 text-gray-400 absolute right-3 top-2.5" />
                   </div>
-                ))}
+                </div>
+                <ul className="mt-3 space-y-2">
+                    {friends.filter((f)=>f.name.toLowerCase().includes(dmSearch.toLowerCase())).map((f) => {
+                      const last = (messagesByDM[f.id] || []).slice(-1)[0];
+                      const unread = unreadByDM[f.id] || 0;
+                      return (
+                        <li key={f.id}>
+                          <button
+                            onClick={() => {
+                              setSelectedFriendId(f.id);
+                              setChatMode("dm");
+                              setUnreadByDM((prev) => ({ ...prev, [f.id]: 0 }));
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center gap-3 ${
+                              chatMode === "dm" && selectedFriendId === f.id ? "bg-blue-600/20" : "hover:bg-gray-800/60"
+                            }`}
+                          >
+                            {f.avatarUrl ? (
+                              <img src={f.avatarUrl} alt={f.name} className="w-8 h-8 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-gray-100">{f.name}</span>
+                                {unread > 0 && (
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-red-600 text-white">{unread}</span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-400 truncate">
+                                {last ? last.text : "No messages yet"}
+                              </div>
+                            </div>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-gray-900/60 p-4">
+                  <div className="text-sm font-semibold text-gray-200">Online Now</div>
+                  <div className="mt-2 space-y-2">
+                    {friends
+                      .filter((f) => f.status === "online" || f.status === "in_game" || f.status === "away")
+                      .map((f) => {
+                        const pill =
+                          f.status === "online"
+                            ? { text: "Online", cls: "bg-green-600 text-white" }
+                            : f.status === "in_game"
+                            ? { text: "In Game", cls: "bg-blue-600 text-white" }
+                            : { text: "Away", cls: "bg-yellow-600 text-black" };
+                        return (
+                          <div key={f.id} className="flex items-center gap-3">
+                            {f.avatarUrl ? (
+                              <img src={f.avatarUrl} alt={f.name} className="w-8 h-8 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
+                            )}
+                            <div className="flex-1">
+                              <div className="text-sm text-gray-100">{f.name}</div>
+                            </div>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${pill.cls}`}>{pill.text}</span>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
               </div>
-              <div className="p-3 border-t border-gray-700 flex gap-2">
-                <input
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder={chatMode === "channel" ? `Message #${selectedChannel}` : `Message @${friends.find((x) => x.id === selectedFriendId)?.name || "friend"}`}
-                  className="flex-1 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none"
-                  disabled={chatMode === "dm" && !selectedFriendId}
-                />
-                <button
-                  onClick={sendMessage}
-                  className="px-4 py-2 rounded-md bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 disabled:opacity-50"
-                  disabled={chatMode === "dm" && !selectedFriendId}
-                >
-                  Send
-                </button>
+              <div className="rounded-2xl border border-white/10 bg-gray-900/60 p-4 flex flex-col">
+                <div className="text-sm font-semibold text-gray-200">
+                  {chatMode === "channel"
+                    ? `${selectedChannel[0].toUpperCase()}${selectedChannel.slice(1)} Chat`
+                    : `${friends.find((x) => x.id === selectedFriendId)?.name || "Select a friend"}`}
+                </div>
+                <div className="text-xs text-gray-400">
+                  {(chatMode === "channel" ? (messagesByChannel[selectedChannel] || []) : selectedFriendId ? (messagesByDM[selectedFriendId] || []) : []).length} messages •{" "}
+                  {friends.filter((f) => f.status === "online" || f.status === "in_game").length} online
+                </div>
+                <div className="mt-3">
+                  <div className="text-center text-xs text-gray-400">
+                    Welcome to PingPong Pro chat
+                  </div>
+                </div>
+                <div className="flex-1 mt-3 space-y-3 overflow-y-auto">
+                  {(chatMode === "channel"
+                    ? (messagesByChannel[selectedChannel] || [])
+                    : selectedFriendId
+                    ? (messagesByDM[selectedFriendId] || [])
+                    : ([] as Message[])
+                  ).map((m) => {
+                    const mins = Math.max(0, Math.floor((Date.now() - m.ts) / 60000));
+                    return (
+                      <div key={m.id} className="max-w-xl">
+                        <div className="text-xs text-gray-400 mb-1">
+                          <span className="text-gray-200 font-semibold">{m.author}</span> {mins}m
+                        </div>
+                        <div className="px-3 py-2 rounded-lg bg-gray-700/70 text-gray-100">
+                          {m.text}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-4 flex items-center gap-2">
+                  <input
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Type your message..."
+                    className="flex-1 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none"
+                    disabled={chatMode === "dm" && !selectedFriendId}
+                  />
+                  <button
+                    onClick={sendMessage}
+                    className="p-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+                    disabled={chatMode === "dm" && !selectedFriendId}
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         )}
 
         {activeTab === "groups" && (
-          <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr] gap-4">
-            {/* Left: Groups list & create */}
-            <div className="border border-gray-700 rounded-lg flex flex-col">
-              <div className="p-3 border-b border-gray-700">
+          <div className="max-w-6xl mx-auto px-6 pb-10 grid grid-cols-1 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr] gap-4">
+            <div className="rounded-2xl border border-white/10 bg-gray-900/60 flex flex-col">
+              <div className="p-3 border-b border-white/10 space-y-2">
+                <div className="relative">
+                  <input
+                    value={groupSearch}
+                    onChange={(e) => setGroupSearch(e.target.value)}
+                    placeholder="Search groups..."
+                    className="w-full px-4 py-2 rounded-xl bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700"
+                  />
+                  <Search className="w-4 h-4 text-gray-400 absolute right-3 top-2.5" />
+                </div>
                 <div className="flex gap-2">
                   <input
                     value={newGroupName}
@@ -311,36 +533,44 @@ export default function SocialHub({ onClose }: SocialHubProps) {
                   </button>
                 </div>
               </div>
-              <ul className="divide-y divide-gray-700 flex-1 overflow-y-auto">
-                {groups.map((g) => (
-                  <li key={g.id} className="">
-                    <div className={`px-3 py-2 flex items-center justify-between ${selectedGroupId === g.id ? "bg-blue-600/40" : "hover:bg-gray-800/60"}`}>
+              <div className="p-3 space-y-3 flex-1 overflow-y-auto">
+                {groups
+                  .filter((g) => g.name.toLowerCase().includes(groupSearch.toLowerCase()))
+                  .map((g) => (
+                    <div
+                      key={g.id}
+                      className={`rounded-lg border border-white/10 px-3 py-3 flex items-center justify-between ${selectedGroupId === g.id ? "bg-blue-600/10" : "bg-gray-800/40"}`}
+                    >
                       <button
                         onClick={() => setSelectedGroupId(g.id)}
                         className="text-left flex-1"
                       >
-                        <div className="font-medium">{g.name}</div>
+                        <div className="font-medium text-gray-100">{g.name}</div>
                         <div className="text-xs text-gray-400">{g.members} members</div>
                       </button>
-                      <button
-                        onClick={() => toggleJoinGroup(g.id)}
-                        className={`px-3 py-1 rounded-md ml-2 ${
-                          g.joined
-                            ? "bg-gray-800/80 hover:bg-gray-800"
-                            : "bg-blue-600 hover:bg-blue-700"
-                        }`}
-                      >
-                        {g.joined ? "Leave" : "Join"}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setSelectedGroupId(g.id)}
+                          className="px-3 py-1 rounded-md bg-gray-800/80 hover:bg-gray-800 text-gray-200"
+                        >
+                          Open
+                        </button>
+                        <button
+                          onClick={() => toggleJoinGroup(g.id)}
+                          className={`px-3 py-1 rounded-md ${
+                            g.joined ? "bg-gray-800/80 hover:bg-gray-800 text-gray-200" : "bg-blue-600 hover:bg-blue-700 text-white"
+                          }`}
+                        >
+                          {g.joined ? "Leave" : "Join"}
+                        </button>
+                      </div>
                     </div>
-                  </li>
-                ))}
-              </ul>
+                  ))}
+              </div>
             </div>
 
-            {/* Right: Group chat */}
-            <div className="border border-gray-700 rounded-lg flex flex-col">
-              <div className="bg-gray-800/60 px-3 py-2 text-sm font-semibold border-b border-gray-700">
+            <div className="rounded-2xl border border-white/10 bg-gray-900/60 flex flex-col">
+              <div className="px-3 py-2 text-sm font-semibold border-b border-white/10">
                 {selectedGroupId ? groups.find((g) => g.id === selectedGroupId)?.name : "Select a group"}
               </div>
               <div className="flex-1 p-3 space-y-2 overflow-y-auto">
@@ -352,7 +582,7 @@ export default function SocialHub({ onClose }: SocialHubProps) {
                   </div>
                 ))}
               </div>
-              <div className="p-3 border-t border-gray-700 flex gap-2">
+              <div className="p-3 border-t border-white/10 flex gap-2">
                 <input
                   value={groupChatInput}
                   onChange={(e) => setGroupChatInput(e.target.value)}
@@ -379,12 +609,8 @@ export default function SocialHub({ onClose }: SocialHubProps) {
                   Send
                 </button>
               </div>
-              {!selectedGroupId && (
-                <div className="p-3 text-sm text-gray-400">Select a group from the list to view chat.</div>
-              )}
-              {selectedGroupId && !groups.find((g) => g.id === selectedGroupId)?.joined && (
-                <div className="p-3 text-sm text-yellow-400">Join the group to send messages.</div>
-              )}
+              {!selectedGroupId && <div className="p-3 text-sm text-gray-400">Select a group from the list to view chat.</div>}
+              {selectedGroupId && !groups.find((g) => g.id === selectedGroupId)?.joined && <div className="p-3 text-sm text-yellow-400">Join the group to send messages.</div>}
             </div>
           </div>
         )}

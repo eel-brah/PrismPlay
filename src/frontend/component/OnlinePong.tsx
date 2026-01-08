@@ -15,7 +15,6 @@ export interface OnlinePongProps {
     nickname: string;
     avatarUrl?: string;
   };
-  onReturn?: () => void;
 }
 
 type PhaseUI = "searching" | "inMatch" | "gameover" | "opponentLeft";
@@ -23,7 +22,7 @@ type PhaseUI = "searching" | "inMatch" | "gameover" | "opponentLeft";
 const GAME_WIDTH = 810;
 const GAME_HEIGHT = 600;
 
-const OnlinePong: React.FC<OnlinePongProps> = ({ profile, onReturn }) => {
+const OnlinePong: React.FC<OnlinePongProps> = ({ profile }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const socketRef = useRef<Socket<
     ServerToClientEvents,
@@ -302,25 +301,17 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ profile, onReturn }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">
       {/* Top-right controls */}
-      <div className="absolute top-4 right-4 flex gap-2 z-10">
+      <div className="absolute top-20 right-4 flex gap-2 z-10">
         <button
           onClick={() => setSoundOn((s) => !s)}
           className="bg-gray-800/80 hover:bg-gray-800 text-white p-3 rounded-lg transition-all"
         >
           {soundOn ? <Volume2 size={20} /> : <VolumeX size={20} />}
         </button>
-        {onReturn && (
-          <button
-            onClick={onReturn}
-            className="bg-gray-800/80 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-all"
-          >
-            Return
-          </button>
-        )}
       </div>
 
       {/* Status overlay */}
-      <div className="absolute top-4 left-4 text-gray-200 z-10 space-y-1">
+      <div className="absolute top-20 left-4 text-gray-200 z-10 space-y-1">
         <p className="font-semibold">
           You: <span className="text-blue-400">{profile.nickname}</span>
         </p>
