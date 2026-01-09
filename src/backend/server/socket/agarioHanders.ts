@@ -283,10 +283,10 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
 
   socket.on("agario:create-room", async (payload: CreateRoomPayload) => {
     //TODO:
-    // if (!socket.data.userId) {
-    //   socket.emit("agario:error", "You must be logged in to create a room");
-    //   return;
-    // }
+    if (!socket.data.userId) {
+      socket.emit("agario:error", "You must be logged in to create a room");
+      return;
+    }
 
     const roomName = payload.room.trim();
     if (!isValidRoomName(roomName) || roomName === DEFAULT_ROOM) {
@@ -412,17 +412,6 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
     name: string,
     spectator: boolean = false,
   ) {
-    // const prevRoom = socket.data.room as string | undefined;
-    // console.log("id: ", socket.id, prevRoom , room)
-    // if (prevRoom && prevRoom !== room) {
-    //   //TODO: Correct this
-    //   socket.emit("agario:info", "You have joined another room");
-    //   await deletePlayer(socket, room);
-    // } else if (prevRoom && prevRoom === room) {
-    //   socket.emit("agario:warning", "Already in this room");
-    //   return;
-    // }
-
     let world = worldByRoom.get(room);
     if (!world) {
       socket.emit("agario:error", "Fail to join");
@@ -453,11 +442,6 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       }
     }
 
-    // if (socket.data.room === room) {
-    //   socket.emit("agario:warning", "Already in this room");
-    //   return;
-    // }
-    //TODO: handle same player join the same room multiple times
     socket.join(room);
     socket.data.room = room;
     socket.data.role = spectator ? "spectator" : "player";
@@ -618,8 +602,10 @@ async function deletePlayer(
   } else world.meta.spectators.delete(socket.id);
 
   if (world.meta.hostId === socket.data.userId) {
-    // TODO:
-    // world.meta.hostId = Object.keys(world.players)[0] ?? world.meta.hostId;
+    for (const id of Object.keys(world.players)) {
+      if (world.players[id].userId)
+        world.meta.hostId = world.players[id].userId;
+    }
   }
 
   if (Object.keys(world.players).length === 0 && roomName !== DEFAULT_ROOM) {

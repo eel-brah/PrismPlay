@@ -80,7 +80,7 @@ const Agario = () => {
   const [lobbyPlayers, setLobbyPlayers] = useState<LobbyPlayer[]>([]);
   const roomStatusRef = useRef<"waiting" | "started">("waiting");
 
-  // localStorage.setItem("access_token", token);
+  // localStorage.setItem("access_token", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzY3OTk2MzUxLCJleHAiOjE3Njc5OTcyNTF9.avoNkQ1pCIBLjsC5_pGk1rkl6eWi-MqLVDZVVpukqUo");
   const authToken = localStorage.getItem("access_token");
   const sessionId =
     localStorage.getItem("sessionId") ??
@@ -127,6 +127,7 @@ const Agario = () => {
     });
 
     socket.on("connect_error", (err) => {
+      console.log("EEEKj w")
       setAlert({ type: "error", message: err.name });
     });
 
