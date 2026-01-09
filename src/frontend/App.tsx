@@ -1,6 +1,6 @@
 // App.tsx
 import React, { useState } from "react";
-import Pong from "./component/Pong";
+import Pong from "./component/pong/pong";
 import LoginForm from "./component/LoginForm";
 import RegisterForm from "./component/RegisterForm";
 import HomePage from "./component/HomePage";
