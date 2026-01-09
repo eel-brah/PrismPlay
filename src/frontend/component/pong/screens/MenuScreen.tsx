@@ -1,6 +1,6 @@
 import React from "react";
 import { Volume2, VolumeX } from "lucide-react";
-import type { AiPos, Difficulty } from "@/game/types";
+import type { AiPos, Difficulty } from "@/game/pong/types";
 import DifficultySlider from "./DifficultySlider";
 
 export default function MenuScreen({
@@ -77,7 +77,10 @@ export default function MenuScreen({
           </div>
         </div>
 
-        <DifficultySlider difficulty={difficulty} setDifficulty={setDifficulty} />
+        <DifficultySlider
+          difficulty={difficulty}
+          setDifficulty={setDifficulty}
+        />
 
         <button
           onClick={() => setSoundOn(!soundOn)}

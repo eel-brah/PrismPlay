@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import type { AiPos, Difficulty } from "@/game/types";
+import type { AiPos, Difficulty } from "@/game/pong/types";
 import type { GameColors, PlayerProfile } from "@/game/pong/models";
 import { THEMES } from "@/game/pong/visuals";
 import { runPongEngine } from "@/game/pong/engine";
@@ -11,7 +11,9 @@ import PlayingScreen from "./screens/PlayingScreen";
 const Pong: React.FC<{ onReturn?: () => void }> = ({ onReturn }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const [gameMode, setGameMode] = useState<"menu" | "setup" | "playing">("menu");
+  const [gameMode, setGameMode] = useState<"menu" | "setup" | "playing">(
+    "menu"
+  );
   const [isSingle, setIsSingle] = useState<boolean>(false);
   const [isAI, setIsAI] = useState<boolean>(false);
   const [soundOn, setSoundOn] = useState<boolean>(true);
@@ -39,7 +41,8 @@ const Pong: React.FC<{ onReturn?: () => void }> = ({ onReturn }) => {
     soundOnRef.current = soundOn;
   }, [soundOn]);
 
-  const getCurrentTheme = () => THEMES.find((t) => t.id === gameColors.theme) || THEMES[0];
+  const getCurrentTheme = () =>
+    THEMES.find((t) => t.id === gameColors.theme) || THEMES[0];
 
   const startGame = (mode: "single" | "two" | "ai") => {
     if (mode === "single") {
@@ -76,7 +79,16 @@ const Pong: React.FC<{ onReturn?: () => void }> = ({ onReturn }) => {
     });
 
     return cleanup;
-  }, [gameMode, leftPlayer, rightPlayer, gameColors, difficulty, isSingle, isAI, aiPos]);
+  }, [
+    gameMode,
+    leftPlayer,
+    rightPlayer,
+    gameColors,
+    difficulty,
+    isSingle,
+    isAI,
+    aiPos,
+  ]);
 
   return (
     <>

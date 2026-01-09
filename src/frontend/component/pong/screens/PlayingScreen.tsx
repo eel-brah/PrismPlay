@@ -1,6 +1,6 @@
 import React from "react";
 import { Volume2, VolumeX } from "lucide-react";
-import type { AiPos } from "@/game/types";
+import type { AiPos } from "@/game/pong/types";
 import type { PlayerProfile } from "@/game/pong/models";
 import PlayerDashboard from "../components/PlayerDashboard";
 
@@ -57,8 +57,12 @@ export default function PlayingScreen({
           displayName={leftIsAI ? "AI Bot" : leftPlayer.name}
           controls={
             <div className="flex gap-1">
-              <kbd className="bg-gray-700 px-2 py-0.5 rounded text-[10px]">W</kbd>
-              <kbd className="bg-gray-700 px-2 py-0.5 rounded text-[10px]">S</kbd>
+              <kbd className="bg-gray-700 px-2 py-0.5 rounded text-[10px]">
+                W
+              </kbd>
+              <kbd className="bg-gray-700 px-2 py-0.5 rounded text-[10px]">
+                S
+              </kbd>
             </div>
           }
         />
@@ -82,8 +86,12 @@ export default function PlayingScreen({
           displayName={rightIsAI ? "AI Bot" : rightPlayer.name}
           controls={
             <div className="flex gap-1">
-              <kbd className="bg-gray-700 px-2 py-0.5 rounded text-[10px]">↑</kbd>
-              <kbd className="bg-gray-700 px-2 py-0.5 rounded text-[10px]">↓</kbd>
+              <kbd className="bg-gray-700 px-2 py-0.5 rounded text-[10px]">
+                ↑
+              </kbd>
+              <kbd className="bg-gray-700 px-2 py-0.5 rounded text-[10px]">
+                ↓
+              </kbd>
             </div>
           }
         />

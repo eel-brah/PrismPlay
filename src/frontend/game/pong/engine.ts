@@ -1,5 +1,5 @@
 import { beepSound } from "@/utils/sound";
-import createAIOpponent, { AIOpponent } from "@/game/ai";
+import createAIOpponent, { AIOpponent } from "@/game/pong/ai";
 import {
   AIConfig,
   AIObject,
@@ -10,7 +10,7 @@ import {
   GameStatus,
   Paddle,
   Winner,
-} from "@/game/types";
+} from "@/game/pong/types";
 import {
   CONFIG,
   INITIAL_Y,
@@ -21,7 +21,7 @@ import {
   RADIUS,
   RIGHT_X,
   WIN_SCORE,
-} from "@/game/config";
+} from "@/game/pong/config";
 import { GameColors, PlayerProfile, BoolRef } from "./models";
 import { GameTheme } from "./visuals";
 
@@ -332,14 +332,7 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
     const vx = ball.speedX * dt;
     const vy = ball.speedY * dt;
 
-    let tHit = sweptPaddleHit(
-      ball.x,
-      ball.y,
-      vx,
-      vy,
-      ball.radius,
-      leftPaddle
-    );
+    let tHit = sweptPaddleHit(ball.x, ball.y, vx, vy, ball.radius, leftPaddle);
     let hitSide: "left" | "right" | null = tHit !== null ? "left" : null;
 
     const tRight = sweptPaddleHit(
@@ -535,7 +528,12 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
       ctx.shadowColor = leftPlayer.paddleColor;
     }
     ctx.fillStyle = leftPlayer.paddleColor;
-    ctx.fillRect(leftPaddle.x, leftPaddle.y, leftPaddle.width, leftPaddle.height);
+    ctx.fillRect(
+      leftPaddle.x,
+      leftPaddle.y,
+      leftPaddle.width,
+      leftPaddle.height
+    );
 
     if (currentTheme.glowEnabled) {
       ctx.shadowColor = rightPlayer.paddleColor;

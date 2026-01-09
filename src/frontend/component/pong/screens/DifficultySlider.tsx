@@ -1,4 +1,4 @@
-import { Difficulty } from "@/game/types";
+import { Difficulty } from "@/game/pong/types";
 import React from "react";
 
 export const difficultyLevels: Difficulty[] = ["easy", "medium", "hard"];

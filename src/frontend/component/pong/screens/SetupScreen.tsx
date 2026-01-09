@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Palette } from "lucide-react";
-import type { AiPos } from "@/game/types";
+import type { AiPos } from "@/game/pong/types";
 import type { GameColors, PlayerProfile } from "@/game/pong/models";
 import { BALL_COLORS, THEMES } from "@/game/pong/visuals";
 import PlayerSetupCard from "../components/PlayerSetupCard";
@@ -49,7 +49,9 @@ export default function SetupScreen({
             {THEMES.map((theme) => (
               <button
                 key={theme.id}
-                onClick={() => setGameColors({ ...gameColors, theme: theme.id })}
+                onClick={() =>
+                  setGameColors({ ...gameColors, theme: theme.id })
+                }
                 className={`px-4 py-2 rounded-lg border-2 transition-all ${
                   gameColors.theme === theme.id
                     ? "border-purple-500 bg-purple-500/20 text-white"
@@ -90,7 +92,10 @@ export default function SetupScreen({
                     <button
                       key={color.value}
                       onClick={() => {
-                        setGameColors({ ...gameColors, ballColor: color.value });
+                        setGameColors({
+                          ...gameColors,
+                          ballColor: color.value,
+                        });
                         setShowBallColors(false);
                       }}
                       className={`w-8 h-8 rounded-full transition-all ${
@@ -111,12 +116,20 @@ export default function SetupScreen({
         <div className="flex gap-6 justify-center">
           {/* Left Player Setup */}
           {(!isSingle || aiPos === "right") && (
-            <PlayerSetupCard side="left" player={leftPlayer} setPlayer={setLeftPlayer} />
+            <PlayerSetupCard
+              side="left"
+              player={leftPlayer}
+              setPlayer={setLeftPlayer}
+            />
           )}
 
           {/* Right Player Setup */}
           {(!isSingle || aiPos === "left") && (
-            <PlayerSetupCard side="right" player={rightPlayer} setPlayer={setRightPlayer} />
+            <PlayerSetupCard
+              side="right"
+              player={rightPlayer}
+              setPlayer={setRightPlayer}
+            />
           )}
         </div>
 
