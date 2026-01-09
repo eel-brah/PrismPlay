@@ -15,6 +15,7 @@ export interface OnlinePongProps {
     nickname: string;
     avatarUrl?: string;
   };
+  onReturn?: () => void;
 }
 
 type PhaseUI = "searching" | "inMatch" | "gameover" | "opponentLeft";
@@ -22,7 +23,7 @@ type PhaseUI = "searching" | "inMatch" | "gameover" | "opponentLeft";
 const GAME_WIDTH = 810;
 const GAME_HEIGHT = 600;
 
-const OnlinePong: React.FC<OnlinePongProps> = ({ profile }) => {
+const OnlinePong: React.FC<OnlinePongProps> = ({ profile, onReturn }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const socketRef = useRef<Socket<
     ServerToClientEvents,
@@ -308,6 +309,14 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ profile }) => {
         >
           {soundOn ? <Volume2 size={20} /> : <VolumeX size={20} />}
         </button>
+        {onReturn && (
+          <button
+            onClick={onReturn}
+            className="bg-gray-800/80 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-all"
+          >
+            Return
+          </button>
+        )}
       </div>
 
       {/* Status overlay */}
