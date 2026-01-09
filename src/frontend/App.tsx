@@ -42,7 +42,9 @@ export default function App() {
   };
 
   const hideTopBar =
-    location.pathname === "/register" || location.pathname.startsWith("/login");
+    location.pathname === "/register" ||
+    location.pathname.startsWith("/login") ||
+    location.pathname === "/agario";
   const showTopBar = !hideTopBar;
   const topPaddingClass = showTopBar ? "pt-16" : "";
   const minimalTopBar = location.pathname === "/offline" || location.pathname === "/online";
