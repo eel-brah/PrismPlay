@@ -1,4 +1,5 @@
 import { RoomInfo } from "@/../shared/agario/types";
+import { DEFAULT_ROOM } from "@/../shared/agario/config";
 
 type Props = {
   roomInfo: RoomInfo;
@@ -10,6 +11,7 @@ export const TopStatusBar = ({
   onLeave,
 }: Props) => {
   const timePassedSec = Math.floor((Date.now() - roomInfo.startedAt) / 1000);
+  // console.log("TIME: ", roomInfo.startedAt)
   const minutes = Math.floor(timePassedSec / 60);
   const seconds = timePassedSec % 60;
 
@@ -53,13 +55,18 @@ export const TopStatusBar = ({
             Specs: {roomInfo.spectatorCount}
           </span>
 
-          <span>
-            Duration: {roomInfo.durationMin}m
-          </span>
+          {roomInfo.room !== DEFAULT_ROOM && (
+            <span>
+              Duration: {roomInfo.durationMin}m
+            </span>
 
-          <span className="font-mono">
-            Time: {minutes}:{seconds.toString().padStart(2, "0")}
-          </span>
+          )
+            &&
+            (<span className="font-mono">
+              Time: {minutes}:{seconds.toString().padStart(2, "0")}
+            </span>
+            )
+          }
 
           <span className="ml-auto">
             <button

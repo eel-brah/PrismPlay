@@ -43,7 +43,7 @@ export default function App() {
 
   const hideTopBar =
     location.pathname === "/register" || location.pathname.startsWith("/login");
-  const showTopBar = !hideTopBar;
+  const showTopBar = false;
   const topPaddingClass = showTopBar ? "pt-16" : "";
   const activeSection = location.pathname === "/home"
     ? "home"

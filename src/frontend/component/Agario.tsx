@@ -46,7 +46,7 @@ const Agario = () => {
   const cameraRef = useRef<Camera | null>(null);
   const mouseRef = useRef<Mouse>({ x: 0, y: 0 });
   const enemiesRef = useRef<Record<string, Player>>({});
-  const inputSeqRef = useRef(0);
+  // const inputSeqRef = useRef(0);
   const isDeadRef = useRef(false);
   const isSpectatorRef = useRef(false);
 
@@ -57,7 +57,7 @@ const Agario = () => {
   const [hasJoined, setHasJoined] = useState(false);
 
   const pendingInputsRef = useRef<InputState[]>([]);
-  const lastProcessedSeqRef = useRef<number>(0);
+  // const lastProcessedSeqRef = useRef<number>(0);
 
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [finalLeaderboard, setFinalLeaderboard] = useState<FinalLeaderboardEntry[]>([]);
@@ -82,11 +82,18 @@ const Agario = () => {
 
   // localStorage.setItem("access_token", token);
   const authToken = localStorage.getItem("access_token");
+  const sessionId =
+    localStorage.getItem("sessionId") ??
+    (() => {
+      const id = nanoid();
+      localStorage.setItem("sessionId", id);
+      return id;
+    })();
   useEffect(() => {
     const socket = io("/agario", {
       path: "/socket.io",
       auth: {
-        sessionId: nanoid(),
+        sessionId,
         token: authToken ?? undefined,
         guestId: authToken ? null : getOrCreateGuestId(),
       }
@@ -124,7 +131,7 @@ const Agario = () => {
     });
 
     const interval = setInterval(() => {
-      socket.emit("agario:list-rooms");
+      if (!hasJoined) socket.emit("agario:list-rooms");
     }, 1000);
     socket.emit("agario:list-rooms");
 
@@ -167,23 +174,25 @@ const Agario = () => {
       setAlert({ type: "info", message: "Room ended" });
     });
 
-    socket.on("agario:leaderboard", setFinalLeaderboard);
+    socket.on("agario:leaderboard", (leaderboard: FinalLeaderboardEntry[]) => {
+      setFinalLeaderboard(leaderboard)
+    });
     // socket.on("leaderboard:final", setLeaderboard);
 
-    socket.once("agario:left-room", () => {
+    socket.on("agario:left-room", () => {
       clearing(Object.keys(enemiesRef.current).length ? HOME_PAGE : "leaderboard");
     });
 
-    socket.once("agario:final-status", (status: FinalStatus) => {
+    socket.on("agario:final-status", (status: FinalStatus) => {
       setFinalStatus(status);
     })
 
-    socket.on("joined", (data: PlayerData, spectator: boolean) => {
+    socket.on("joined", (data: PlayerData | null, spectator: boolean) => {
       if (spectator) {
         playerRef.current = randomPlayer();
         isSpectatorRef.current = true;
       }
-      else {
+      else if (data) {
         playerRef.current = Player.deserialize(data);
         console.log(
           "Joined game as",
@@ -204,7 +213,7 @@ const Agario = () => {
       ejectsRef.current = [];
       virusesRef.current = [];
       pendingInputsRef.current = [];
-      lastProcessedSeqRef.current = data.lastProcessedSeq;
+      // lastProcessedSeqRef.current = data.lastProcessedSeq;
 
       initCam();
     });
@@ -224,12 +233,12 @@ const Agario = () => {
             playerRef.current.updateFromData(myData);
           }
 
-          lastProcessedSeqRef.current = myData.lastProcessedSeq;
+          // lastProcessedSeqRef.current = myData.lastProcessedSeq;
 
-          const remainingInputs = pendingInputsRef.current.filter(
-            (input) => input.seq > myData.lastProcessedSeq
-          );
-          pendingInputsRef.current = remainingInputs;
+          // const remainingInputs = pendingInputsRef.current.filter(
+          //   (input) => input.seq > myData.lastProcessedSeq
+          // );
+          // pendingInputsRef.current = remainingInputs;
 
           // const player = playerRef.current;
           // const orbs = orbsRef.current;
@@ -389,11 +398,11 @@ const Agario = () => {
 
       if (isSpectatorRef.current || isDeadRef.current) return;
 
-      inputSeqRef.current += 1;
+      // inputSeqRef.current += 1;
       const input: InputState = {
         mouseX: worldMouse.x,
         mouseY: worldMouse.y,
-        seq: inputSeqRef.current,
+        // seq: inputSeqRef.current,
         dt,
       };
       pendingInputsRef.current.push(input);
@@ -943,6 +952,7 @@ const Agario = () => {
                       if (socketRef.current) {
                         socketRef.current.emit("agario:start-room")
                       }
+                      setAlert({ type: "", message: "" });
                     }}
                     className="px-5 py-3 bg-green-600 text-white rounded hover:bg-green-700"
                   >

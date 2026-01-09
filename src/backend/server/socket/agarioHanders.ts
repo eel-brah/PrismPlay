@@ -4,7 +4,11 @@ import { Player } from "src/shared/agario/player";
 import { randomColor } from "src/shared/agario/utils";
 import { RoomVisibility, World, worldByRoom } from "./agario";
 import crypto from "crypto";
-import { FinalLeaderboardEntry, FinalStatus, RoomSummary } from "src/shared/agario/types";
+import {
+  FinalLeaderboardEntry,
+  FinalStatus,
+  RoomSummary,
+} from "src/shared/agario/types";
 import {
   DEFAULT_ROOM,
   DEFAULT_ROOM_MAX_PLAYERS,
@@ -335,13 +339,11 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
     });
   });
 
-  async function forceLeave(logger: FastifyBaseLogger, socket: Socket) {
-    const room = socket.data.room as string | undefined;
-    if (!room) {
-      socket.emit("agario:error", "No room name provided");
-      return;
-    }
-
+  async function forceLeave(
+    logger: FastifyBaseLogger,
+    socket: Socket,
+    room: string,
+  ) {
     await deletePlayer(logger, socket, room);
   }
 
@@ -447,7 +449,7 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       const oldSocket = socket.nsp.sockets.get(existing.socketId);
       if (oldSocket) {
         oldSocket.emit("agario:backtomenu");
-        await forceLeave(fastify.log, oldSocket);
+        await forceLeave(fastify.log, oldSocket, existing.roomName);
       }
     }
 
@@ -463,10 +465,7 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
     if (spectator) {
       world.meta.spectators.add(socket.id);
 
-      socket.emit("joined", {
-        data: undefined,
-        spectator: true,
-      });
+      socket.emit("joined", null, true);
 
       sendRoomInfo(socket, world);
       broadcastPlayers(socket.nsp, room, world);
@@ -592,20 +591,12 @@ async function deletePlayer(
     return;
   }
 
-  // socket.data.room = undefined;
-  // socket.data.role = undefined;
-  // socket.data.identity = undefined;
-  // socket.data.sessionId = undefined;
-  // socket.data.userId = undefined;
-  // socket.data.guestId = undefined;
-
-  removeActivePlayer(socket);
-
   let state = undefined;
   if (isPlayer) {
+    removeActivePlayer(socket);
     state = world.players[socket.id];
-    state.endTime = Date.now();
     if (world.meta.status == "started") {
+      state.endTime = Date.now();
       try {
         await createPlayerHistoryDb(
           world.meta.roomId!,
@@ -632,17 +623,21 @@ async function deletePlayer(
   }
 
   if (Object.keys(world.players).length === 0 && roomName !== DEFAULT_ROOM) {
-    let leaderboard;
-    try {
-      if (world.meta.roomId) await finalizeRoomResultsDb(world.meta.roomId);
-      else logger.info("Room id is missing");
-      leaderboard = await getRoomLeaderboard(world.meta.roomId!);
-    } catch (err) {
-      let errorMessage = err instanceof Error ? err.message : "Unknown error";
-      logger.error({ id: socket.id }, errorMessage);
-      socket.emit("agario:error", errorMessage);
+    if (world.meta.status === "started") {
+      let leaderboard = undefined;
+      try {
+        if (world.meta.roomId) {
+          leaderboard = await getRoomLeaderboard(world.meta.roomId);
+          await finalizeRoomResultsDb(world.meta.roomId);
+        } else logger.info("Room id is missing");
+      } catch (err) {
+        let errorMessage = err instanceof Error ? err.message : "Unknown error";
+        logger.error({ id: socket.id }, errorMessage);
+        socket.emit("agario:error", errorMessage);
+      }
+      if (leaderboard)
+        socket.nsp.to(roomName).emit("agario:leaderboard", leaderboard);
     }
-    socket.nsp.to(roomName).emit("agario:leaderboard", leaderboard);
     worldByRoom.delete(roomName);
     socket.leave(roomName);
   } else {
@@ -664,6 +659,14 @@ async function deletePlayer(
   }
 
   // socket.data.room = undefined;
+  // socket.data.role = undefined;
+  // socket.data.identity = undefined;
+  // socket.data.room = undefined;
+  // socket.data.userId = undefined;
+  // socket.data.guestId = undefined;
+  // socket.data.role = undefined;
+  // socket.data.identity = undefined;
+  // socket.data.sessionId = undefined;
   // socket.data.userId = undefined;
   // socket.data.guestId = undefined;
 }

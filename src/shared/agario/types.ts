@@ -55,7 +55,7 @@ export interface Camera {
 export interface InputState {
   mouseX: number;
   mouseY: number;
-  seq: number;
+  // seq: number;
   dt: number;
 }
 
