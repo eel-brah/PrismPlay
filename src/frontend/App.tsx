@@ -44,7 +44,9 @@ export default function App() {
   const hideTopBar =
     location.pathname === "/register" ||
     location.pathname.startsWith("/login") ||
-    location.pathname === "/agario";
+    location.pathname === "/agario" ||
+    location.pathname === "/offline" ||
+    location.pathname === "/online";
   const showTopBar = !hideTopBar;
   const topPaddingClass = showTopBar ? "pt-16" : "";
   const minimalTopBar = location.pathname === "/offline" || location.pathname === "/online";
@@ -421,7 +423,7 @@ export default function App() {
             <div
               className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-8 ${topPaddingClass}`}
             >
-              <Pong />
+              <Pong onReturn={handleReturn} />
             </div>
           }
         />
