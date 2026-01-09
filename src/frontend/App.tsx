@@ -45,6 +45,7 @@ export default function App() {
     location.pathname === "/register" || location.pathname.startsWith("/login");
   const showTopBar = !hideTopBar;
   const topPaddingClass = showTopBar ? "pt-16" : "";
+  const minimalTopBar = location.pathname === "/offline" || location.pathname === "/online";
   const activeSection = location.pathname === "/home"
     ? "home"
     : location.pathname === "/games" ||
@@ -77,49 +78,53 @@ export default function App() {
               <div className="h-16 flex items-center justify-between">
                 <div className="w-24" />
                 <div className="flex-1 flex items-center justify-center gap-2">
-                  <button
-                    onClick={() => navigate("/home")}
-                    className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
-                      activeSection === "home"
-                        ? "text-green-400 bg-white/5"
-                        : "text-gray-200 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    Home
-                  </button>
-                  <button
-                    onClick={() => navigate("/games")}
-                    className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
-                      activeSection === "games"
-                        ? "text-green-400 bg-white/5"
-                        : "text-gray-200 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    Games
-                  </button>
-                  {sessionMode === "user" && (
-                    <button
-                      onClick={() => navigate("/social")}
-                      className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
-                        activeSection === "social"
-                          ? "text-green-400 bg-white/5"
-                          : "text-gray-200 hover:text-white hover:bg-white/5"
-                      }`}
-                    >
-                      Social
-                    </button>
-                  )}
-                  {sessionMode === "user" && (
-                    <button
-                      onClick={() => navigate("/profile")}
-                      className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
-                        activeSection === "profile"
-                          ? "text-green-400 bg-white/5"
-                          : "text-gray-200 hover:text-white hover:bg-white/5"
-                      }`}
-                    >
-                      Profile
-                    </button>
+                  {!minimalTopBar && (
+                    <>
+                      <button
+                        onClick={() => navigate("/home")}
+                        className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+                          activeSection === "home"
+                            ? "text-green-400 bg-white/5"
+                            : "text-gray-200 hover:text-white hover:bg-white/5"
+                        }`}
+                      >
+                        Home
+                      </button>
+                      <button
+                        onClick={() => navigate("/games")}
+                        className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+                          activeSection === "games"
+                            ? "text-green-400 bg-white/5"
+                            : "text-gray-200 hover:text-white hover:bg-white/5"
+                        }`}
+                      >
+                        Games
+                      </button>
+                      {sessionMode === "user" && (
+                        <button
+                          onClick={() => navigate("/social")}
+                          className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+                            activeSection === "social"
+                              ? "text-green-400 bg-white/5"
+                              : "text-gray-200 hover:text-white hover:bg-white/5"
+                          }`}
+                        >
+                          Social
+                        </button>
+                      )}
+                      {sessionMode === "user" && (
+                        <button
+                          onClick={() => navigate("/profile")}
+                          className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+                            activeSection === "profile"
+                              ? "text-green-400 bg-white/5"
+                              : "text-gray-200 hover:text-white hover:bg-white/5"
+                          }`}
+                        >
+                          Profile
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
                 <button
