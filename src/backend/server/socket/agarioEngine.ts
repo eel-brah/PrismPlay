@@ -309,13 +309,15 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
       if (world) {
         const state = players[id];
         deaths.push({ state, socketId: id });
+        delete players[id];
 
         if (world.meta.hostId === state.userId) {
-          // TODO:
-          // world.meta.hostId = Object.keys(world.players)[0] ?? world.meta.hostId;
+          for (const id of Object.keys(players)) {
+            if (players[id].userId)
+              world.meta.hostId = players[id].userId;
+          }
         }
 
-        delete players[id];
         const socket = io.sockets.get(id);
         if (socket) {
           removeActivePlayer(socket);
@@ -437,7 +439,7 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
 
     for (const [id, state] of Object.entries(world.players)) {
       serializedPlayers[id] = state.player.serialize();
-      serializedPlayers[id].lastProcessedSeq = state.input?.seq ?? 0;
+      // serializedPlayers[id].lastProcessedSeq = state.input?.seq ?? 0;
 
       // console.log(serializedPlayers[id]);
       // console.log(serializedPlayers[id].blobs[0].mass);

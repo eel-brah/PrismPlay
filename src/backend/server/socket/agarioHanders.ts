@@ -95,11 +95,7 @@ function nowMs() {
   return Date.now();
 }
 
-async function startRoom(
-  logger: FastifyBaseLogger,
-  socket: Socket,
-  world: World,
-) {
+async function startRoom(socket: Socket, world: World) {
   if (world.meta.status === "started") return;
   world.meta.status = "started";
   world.meta.startedAt = nowMs();
@@ -110,14 +106,8 @@ async function startRoom(
     s.splitRequested = false;
     s.ejectRequested = false;
   }
-  try {
-    const roomDb = await createRoomDb(world.meta);
-    world.meta.roomId = roomDb.id;
-  } catch (err) {
-    let errorMessage = err instanceof Error ? err.message : "Unknown error";
-    logger.error({ id: socket.id }, errorMessage);
-    socket.emit("agario:error", errorMessage);
-  }
+  const roomDb = await createRoomDb(world.meta);
+  world.meta.roomId = roomDb.id;
 }
 
 function getWorld(room: string): World | undefined {
@@ -238,13 +228,18 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       return;
     }
 
-    await startRoom(fastify.log, socket, world);
+    try {
+      await startRoom(socket, world);
+      socket.nsp.to(room).emit("agario:room-status", { status: "started" });
 
-    socket.nsp.to(room).emit("agario:room-status", { status: "started" });
-
-    for (const id of Object.keys(world.players)) {
-      const client = socket.nsp.sockets.get(id);
-      if (client) sendRoomInfo(client, world);
+      for (const id of Object.keys(world.players)) {
+        const client = socket.nsp.sockets.get(id);
+        if (client) sendRoomInfo(client, world);
+      }
+    } catch (err) {
+      let errorMessage = err instanceof Error ? err.message : "Unknown error";
+      fastify.log.error({ id: socket.id }, errorMessage);
+      socket.emit("agario:error", errorMessage);
     }
   });
 
@@ -283,10 +278,10 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
 
   socket.on("agario:create-room", async (payload: CreateRoomPayload) => {
     //TODO:
-    // if (!socket.data.userId) {
-    //   socket.emit("agario:error", "You must be logged in to create a room");
-    //   return;
-    // }
+    if (!socket.data.userId) {
+      socket.emit("agario:error", "You must be logged in to create a room");
+      return;
+    }
 
     const roomName = payload.room.trim();
     if (!isValidRoomName(roomName) || roomName === DEFAULT_ROOM) {
@@ -371,6 +366,8 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
     const identity = getIdentity(socket);
     socket.data.identity = identity;
 
+    console.log("I: ", identity);
+
     const isSpectator = payload.spectator === true;
 
     if (!isSpectator) {
@@ -399,10 +396,16 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       world.meta.status === "waiting" &&
       afterJoinCount == world.meta.maxPlayers
     ) {
-      await startRoom(fastify.log, socket, world);
-      socket.nsp
-        .to(roomName)
-        .emit("agario:room-status", { status: world.meta.status });
+      try {
+        await startRoom(socket, world);
+        socket.nsp
+          .to(roomName)
+          .emit("agario:room-status", { status: world.meta.status });
+      } catch (err) {
+        let errorMessage = err instanceof Error ? err.message : "Unknown error";
+        fastify.log.error({ id: socket.id }, errorMessage);
+        socket.emit("agario:error", errorMessage);
+      }
     }
   });
 
@@ -412,17 +415,6 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
     name: string,
     spectator: boolean = false,
   ) {
-    // const prevRoom = socket.data.room as string | undefined;
-    // console.log("id: ", socket.id, prevRoom , room)
-    // if (prevRoom && prevRoom !== room) {
-    //   //TODO: Correct this
-    //   socket.emit("agario:info", "You have joined another room");
-    //   await deletePlayer(socket, room);
-    // } else if (prevRoom && prevRoom === room) {
-    //   socket.emit("agario:warning", "Already in this room");
-    //   return;
-    // }
-
     let world = worldByRoom.get(room);
     if (!world) {
       socket.emit("agario:error", "Fail to join");
@@ -438,7 +430,7 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       // if (existing.sessionId === socket.data.sessionId) {
       //   existing.socketId = socket.id;
       //   existing.disconnectedAt = undefined;
-      //   activePlayers.set(socket.id, existing);
+      //   activePlayers.set(key, existing);
       //   return;
       // }
 
@@ -453,11 +445,6 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       }
     }
 
-    // if (socket.data.room === room) {
-    //   socket.emit("agario:warning", "Already in this room");
-    //   return;
-    // }
-    //TODO: handle same player join the same room multiple times
     socket.join(room);
     socket.data.room = room;
     socket.data.role = spectator ? "spectator" : "player";
@@ -618,8 +605,10 @@ async function deletePlayer(
   } else world.meta.spectators.delete(socket.id);
 
   if (world.meta.hostId === socket.data.userId) {
-    // TODO:
-    // world.meta.hostId = Object.keys(world.players)[0] ?? world.meta.hostId;
+    for (const id of Object.keys(world.players)) {
+      if (world.players[id].userId)
+        world.meta.hostId = world.players[id].userId;
+    }
   }
 
   if (Object.keys(world.players).length === 0 && roomName !== DEFAULT_ROOM) {
