@@ -1,10 +1,11 @@
-import React, { useMemo, useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { Trophy, User2, Gamepad2, BarChart3 } from "lucide-react";
 
 type Tab = "profile" | "achievements" | "history";
 
 export default function PlayerProfile() {
   const [tab, setTab] = useState<Tab>("profile");
+  // const [user, setUser] = useState(localStorage.getItem("profile_data"));
   const [user, setUser] = useState(() => {
     const raw = localStorage.getItem("profile_data");
     const base = {

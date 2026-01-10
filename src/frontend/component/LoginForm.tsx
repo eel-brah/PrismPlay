@@ -1,13 +1,34 @@
 import React, { useState } from "react";
 
 type Props = {
-  onSubmit: (username: string, password: string) => void;
+  onSubmit: (email: string, password: string) => Promise<void>;
   onRegister?: () => void;
 };
 
 export default function LoginForm({ onSubmit, onRegister }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleLoginClick() {
+    setError(null);
+
+    if (!email || !password) {
+      setError("Please enter email and password.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await onSubmit(email, password);
+    } catch (e: any) {
+      setError(e.message ?? "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="flex flex-col items-center justify-center w-full p-8">
@@ -39,12 +60,17 @@ export default function LoginForm({ onSubmit, onRegister }: Props) {
             />
           </div>
 
-          <button
+          {/* <button
             onClick={() => onSubmit(email, password)}
             className="w-full mt-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-2.5 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
           >
             Login
+          </button> */}
+          <button  onClick={handleLoginClick} disabled={loading} className="w-full mt-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-2.5 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg">
+              {loading ? "Logging in..." : "Login"}
           </button>
+
+           {error && <div style={{ marginTop: 12, color: "crimson" }}>{error}</div>}
           <div className="flex items-center gap-3 my-2">
             <div className="h-px flex-1 bg-gray-700" />
             <span className="text-xs text-gray-400">OR</span>
