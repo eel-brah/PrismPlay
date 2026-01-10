@@ -5,6 +5,7 @@ type Props = {
 };
 
 export default function RegisterForm({ onSubmit }: Props) {
+  const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -12,7 +13,7 @@ export default function RegisterForm({ onSubmit }: Props) {
 
   const handleRegister = () => {
     // Frontend-only validation for demo purposes
-    if (!username || !password || !confirm) {
+    if (!email || !username || !password || !confirm) {
       setError("Please fill in all fields.");
       return;
     }
@@ -33,6 +34,16 @@ export default function RegisterForm({ onSubmit }: Props) {
         <p className="text-gray-300 text-center mb-6">Register to create a new account</p>
 
         <div className="space-y-4">
+           <div>
+            <label className="block text-sm text-gray-300 mb-1">Email</label>
+            <input
+              type="text"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-gray-900/70 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="Choose a Email"
+            />
+          </div>
           <div>
             <label className="block text-sm text-gray-300 mb-1">Username</label>
             <input

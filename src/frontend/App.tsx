@@ -42,12 +42,19 @@ export default function App() {
   };
 
   const hideTopBar =
-    location.pathname === "/register" || location.pathname.startsWith("/login");
-  const showTopBar = false;
+    location.pathname === "/register" ||
+    location.pathname.startsWith("/login") ||
+    location.pathname === "/agario" ||
+    location.pathname === "/offline" ||
+    location.pathname === "/online";
+  const showTopBar = !hideTopBar;
   const topPaddingClass = showTopBar ? "pt-16" : "";
-  const activeSection = location.pathname === "/home"
-    ? "home"
-    : location.pathname === "/games" ||
+  const minimalTopBar =
+    location.pathname === "/offline" || location.pathname === "/online";
+  const activeSection =
+    location.pathname === "/home"
+      ? "home"
+      : location.pathname === "/games" ||
         location.pathname === "/landing" ||
         location.pathname === "/guest" ||
         location.pathname === "/offline" ||
@@ -55,10 +62,10 @@ export default function App() {
         location.pathname === "/agario"
       ? "games"
       : location.pathname.startsWith("/social")
-        ? "social"
-        : location.pathname.startsWith("/profile")
-          ? "profile"
-          : "none";
+      ? "social"
+      : location.pathname.startsWith("/profile")
+      ? "profile"
+      : "none";
 
   const handleReturn = () => {
     if (globalThis.history.length > 1) {
@@ -77,49 +84,53 @@ export default function App() {
               <div className="h-16 flex items-center justify-between">
                 <div className="w-24" />
                 <div className="flex-1 flex items-center justify-center gap-2">
-                  <button
-                    onClick={() => navigate("/home")}
-                    className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
-                      activeSection === "home"
-                        ? "text-green-400 bg-white/5"
-                        : "text-gray-200 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    Home
-                  </button>
-                  <button
-                    onClick={() => navigate("/games")}
-                    className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
-                      activeSection === "games"
-                        ? "text-green-400 bg-white/5"
-                        : "text-gray-200 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    Games
-                  </button>
-                  {sessionMode === "user" && (
-                    <button
-                      onClick={() => navigate("/social")}
-                      className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
-                        activeSection === "social"
-                          ? "text-green-400 bg-white/5"
-                          : "text-gray-200 hover:text-white hover:bg-white/5"
-                      }`}
-                    >
-                      Social
-                    </button>
-                  )}
-                  {sessionMode === "user" && (
-                    <button
-                      onClick={() => navigate("/profile")}
-                      className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
-                        activeSection === "profile"
-                          ? "text-green-400 bg-white/5"
-                          : "text-gray-200 hover:text-white hover:bg-white/5"
-                      }`}
-                    >
-                      Profile
-                    </button>
+                  {!minimalTopBar && (
+                    <>
+                      <button
+                        onClick={() => navigate("/home")}
+                        className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+                          activeSection === "home"
+                            ? "text-green-400 bg-white/5"
+                            : "text-gray-200 hover:text-white hover:bg-white/5"
+                        }`}
+                      >
+                        Home
+                      </button>
+                      <button
+                        onClick={() => navigate("/games")}
+                        className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+                          activeSection === "games"
+                            ? "text-green-400 bg-white/5"
+                            : "text-gray-200 hover:text-white hover:bg-white/5"
+                        }`}
+                      >
+                        Games
+                      </button>
+                      {sessionMode === "user" && (
+                        <button
+                          onClick={() => navigate("/social")}
+                          className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+                            activeSection === "social"
+                              ? "text-green-400 bg-white/5"
+                              : "text-gray-200 hover:text-white hover:bg-white/5"
+                          }`}
+                        >
+                          Social
+                        </button>
+                      )}
+                      {sessionMode === "user" && (
+                        <button
+                          onClick={() => navigate("/profile")}
+                          className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+                            activeSection === "profile"
+                              ? "text-green-400 bg-white/5"
+                              : "text-gray-200 hover:text-white hover:bg-white/5"
+                          }`}
+                        >
+                          Profile
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
                 <button
@@ -214,7 +225,9 @@ export default function App() {
                         <h2 className="text-xl font-semibold text-purple-400">
                           PingPong Craft
                         </h2>
-                        <p className="text-gray-300">Classic arcade ping pong</p>
+                        <p className="text-gray-300">
+                          Classic arcade ping pong
+                        </p>
                       </div>
                     </div>
                     <ul className="text-sm text-gray-400 mb-6 space-y-1">
@@ -225,7 +238,9 @@ export default function App() {
                     </ul>
                     <button
                       onClick={() =>
-                        navigate(sessionMode === "guest" ? "/guest" : "/landing")
+                        navigate(
+                          sessionMode === "guest" ? "/guest" : "/landing"
+                        )
                       }
                       className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
                     >
@@ -390,7 +405,9 @@ export default function App() {
                     <h2 className="text-xl font-semibold text-green-400 mb-2">
                       Offline Mode
                     </h2>
-                    <p className="text-gray-300 mb-4">Play against AI opponent</p>
+                    <p className="text-gray-300 mb-4">
+                      Play against AI opponent
+                    </p>
                     <ul className="text-sm text-gray-400 mb-6 space-y-1">
                       <li>• Practice your skills</li>
                       <li>• Adjustable AI difficulty</li>
@@ -414,11 +431,11 @@ export default function App() {
             <div
               className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-8 ${topPaddingClass}`}
             >
-              <Pong />
+              <Pong onReturn={handleReturn} />
             </div>
           }
         />
-        <Route
+        {/* <Route
           path="/online"
           element={
             sessionMode === "user" ? (
@@ -426,6 +443,20 @@ export default function App() {
                 className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-8 ${topPaddingClass}`}
               >
                 <OnlinePong profile={onlineProfile} />
+              </div>
+            ) : (
+              <Navigate to="/guest" replace />
+            )
+          }
+        /> */}
+        <Route
+          path="/online"
+          element={
+            sessionMode === "user" ? (
+              <div
+                className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-8 ${topPaddingClass}`}
+              >
+                <OnlinePong profile={onlineProfile} onReturn={handleReturn} />
               </div>
             ) : (
               <Navigate to="/guest" replace />

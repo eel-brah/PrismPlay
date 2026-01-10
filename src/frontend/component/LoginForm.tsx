@@ -6,7 +6,7 @@ type Props = {
 };
 
 export default function LoginForm({ onSubmit, onRegister }: Props) {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   return (
@@ -19,13 +19,13 @@ export default function LoginForm({ onSubmit, onRegister }: Props) {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-gray-300 mb-1">Username</label>
+            <label className="block text-sm text-gray-300 mb-1">Email</label>
             <input
               type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-gray-900/70 border border-gray-700 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter username"
+              placeholder="Enter Email"
             />
           </div>
           <div>
@@ -40,7 +40,7 @@ export default function LoginForm({ onSubmit, onRegister }: Props) {
           </div>
 
           <button
-            onClick={() => onSubmit(username, password)}
+            onClick={() => onSubmit(email, password)}
             className="w-full mt-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-2.5 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
           >
             Login
