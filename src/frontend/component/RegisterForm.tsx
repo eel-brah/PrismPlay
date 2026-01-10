@@ -1,30 +1,40 @@
 import React, { useState } from "react";
 
 type Props = {
-  onSubmit: (username: string, password: string) => void;
+  onSubmit: (username: string, email: string, password: string) => Promise<void>;
 };
 
 export default function RegisterForm({ onSubmit }: Props) {
-  const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState<string | null>(null);
 
-  const handleRegister = () => {
-    // Frontend-only validation for demo purposes
-    if (!email || !username || !password || !confirm) {
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleRegisterClick() {
+    setError(null);
+
+    if (!username || !email || !password || !confirm) {
       setError("Please fill in all fields.");
       return;
     }
+
     if (password !== confirm) {
       setError("Passwords do not match.");
       return;
     }
-    setError(null);
-    onSubmit(username, password);
-  };
 
+    setLoading(true);
+    try {
+      await onSubmit(username, email, password);
+    } catch (e: any) {
+      setError(e.message ?? "Register failed");
+    } finally {
+      setLoading(false);
+    }
+  }
   return (
     <div className="flex flex-col items-center justify-center w-full p-8">
       <div className="relative bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-gray-700 w-full max-w-md">
@@ -78,20 +88,24 @@ export default function RegisterForm({ onSubmit }: Props) {
           {error && (
             <div className="text-red-400 text-sm">{error}</div>
           )}
-
+{/* 
           <button
             onClick={handleRegister}
             className="w-full mt-2 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white py-2.5 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
           >
             Register
-          </button>
+          </button> */}
+           <button  onClick={handleRegisterClick} disabled={loading}  className="w-full mt-2 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white py-2.5 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg">
+             {loading ? "Creating..." : "Register"}
+           </button>
+          {error && <div style={{ marginTop: 12, color: "crimson" }}>{error}</div>}
           <div className="flex items-center gap-3 my-2">
             <div className="h-px flex-1 bg-gray-700" />
             <span className="text-xs text-gray-400">OR</span>
             <div className="h-px flex-1 bg-gray-700" />
           </div>
           <button
-            onClick={() => onSubmit("google", "oauth")}
+            // onClick={() => onSubmit("google", "oauth")}
             className="w-full bg-white text-gray-900 hover:bg-gray-100 border border-gray-300 py-2.5 rounded-lg font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
           >
             <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">

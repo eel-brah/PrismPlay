@@ -5,6 +5,7 @@ type Tab = "profile" | "achievements" | "history";
 
 export default function PlayerProfile() {
   const [tab, setTab] = useState<Tab>("profile");
+  // const [user, setUser] = useState(localStorage.getItem("profile_data"));
   const [user, setUser] = useState(() => {
     const raw = localStorage.getItem("profile_data");
     const base = {

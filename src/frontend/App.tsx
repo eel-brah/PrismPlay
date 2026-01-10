@@ -1,5 +1,5 @@
 // App.tsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Pong from "./component/pong/pong";
 import LoginForm from "./component/LoginForm";
 import RegisterForm from "./component/RegisterForm";
@@ -16,11 +16,106 @@ import {
 } from "react-router-dom";
 import Agario from "./component/Agario";
 import OnlinePong from "./component/OnlinePong";
+import {
+  apiGetMe,
+  apiLogin,
+  apiLogout,
+  apiRegister,
+  getStoredToken,
+  storeToken,
+  clearToken,
+} from "./api";
+
 
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [sessionMode, setSessionMode] = useState<"guest" | "user">("guest");
+  // const [sessionMode, setSessionMode] = useState<"guest" | "user">("guest");
+    const [token, setToken] = useState<string | null>(() => getStoredToken());
+  const [bootingAuth, setBootingAuth] = useState(true);
+
+  const isAuthed  = !!token;
+
+  function saveProfileDataForPlayerProfile(user: { username: string; email: string; avatarUrl?: string | null }) {
+    const raw = localStorage.getItem("profile_data");
+    let previous: any = {};
+    try {
+      previous = raw ? JSON.parse(raw) : {};
+    } catch {}
+
+    const next = {
+      ...previous,
+      username: user.username,
+      email: user.email,
+      avatarUrl: user.avatarUrl ?? previous.avatarUrl ?? "",
+    };
+
+    localStorage.setItem("profile_data", JSON.stringify(next));
+  }
+
+    useEffect(() => {
+    async function boot() {
+      const saved = getStoredToken();
+
+      if (!saved) {
+        setBootingAuth(false);
+        return;
+      }
+
+      try {
+        const me = await apiGetMe(saved); // protected request
+        setToken(saved);
+        // setSessionMode("user");
+        saveProfileDataForPlayerProfile(me);
+      } catch (e) {
+        // token expired/invalid
+        clearToken();
+        setToken(null);
+        // setSessionMode("guest");
+      } finally {
+        setBootingAuth(false);
+      }
+    }
+
+    boot();
+  }, []);
+
+
+    async function handleLogin(email: string, password: string) {
+    const data = await apiLogin(email, password);
+
+    storeToken(data.accessToken);
+    setToken(data.accessToken);
+    // setSessionMode("user");
+
+    saveProfileDataForPlayerProfile(data.user);
+
+    navigate("/games");
+  }
+
+  async function handleRegister(username: string, email: string, password: string) {
+    await apiRegister(username, email, password);
+    await handleLogin(email, password); // auto login
+  }
+
+  async function handleLogout() {
+    const current = token ?? getStoredToken();
+
+    if (current) {
+      try {
+        await apiLogout(current);
+      } catch {
+      }
+    }
+
+    clearToken();
+    setToken(null);
+    // setSessionMode("guest");
+    navigate("/home");
+  }
+
+
+
   const getUUID = () =>
     globalThis.crypto && typeof globalThis.crypto.randomUUID === "function"
       ? globalThis.crypto.randomUUID()
@@ -36,7 +131,7 @@ export default function App() {
   const onlineProfile = {
     id: profileId,
     nickname:
-      sessionMode === "user"
+      isAuthed
         ? `User-${profileId.slice(0, 4)}`
         : `Guest-${profileId.slice(0, 4)}`,
   };
@@ -106,7 +201,7 @@ export default function App() {
                       >
                         Games
                       </button>
-                      {sessionMode === "user" && (
+                      {isAuthed && (
                         <button
                           onClick={() => navigate("/social")}
                           className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
@@ -118,7 +213,7 @@ export default function App() {
                           Social
                         </button>
                       )}
-                      {sessionMode === "user" && (
+                      {isAuthed && (
                         <button
                           onClick={() => navigate("/profile")}
                           className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
@@ -156,11 +251,8 @@ export default function App() {
               <HomePage
                 onPlay={() => navigate("/games")}
                 onLogin={() => navigate("/login/form")}
-                onLogout={() => {
-                  setSessionMode("guest");
-                  navigate("/home");
-                }}
-                loggedIn={sessionMode === "user"}
+               onLogout={() => void handleLogout()}
+                loggedIn={isAuthed}
               />
             </div>
           }
@@ -180,10 +272,8 @@ export default function App() {
           element={
             <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
               <LoginForm
-                onSubmit={() => {
-                  setSessionMode("user");
-                  navigate("/games");
-                }}
+               onSubmit={handleLogin}
+
                 onRegister={() => navigate("/register")}
               />
             </div>
@@ -194,10 +284,7 @@ export default function App() {
           element={
             <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
               <RegisterForm
-                onSubmit={() => {
-                  setSessionMode("user");
-                  navigate("/games");
-                }}
+               onSubmit={handleRegister}
               />
             </div>
           }
@@ -239,7 +326,7 @@ export default function App() {
                     <button
                       onClick={() =>
                         navigate(
-                          sessionMode === "guest" ? "/guest" : "/landing"
+                          !isAuthed ? "/guest" : "/landing"
                         )
                       }
                       className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
@@ -282,7 +369,7 @@ export default function App() {
         <Route
           path="/landing"
           element={
-            sessionMode === "user" ? (
+           isAuthed ? (
               <div
                 className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center ${topPaddingClass}`}
               >
@@ -362,7 +449,11 @@ export default function App() {
         <Route
           path="/social"
           element={
-            sessionMode === "user" ? (
+            bootingAuth ? (
+              <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
+                Loading...
+              </div>
+            ) : isAuthed ?  (
               <div
                 className={`relative h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass}`}
               >
@@ -376,8 +467,12 @@ export default function App() {
         <Route
           path="/profile"
           element={
-            sessionMode === "user" ? (
-              <div
+            bootingAuth ? (
+              <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
+                Loading...
+              </div>
+            ) : isAuthed ? (
+             <div
                 className={`relative h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass}`}
               >
                 <PlayerProfile />
@@ -452,14 +547,18 @@ export default function App() {
         <Route
           path="/online"
           element={
-            sessionMode === "user" ? (
-              <div
+            bootingAuth ? (
+              <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
+                Loading...
+              </div>
+            ) : isAuthed ? (
+             <div
                 className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-8 ${topPaddingClass}`}
               >
                 <OnlinePong profile={onlineProfile} onReturn={handleReturn} />
               </div>
             ) : (
-              <Navigate to="/guest" replace />
+              <Navigate to="/login/form" replace />
             )
           }
         />
