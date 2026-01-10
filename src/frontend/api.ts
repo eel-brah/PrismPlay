@@ -1,4 +1,5 @@
-// src/frontend/api.ts
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 export const TOKEN_KEY = "accessToken";
 
 export type User = {
@@ -74,7 +75,6 @@ export function apiUpdateMe(
   token: string,
   body: { username?: string; email?: string; password?: string }
 ) {
-  // Your backend route exists: PATCH /api/users/me
   return requestJson<User>("/api/users/me", {
     method: "PATCH",
     headers: {

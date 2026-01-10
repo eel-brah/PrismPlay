@@ -1,4 +1,6 @@
 // App.tsx
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import React, { useEffect, useState } from "react";
 import Pong from "./component/pong/pong";
 import LoginForm from "./component/LoginForm";
@@ -67,7 +69,7 @@ export default function App() {
         setToken(saved);
         // setSessionMode("user");
         saveProfileDataForPlayerProfile(me);
-      } catch (e) {
+      } catch {
         // token expired/invalid
         clearToken();
         setToken(null);

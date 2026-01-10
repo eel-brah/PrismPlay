@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { Trophy, User2, Gamepad2, BarChart3 } from "lucide-react";
 
 type Tab = "profile" | "achievements" | "history";
