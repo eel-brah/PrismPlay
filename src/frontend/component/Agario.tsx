@@ -33,6 +33,17 @@ const alertStyles: Record<Exclude<AlertType, "">, string> = {
 
 const HOME_PAGE = "home"
 
+// localStorage.setItem("access_token", token);
+const authToken = localStorage.getItem("access_token");
+console.log("T: ", authToken)
+const sessionId =
+  localStorage.getItem("sessionId") ??
+  (() => {
+    const id = nanoid();
+    localStorage.setItem("sessionId", id);
+    return id;
+  })();
+
 const Agario = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationIdRef = useRef<number | null>(null);
@@ -72,30 +83,21 @@ const Agario = () => {
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [allowSpectators, setAllowSpectators] = useState(false);
   const [isSpectator, setSpectator] = useState(false);
-  const [maxPlayers, setMaxPlayers] = useState(10);
-  const [durationMin, setDurationMin] = useState(10);
+  const [maxPlayers, setMaxPlayers] = useState<number | "">("");
+  const [durationMin, setDurationMin] = useState<number | "">("");
   const [joinKey, setJoinKey] = useState("");
   const [createdKey, setCreatedKey] = useState("");
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [lobbyPlayers, setLobbyPlayers] = useState<LobbyPlayer[]>([]);
   const roomStatusRef = useRef<"waiting" | "started">("waiting");
 
-  // localStorage.setItem("access_token", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzY3OTk2MzUxLCJleHAiOjE3Njc5OTcyNTF9.avoNkQ1pCIBLjsC5_pGk1rkl6eWi-MqLVDZVVpukqUo");
-  const authToken = localStorage.getItem("access_token");
-  const sessionId =
-    localStorage.getItem("sessionId") ??
-    (() => {
-      const id = nanoid();
-      localStorage.setItem("sessionId", id);
-      return id;
-    })();
   useEffect(() => {
     const socket = io("/agario", {
       path: "/socket.io",
       auth: {
         sessionId,
         token: authToken ?? undefined,
-        guestId: authToken ? null : getOrCreateGuestId(),
+        guestId: authToken ? undefined : getOrCreateGuestId(),
       }
     });
     socketRef.current = socket;
@@ -127,8 +129,7 @@ const Agario = () => {
     });
 
     socket.on("connect_error", (err) => {
-      console.log("EEEKj w")
-      setAlert({ type: "error", message: err.name });
+      setAlert({ type: "error", message: err.message });
     });
 
     const interval = setInterval(() => {
@@ -783,19 +784,22 @@ const Agario = () => {
                   type="number"
                   min={MIN_PLAYERS_PER_ROOM}
                   max={MAX_PLAYERS_PER_ROOM}
-                  value={maxPlayers > 0 ? maxPlayers : undefined}
-                  onChange={(e) => setMaxPlayers(Number(e.target.value))}
                   placeholder="Max players"
+                  value={maxPlayers}
+                  onChange={(e) =>
+                    setMaxPlayers(e.target.value === "" ? "" : Number(e.target.value))
+                  }
                 />
                 <input
                   className="px-4 py-2 rounded-md border-2 border-gray-400 text-black text-xl bg-white"
                   type="number"
                   min={MIN_MINUTES}
                   max={MAX_MINUTES}
-                  //TODO: 
-                  value={durationMin > 0 ? durationMin : undefined}
-                  onChange={(e) => setDurationMin(Number(e.target.value))}
                   placeholder="Duration (min)"
+                  value={durationMin}
+                  onChange={(e) =>
+                    setDurationMin(e.target.value === "" ? "" : Number(e.target.value))
+                  }
                 />
               </div>
 

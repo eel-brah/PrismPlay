@@ -60,6 +60,9 @@ export function init_agario(io: SocketIOServer, fastify: FastifyInstance) {
       return next(new Error("Missing sessionId"));
     }
 
+    // console.log("S: ", sessionId)
+    // console.log("d: ", guestId)
+    // console.log("T: ", token)
     socket.data.sessionId = sessionId;
     if (token) {
       try {
