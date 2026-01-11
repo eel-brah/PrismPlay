@@ -55,6 +55,10 @@ export function init_agario(io: SocketIOServer, fastify: FastifyInstance) {
     }
 
     const { sessionId, token, guestId } = parsed.data;
+    console.log(token)
+    console.log(guestId)
+    console.log(socket.id)
+    console.log(sessionId)
 
     if (!sessionId) {
       return next(new Error("Missing sessionId"));

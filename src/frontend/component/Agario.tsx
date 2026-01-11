@@ -23,6 +23,7 @@ import { FinalLeaderboard, Leaderboard } from "./LeaderBoard";
 import { TopStatusBar } from "./RoomStatusBar";
 import { nanoid } from "nanoid"
 import { FinalStatusOverlay } from "./FinalStatusOverlay";
+import { TOKEN_KEY } from "@/api";
 
 type AlertType = "error" | "warning" | "info" | "";
 const alertStyles: Record<Exclude<AlertType, "">, string> = {
@@ -34,15 +35,8 @@ const alertStyles: Record<Exclude<AlertType, "">, string> = {
 const HOME_PAGE = "home"
 
 // localStorage.setItem("access_token", token);
-const authToken = localStorage.getItem("access_token");
-console.log("T: ", authToken)
-const sessionId =
-  localStorage.getItem("sessionId") ??
-  (() => {
-    const id = nanoid();
-    localStorage.setItem("sessionId", id);
-    return id;
-  })();
+const authToken = localStorage.getItem(TOKEN_KEY);
+const sessionId = nanoid();
 
 const Agario = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);

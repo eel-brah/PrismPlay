@@ -125,6 +125,10 @@ export class Player {
   get id(): string {
     return this._id;
   }
+  //TODO:
+  set id(id: string){
+    this._id = id;
+  }
 
   get color(): string {
     return this._color;

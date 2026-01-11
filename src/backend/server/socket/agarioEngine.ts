@@ -511,8 +511,9 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
               await finalizeRoomResultsDb(world.meta.roomId!);
 
               const leaderboard = await getRoomLeaderboard(world.meta.roomId!);
+              console.log("LEaderboard len: ", leaderboard.length)
 
-              io.to(room).emit("agario:leaderboard-update", leaderboard);
+              io.to(room).emit("agario:leaderboard", leaderboard);
               io.to(room).emit("agario:room-ended", { room });
             })(),
           );
