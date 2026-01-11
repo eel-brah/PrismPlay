@@ -47,7 +47,7 @@ export async function loginHandler(
     { id: user.id },
     { sign: { expiresIn: "15m" } },
   );
-  console.log("uder is ", user)
+  // console.log("uder is ", user)
   return rep.send({
     accessToken,
     user: { id: user.id, username: user.username, email: user.email , createdAt : user.createdAt, lastLogin : user.lastLogin, avatarUrl : user.avatarUrl},

@@ -38,6 +38,7 @@ export const createUserSchema = z.object({
   password: passwordSchema,
 });
 const isoDateOrDate = z.union([z.iso.datetime(), z.date()]);
+// string .url is deprecated , need to change it 
 export const userResponseSchema = z.object({
   id: z.number(),
   ...userCore,
