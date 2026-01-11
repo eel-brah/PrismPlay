@@ -35,8 +35,8 @@ export default function App() {
   // const [sessionMode, setSessionMode] = useState<"guest" | "user">("guest");
     const [token, setToken] = useState<string | null>(() => getStoredToken());
   const [bootingAuth, setBootingAuth] = useState(true);
-
-  const isAuthed  = !!token;
+  //CHECK TOKEN IF VALID  
+  const isAuthed  = !bootingAuth && !!token;
 
   function saveProfileDataForPlayerProfile(user: { username: string; email: string; avatarUrl?: string | null }) {
     const raw = localStorage.getItem("profile_data");
@@ -69,9 +69,11 @@ export default function App() {
         setToken(saved);
         // setSessionMode("user");
         saveProfileDataForPlayerProfile(me);
-      } catch {
+      } catch(e : any) {
         // token expired/invalid
         clearToken();
+        console.log("has been caled ", e);
+
         setToken(null);
         // setSessionMode("guest");
       } finally {
@@ -166,6 +168,10 @@ export default function App() {
 
   const handleReturn = () => {
     if (globalThis.history.length > 1) {
+      if (location.pathname.startsWith("/login") || location.pathname === "/register") {
+        navigate("/home", { replace: true });
+        return;
+      }
       navigate(-1);
       return;
     }
