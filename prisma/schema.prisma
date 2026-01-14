@@ -66,6 +66,8 @@ model PlayerHistory {
   user          User?    @relation(fields: [userId], references: [id])
   guest         Guest?   @relation(fields: [guestId], references: [id])
 
+  //TODO:
+  // @@unique([roomId, name])
   @@index([roomId])
   @@index([userId])
   @@index([guestId])

@@ -3,7 +3,6 @@ import prisma from "src/backend/utils/prisma";
 import { DEFAULT_ROOM } from "src/shared/agario/config";
 import { FinalLeaderboardEntry } from "src/shared/agario/types";
 
-//TODO: try catch all db functions
 export function createGuestDb(guestId: string) {
   return prisma.guest.upsert({
     where: { id: guestId },
@@ -145,5 +144,168 @@ export async function getRoomLeaderboard(
       kills: p.kills,
       maxMass: p.maxMass,
     };
+  });
+}
+
+export async function listRoomsHistoryDb(params?: {
+  take?: number;
+  skip?: number;
+  onlyEnded?: boolean;
+}) {
+  //TODO:
+  const take = params?.take ?? 20;
+  const skip = params?.skip ?? 0;
+
+  const rooms = await prisma.room.findMany({
+    where: params?.onlyEnded ? { endedAt: { not: null } } : undefined,
+    orderBy: [{ startedAt: "desc" }],
+    take,
+    skip,
+    include: {
+      createdBy: { select: { id: true, username: true, avatarUrl: true } },
+      players: {
+        include: {
+          user: { select: { id: true, username: true, avatarUrl: true } },
+          guest: { select: { id: true } },
+        },
+        select: {
+          id: true,
+          name: true,
+          kills: true,
+          isWinner: true,
+          rank: true,
+          createdAt: true,
+          userId: true,
+          guestId: true,
+          user: true,
+          guest: true,
+        },
+      },
+    },
+  });
+
+  return rooms.map((r) => {
+    const winner = r.players.find((p) => p.isWinner) ?? null;
+
+    const winnerType = winner?.userId ? "user" : winner ? "guest" : null;
+
+    const winnerName =
+      winner?.userId && winner.user ? winner.user.username : null;
+
+    return {
+      id: r.id,
+      name: r.name,
+      visibility: r.visibility,
+      isDefault: r.isDefault,
+      maxPlayers: r.maxPlayers,
+      maxDurationMin: r.maxDurationMin,
+      startedAt: r.startedAt,
+      endedAt: r.endedAt,
+      createdBy: r.createdBy,//TODO: change it to username
+
+      playersCount: r.players.length,
+
+      winner: winner
+        ? {
+            id: winner.userId ? winner.userId : winner.guestId,
+            type: winnerType,
+            name: winner.name,
+            trueName: winnerName,
+            kills: winner.kills,
+            rank: winner.rank,
+            durationMs: winner.durationMs,
+          }
+        : null,
+    };
+  });
+}
+
+export async function getRoomHistoryDb(roomId: number) {
+  const room = await prisma.room.findUnique({
+    where: { id: roomId },
+    include: {
+      createdBy: { select: { id: true, username: true, avatarUrl: true } },
+      players: {
+        include: {
+          user: { select: { id: true, username: true, avatarUrl: true } },
+          guest: { select: { id: true } },
+        },
+        orderBy: [{ rank: "asc" }, { kills: "desc" }, { maxMass: "desc" }],
+      },
+    },
+  });
+
+  if (!room) return null;
+
+  const leaderboard = room.players.map((p, index) => {
+    const type = p.userId ? "user" : "guest";
+
+    const trueName = p.userId && p.user ? p.user.username : null;
+
+    return {
+      id: p.userId ? p.userId : p.guestId,
+      type, 
+      trueName,
+      name: p.name,
+
+      rank: p.rank ?? index + 1,
+      kills: p.kills,
+      maxMass: p.maxMass,
+      durationMs: p.durationMs,
+      isWinner: p.isWinner,
+
+      user: p.user ?? null,
+    };
+  });
+
+  return {
+    id: room.id,
+    name: room.name,
+    visibility: room.visibility,
+    isDefault: room.isDefault,
+    startedAt: room.startedAt,
+    endedAt: room.endedAt,
+    maxPlayers: room.maxPlayers,
+    maxDurationMin: room.maxDurationMin,
+    createdBy: room.createdBy,
+    leaderboard,
+  };
+}
+
+export async function listPlayerHistoryDb(params: {
+  userId?: number;
+  guestId?: string;
+  take?: number;
+  skip?: number;
+}) {
+  //TODO:
+  const take = params.take ?? 50;
+  const skip = params.skip ?? 0;
+
+  if (!params.userId && !params.guestId) {
+    throw new Error("userId or guestId is required");
+  }
+
+  return prisma.playerHistory.findMany({
+    where: {
+      OR: [
+        params.userId ? { userId: params.userId } : undefined,
+        params.guestId ? { guestId: params.guestId } : undefined,
+      ].filter(Boolean) as any,
+    },
+    include: {
+      room: {
+        select: {
+          id: true,
+          name: true,
+          startedAt: true,
+          endedAt: true,
+          visibility: true,
+        },
+      },
+    },
+    orderBy: [{ createdAt: "desc" }],
+    take,
+    skip,
   });
 }

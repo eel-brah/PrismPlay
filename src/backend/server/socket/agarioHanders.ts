@@ -543,9 +543,17 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
   socket.on("agario:request-leaderboard", async ({ room }) => {
     const world = worldByRoom.get(room);
     if (!world) return;
-    const leaderboard = await getRoomLeaderboard(world.meta.roomId!);
 
-    socket.emit("agario:leaderboard", leaderboard);
+    try {
+      if (world.meta.roomId) {
+        const leaderboard = await getRoomLeaderboard(world.meta.roomId);
+        socket.emit("agario:leaderboard", leaderboard);
+      } else fastify.log.info("Room id is missing");
+    } catch (err) {
+      let errorMessage = err instanceof Error ? err.message : "Unknown error";
+      fastify.log.error({ id: socket.id }, errorMessage);
+      socket.emit("agario:error", errorMessage);
+    }
   });
 
   // socket.on("room:ended", async ({ roomId }) => {
