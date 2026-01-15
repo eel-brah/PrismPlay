@@ -164,10 +164,10 @@ export async function listRoomsHistoryDb(params?: {
     include: {
       createdBy: { select: { id: true, username: true, avatarUrl: true } },
       players: {
-        include: {
-          user: { select: { id: true, username: true, avatarUrl: true } },
-          guest: { select: { id: true } },
-        },
+        // include: {
+        //   user: { select: { id: true, username: true, avatarUrl: true } },
+        //   guest: { select: { id: true } },
+        // },
         select: {
           id: true,
           name: true,
