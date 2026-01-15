@@ -2,7 +2,9 @@ import type { FastifyInstance } from "fastify";
 import {
     listPlayerHistoryDb,
     getRoomHistoryDb,
-    listRoomsHistoryDb
+    listRoomsHistoryDb,
+    // getRoomMetaDb,
+    getRoomLeaderboard
 } from './agario_service.ts'
 
 
@@ -31,4 +33,23 @@ export async function agario_routes(server: FastifyInstance){
             onlyEnded: q.onlyEnded
         });
     });
+    server.get("/history/rooms/:roomId/leaderboard", {preHandler: [server.auth]}, async (req, reply) => {
+        const params = req.params as { roomId: string };
+        const roomId = Number(params.roomId);
+
+        if (!Number.isFinite(roomId))
+            return reply.code(400).send({ error: "Invalid roomId" });
+
+        const room = await getRoomHistoryDb(roomId);
+
+        if (!room)
+            return reply.code(404).send({ error: "Room not found" });
+
+        const leaderboard = await getRoomLeaderboard(roomId);
+
+        return reply.send({
+        room,
+        leaderboard,
+        });
+  });
 }
