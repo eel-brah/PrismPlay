@@ -7,6 +7,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum FriendRequestStatus { 
+  PENDING 
+  ACCEPTED
+  DECLINED 
+  CANCELED
+}
+
 model User {
   id            Int       @id @default(autoincrement())
   username      String    @unique
@@ -15,10 +22,40 @@ model User {
   avatarUrl     String?
   createdAt     DateTime  @default(now())
   lastLogin     DateTime?
-
+  sentFriendRequests FriendRequest[] @relation("sentFriendRequests")
+  receivedFriendRequests FriendRequest[] @relation("receivedFriendRequests")
+  friends Friend[] @relation("userFriends") 
+  friendsOf Friend[] @relation("userFriendsOf")
   rooms         Room[]
   history       PlayerHistory[]
 }
+
+model FriendRequest{
+  id Int @id @default(autoincrement())
+  fromUserId Int
+  toUserId Int
+  status FriendRequestStatus @default(PENDING)
+  sentAt DateTime @default(now())
+  respondedAt DateTime? 
+  fromUser User @relation("sentFriendRequests" ,fields: [fromUserId], references: [id])
+  toUser User @relation("receivedFriendRequests", fields: [toUserId], references: [id])
+  @@unique([fromUserId, toUserId])
+  @@index([toUserId, status])
+  @@index([fromUserId, status])
+} 
+           
+model Friend { 
+  userId Int
+  friendId Int
+  createdAt DateTime @default(now())
+  user User @relation("userFriends", fields : [userId], references : [id])
+  friend User @relation("userFriendsOf" ,fields : [friendId], references : [id])
+  @@id([userId, friendId]) 
+  @@index([friendId]) 
+  @@index([userId]) 
+}
+
+
 
 model Guest {
   id        String   @id @default(uuid())
