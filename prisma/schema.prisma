@@ -28,6 +28,8 @@ model User {
   friendsOf Friend[] @relation("userFriendsOf")
   rooms         Room[]
   history       PlayerHistory[]
+  messagesSent  Message[] @relation("messagesSent")
+  chatParticipants ChatParticipant[]
 }
 
 model FriendRequest{
@@ -114,4 +116,36 @@ model RevokedToken {
   id         Int      @id @default(autoincrement())
   token      String   @unique
   revokedAt  DateTime @default(now())
+}
+
+model Chat {
+  id           Int                @id @default(autoincrement())
+  isGroup      Boolean            @default(false)
+  title        String?
+  participants ChatParticipant[]
+  messages     Message[]
+}
+
+model ChatParticipant {
+  chatId   Int
+  userId   Int
+
+  chat Chat @relation(fields: [chatId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@id([chatId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  chatId    Int
+  senderId  Int
+  content   String
+
+  chat   Chat @relation(fields: [chatId], references: [id])
+  sender User @relation("messagesSent", fields: [senderId], references: [id])
+
+  @@index([chatId])
+  @@index([senderId])
 }

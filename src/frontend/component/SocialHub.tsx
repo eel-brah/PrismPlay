@@ -1,5 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { MessageCircle, Gamepad2, UserPlus, UserMinus, Search, Clock, Send, MessageSquarePlus } from "lucide-react";
+import { io, type Socket } from "socket.io-client";
+import { apiGetMe, getStoredToken } from "../api";
 
 type TabKey = "friends" | "chat" | "groups";
 
@@ -63,6 +65,12 @@ export default function SocialHub() {
     "3": 1,
   });
   const [dmSearch, setDmSearch] = useState("");
+  const [showChatTest, setShowChatTest] = useState(false);
+  const [chatTestId, setChatTestId] = useState("");
+  const socketRef = useRef<Socket | null>(null);
+  const [myUserId, setMyUserId] = useState<number | null>(null);
+  const chatIdByOther = useRef<Record<string, number>>({});
+  const [displayNameById, setDisplayNameById] = useState<Record<string, string>>({});
 
   // Groups state (frontend-only mock)
   const [groups, setGroups] = useState<
@@ -119,13 +127,23 @@ export default function SocialHub() {
         ],
       }));
     } else if (chatMode === "dm" && selectedFriendId) {
-      setMessagesByDM((prev) => ({
-        ...prev,
-        [selectedFriendId]: [
-          ...(prev[selectedFriendId] || []),
-          { id: Math.random().toString(36).slice(2), author: "You", text, ts: Date.now() },
-        ],
-      }));
+        const chatId = chatIdByOther.current[selectedFriendId];
+        const s = socketRef.current;
+
+        // If we have a connected socket and a chat ID, send via socket and rely on server broadcast
+        // (prevents duplicate display of the same message locally)
+        if (s && chatId && myUserId) {
+          s.emit("send_message", { chatId, senderId: myUserId, content: text });
+        } else {
+          // fallback: optimistic UI update when socket/chat isn't ready
+          setMessagesByDM((prev) => ({
+            ...prev,
+            [selectedFriendId]: [
+              ...(prev[selectedFriendId] || []),
+              { id: Math.random().toString(36).slice(2), author: "You", text, ts: Date.now() },
+            ],
+          }));
+        }
     }
     setChatInput("");
   };
@@ -361,15 +379,25 @@ export default function SocialHub() {
                       <MessageCircle className="w-4 h-4" />
                       <span className="text-sm font-semibold">Private Chats</span>
                     </div>
-                    <button
-                      onClick={() => {
-                        setActiveTab("friends");
-                        setFriendsSubTab("suggestions");
-                      }}
-                      className="p-2 rounded-md bg-gray-800/60 hover:bg-gray-800"
-                    >
-                      <UserPlus className="w-4 h-4" />
-                    </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setShowChatTest((s) => !s)}
+                          className="px-3 py-1 rounded-md bg-gray-800/60 hover:bg-gray-800 text-sm"
+                          title="Open test DM input"
+                        >
+                          <MessageSquarePlus className="w-4 h-4 inline-block mr-2" />
+                          Chat Test
+                        </button>
+                        <button
+                          onClick={() => {
+                            setActiveTab("friends");
+                            setFriendsSubTab("suggestions");
+                          }}
+                          className="p-2 rounded-md bg-gray-800/60 hover:bg-gray-800"
+                        >
+                          <UserPlus className="w-4 h-4" />
+                        </button>
+                      </div>
                 </div>
                 <div className="mt-3">
                   <div className="relative">
@@ -382,6 +410,92 @@ export default function SocialHub() {
                     <Search className="w-4 h-4 text-gray-400 absolute right-3 top-2.5" />
                   </div>
                 </div>
+                  {showChatTest && (
+                    <div className="mt-3 p-3 rounded-md bg-gray-800/50 border border-gray-700">
+                      <div className="text-xs text-gray-300 mb-2">Start a test DM by ID</div>
+                      <div className="flex gap-2">
+                        <input
+                          value={chatTestId}
+                          onChange={(e) => setChatTestId(e.target.value)}
+                          placeholder="Enter user id..."
+                          className="flex-1 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none"
+                        />
+                        <button
+                          onClick={async () => {
+                            const id = chatTestId.trim();
+                            if (!id) return;
+
+                            // get current user id from API (requires token)
+                            try {
+                              const token = getStoredToken();
+                              if (!token) throw new Error("Not authenticated");
+                              const me = await apiGetMe(token);
+                              setMyUserId(me.id);
+
+                              // ensure socket connected
+                              if (!socketRef.current) {
+                                const s = io("/", { path: "/socket.io", transports: ["websocket", "polling"], withCredentials: true });
+                                socketRef.current = s;
+
+                                s.on("dm_joined", (payload: any) => {
+                                  // payload: { chatId, messages }
+                                  // map chatId to other user id when we join below
+                                  // we'll attach mapping after emit returns
+                                });
+
+                                s.on("new_message", (msg: any) => {
+                                  // append incoming messages to any matching DM
+                                  const other = Object.keys(chatIdByOther.current).find((k) => chatIdByOther.current[k] === msg.chatId);
+                                  if (!other) return;
+                                  setMessagesByDM((prev) => ({
+                                    ...prev,
+                                    [other]: [
+                                      ...(prev[other] || []),
+                                      { id: String(msg.id), author: msg.sender?.username || "", text: msg.content, ts: Date.now() },
+                                    ],
+                                  }));
+                                });
+                              }
+
+                              // emit join_dm (backend will create/return chat)
+                              socketRef.current!.emit("join_dm", { myId: me.id, otherUserId: Number(id) });
+
+                              // wait for dm_joined once
+                              const handler = (payload: any) => {
+                                const chatId = payload.chatId as number;
+                                chatIdByOther.current[id] = chatId;
+                                const msgs = (payload.messages || []).map((m: any) => ({ id: String(m.id), author: m.sender?.username || "", text: m.content, ts: Date.now() }));
+                                setMessagesByDM((prev) => ({ ...prev, [id]: msgs }));
+
+                                // derive display name: prefer any non-me message sender, else fallback to generic label
+                                let otherName = undefined as string | undefined;
+                                if (msgs.length > 0) {
+                                  const otherMsg = msgs.find((mm) => mm.author && mm.author !== (me.username ?? String(me.id)));
+                                  otherName = otherMsg?.author ?? msgs[0].author;
+                                }
+                                setDisplayNameById((prev) => ({ ...prev, [id]: otherName ?? `User-${id}` }));
+
+                                setSelectedFriendId(id);
+                                setChatMode("dm");
+                                setUnreadByDM((prev) => ({ ...prev, [id]: 0 }));
+                                setShowChatTest(false);
+                                setChatTestId("");
+                                socketRef.current?.off("dm_joined", handler);
+                              };
+
+                              socketRef.current!.on("dm_joined", handler);
+
+                            } catch (e) {
+                              console.error("Failed to start DM test:", e);
+                            }
+                          }}
+                          className="px-3 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          Start
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 <ul className="mt-3 space-y-2">
                     {friends.filter((f)=>f.name.toLowerCase().includes(dmSearch.toLowerCase())).map((f) => {
                       const last = (messagesByDM[f.id] || []).slice(-1)[0];
