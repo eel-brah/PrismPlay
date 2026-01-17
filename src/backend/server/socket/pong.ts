@@ -341,7 +341,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     }
   }
 
-  function handleSurrender(socket: PongSocket) {
+  async function handleSurrender(socket: PongSocket) {
     const matchId = socket.data.matchId;
     if (!matchId) return;
 
@@ -367,11 +367,11 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
         reason: "surrender",
       });
     }
-    saveMatchResult(match, winnerSide, "surrender");
+    await saveMatchResult(match, winnerSide, "surrender");
     cleanupMatch(match);
   }
 
-  function handleLeave(socket: PongSocket) {
+  async function handleLeave(socket: PongSocket) {
     const matchId = socket.data.matchId;
     if (!matchId) return;
 
@@ -430,7 +430,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     }
   }
 
-  function endMatchDueToDisconnect(match: Match, disconnectedSide: Side) {
+  async function endMatchDueToDisconnect(match: Match, disconnectedSide: Side) {
     const winnerSide: Side = disconnectedSide === "left" ? "right" : "left";
     const winner = winnerSide === "left" ? match.left : match.right;
 
@@ -444,11 +444,11 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
         reason: "disconnect",
       });
     }
-    saveMatchResult(match, winnerSide, "disconnect");
+    await saveMatchResult(match, winnerSide, "disconnect");
     cleanupMatch(match);
   }
 
-  function tickMatch(match: Match) {
+  async function tickMatch(match: Match) {
     // Don't update if paused (waiting for reconnect)
     if (match.isPaused) return;
 
@@ -470,7 +470,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
 
       match.left?.emit("game.over", gameOverPayload);
       match.right?.emit("game.over", gameOverPayload);
-      saveMatchResult(match, match.state.winner, "score");
+      await saveMatchResult(match, match.state.winner, "score");
       cleanupMatch(match);
     }
   }

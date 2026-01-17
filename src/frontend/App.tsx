@@ -100,8 +100,8 @@ export default function App() {
 
     storeToken(data.accessToken);
     setToken(data.accessToken);
+    setUser(data.user);
     // setSessionMode("user");
-
     saveProfileDataForPlayerProfile(data.user);
 
     navigate("/games");
