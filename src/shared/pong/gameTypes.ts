@@ -2,8 +2,9 @@ export type Side = "left" | "right";
 export type Phase = "waiting" | "countdown" | "playing" | "gameover";
 
 export interface PlayerProfile {
-  id: string; // some stable identifier (UUID, user id, etc.)
+  id: number;
   nickname: string;
+  email: string;
   avatarUrl?: string;
 }
 
@@ -44,16 +45,36 @@ export interface MatchResultPayload {
   rightScore: number;
 }
 
-export interface ClientToServerEvents {
-  "match.join": (profile: PlayerProfile) => void;
-  "input.update": (payload: { up: boolean; down: boolean }) => void;
-  "match.leave": () => void;
-}
-
 export interface ServerToClientEvents {
   "match.waiting": () => void;
   "match.found": (payload: MatchFoundPayload) => void;
+  "match.cancelled": () => void;
+  "match.reconnected": (payload: {
+    matchId: string;
+    side: Side;
+    snapshot: GameSnapshot;
+    opponent: PlayerProfile;
+  }) => void;
+  "match.surrendered": (payload: { matchId: string }) => void;
   "game.state": (snapshot: GameSnapshot) => void;
-  "game.over": (payload: MatchResultPayload) => void;
+  "game.over": (payload: {
+    matchId: string;
+    winnerSide: Side;
+    leftScore: number;
+    rightScore: number;
+    reason?: "score" | "surrender" | "disconnect";
+  }) => void;
   "opponent.disconnected": () => void;
+  "opponent.connectionLost": (payload: { timeout: number }) => void;
+  "opponent.reconnected": () => void;
+  "opponent.surrendered": () => void;
+  "opponent.left": () => void;
+  "error": (payload: { message: string }) => void;
+}
+
+export interface ClientToServerEvents {
+  "match.join": (profile: PlayerProfile) => void;
+  "match.leave": () => void;
+  "match.surrender": () => void;
+  "input.update": (payload: { up: boolean; down: boolean }) => void;
 }

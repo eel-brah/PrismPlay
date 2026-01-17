@@ -7,101 +7,105 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum FriendRequestStatus { 
-  PENDING 
+enum FriendRequestStatus {
+  PENDING
   ACCEPTED
-  DECLINED 
+  DECLINED
   CANCELED
 }
 
 model User {
-  id            Int       @id @default(autoincrement())
-  username      String    @unique
-  email         String    @unique
-  passwordHash  String
-  avatarUrl     String?
-  createdAt     DateTime  @default(now())
-  lastLogin     DateTime?
-  sentFriendRequests FriendRequest[] @relation("sentFriendRequests")
+  id                     Int             @id @default(autoincrement())
+  username               String          @unique
+  email                  String          @unique
+  passwordHash           String
+  avatarUrl              String?
+  createdAt              DateTime        @default(now())
+  lastLogin              DateTime?
+  sentFriendRequests     FriendRequest[] @relation("sentFriendRequests")
   receivedFriendRequests FriendRequest[] @relation("receivedFriendRequests")
-  friends Friend[] @relation("userFriends") 
-  friendsOf Friend[] @relation("userFriendsOf")
-  rooms         Room[]
-  history       PlayerHistory[]
+  friends                Friend[]        @relation("userFriends")
+  friendsOf              Friend[]        @relation("userFriendsOf")
+  rooms                  Room[]
+  history                PlayerHistory[]
+
+  pongMatchesAsLeft  PongMatch[] @relation("LeftPlayer")
+  pongMatchesAsRight PongMatch[] @relation("RightPlayer")
+  pongMatchesWon     PongMatch[] @relation("MatchWinner")
 }
 
-model FriendRequest{
-  id Int @id @default(autoincrement())
-  fromUserId Int
-  toUserId Int
-  status FriendRequestStatus @default(PENDING)
-  sentAt DateTime @default(now())
-  respondedAt DateTime? 
-  fromUser User @relation("sentFriendRequests" ,fields: [fromUserId], references: [id])
-  toUser User @relation("receivedFriendRequests", fields: [toUserId], references: [id])
+model FriendRequest {
+  id          Int                 @id @default(autoincrement())
+  fromUserId  Int
+  toUserId    Int
+  status      FriendRequestStatus @default(PENDING)
+  sentAt      DateTime            @default(now())
+  respondedAt DateTime?
+  fromUser    User                @relation("sentFriendRequests", fields: [fromUserId], references: [id])
+  toUser      User                @relation("receivedFriendRequests", fields: [toUserId], references: [id])
+
   @@unique([fromUserId, toUserId])
   @@index([toUserId, status])
   @@index([fromUserId, status])
-} 
-           
-model Friend { 
-  userId Int
-  friendId Int
-  createdAt DateTime @default(now())
-  user User @relation("userFriends", fields : [userId], references : [id])
-  friend User @relation("userFriendsOf" ,fields : [friendId], references : [id])
-  @@id([userId, friendId]) 
-  @@index([friendId]) 
-  @@index([userId]) 
 }
 
+model Friend {
+  userId    Int
+  friendId  Int
+  createdAt DateTime @default(now())
+  user      User     @relation("userFriends", fields: [userId], references: [id])
+  friend    User     @relation("userFriendsOf", fields: [friendId], references: [id])
 
+  @@id([userId, friendId])
+  @@index([friendId])
+  @@index([userId])
+}
 
 model Guest {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   lastSeen  DateTime @updatedAt
 
-  history   PlayerHistory[]
+  history PlayerHistory[]
 }
 
 model Room {
-  id              Int       @id @default(autoincrement())
-  name            String
-  isDefault       Boolean   @default(false)
-  maxDurationMin  Int?
-  maxPlayers      Int?
-  visibility      String
-  startedAt       DateTime  @default(now())
-  endedAt         DateTime?
+  id             Int       @id @default(autoincrement())
+  name           String
+  isDefault      Boolean   @default(false)
+  maxDurationMin Int?
+  maxPlayers     Int?
+  visibility     String
+  startedAt      DateTime  @default(now())
+  endedAt        DateTime?
 
-  createdById     Int?
-  createdBy       User?     @relation(fields: [createdById], references: [id])
+  createdById Int?
+  createdBy   User? @relation(fields: [createdById], references: [id])
 
-  players         PlayerHistory[]
+  players PlayerHistory[]
 
   @@index([isDefault])
 }
 
 model PlayerHistory {
-  id            Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  roomId        Int
-  userId        Int?
-  guestId       String?
-  name          String
+  roomId  Int
+  userId  Int?
+  guestId String?
+  name    String
 
-  durationMs    Int
-  maxMass       Float
-  kills         Int
-  rank          Int?
-  isWinner      Boolean @default(false)
+  durationMs Int
+  maxMass    Float
+  kills      Int
+  rank       Int?
+  isWinner   Boolean @default(false)
 
-  createdAt     DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  room          Room     @relation(fields: [roomId], references: [id])
-  user          User?    @relation(fields: [userId], references: [id])
-  guest         Guest?   @relation(fields: [guestId], references: [id])
+  room  Room   @relation(fields: [roomId], references: [id])
+  user  User?  @relation(fields: [userId], references: [id])
+  guest Guest? @relation(fields: [guestId], references: [id])
 
   //TODO:
   // @@unique([roomId, name])
@@ -111,7 +115,30 @@ model PlayerHistory {
 }
 
 model RevokedToken {
-  id         Int      @id @default(autoincrement())
-  token      String   @unique
-  revokedAt  DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  revokedAt DateTime @default(now())
+}
+
+model PongMatch {
+  id Int @id @default(autoincrement())
+
+  // Players
+  leftPlayerId  Int
+  rightPlayerId Int
+  leftPlayer    User @relation("LeftPlayer", fields: [leftPlayerId], references: [id])
+  rightPlayer   User @relation("RightPlayer", fields: [rightPlayerId], references: [id])
+
+  // Scores
+  leftScore  Int
+  rightScore Int
+
+  // Result
+  winnerId Int
+  winner   User   @relation("MatchWinner", fields: [winnerId], references: [id])
+  reason   String // "score", "surrender", "disconnect"
+
+  // Metadata
+  duration  Int?
+  createdAt DateTime @default(now())
 }

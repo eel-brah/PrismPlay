@@ -8,7 +8,7 @@ const PADDLE_SPEED = 520;
 const BALL_RADIUS = 10;
 const INITIAL_BALL_SPEED = 380;
 const MAX_SPEED = 900;
-const MIN_SPEED = 140;
+// const MIN_SPEED = 140;
 const WIN_SCORE = 5;
 const COUNTDOWN_SECONDS = 4;
 
@@ -58,9 +58,9 @@ function randomDirection() {
   return Math.random() > 0.5 ? 1 : -1;
 }
 
-function randomSpeedY(min: number, max: number) {
-  return Math.random() * (max - min) + min;
-}
+// function randomSpeedY(min: number, max: number) {
+//   return Math.random() * (max - min) + min;
+// }
 
 function createBall(): Ball {
   return {

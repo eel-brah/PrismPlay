@@ -6,3 +6,6 @@ react
 prisma
 websoket
 solidity
+
+
+pnpm prisma db push && pnpm prisma generate

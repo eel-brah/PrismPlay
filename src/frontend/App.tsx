@@ -28,17 +28,27 @@ import {
   clearToken,
 } from "./api";
 
-
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
   // const [sessionMode, setSessionMode] = useState<"guest" | "user">("guest");
-    const [token, setToken] = useState<string | null>(() => getStoredToken());
+  const [token, setToken] = useState<string | null>(() => getStoredToken());
   const [bootingAuth, setBootingAuth] = useState(true);
-  //CHECK TOKEN IF VALID  
-  const isAuthed  = !bootingAuth && !!token;
+  const [user, setUser] = useState<{
+    id: number;
+    username: string;
+    email: string;
+    avatarUrl?: string | null;
+  } | null>(null);
 
-  function saveProfileDataForPlayerProfile(user: { username: string; email: string; avatarUrl?: string | null }) {
+  //CHECK TOKEN IF VALID
+  const isAuthed = !bootingAuth && !!token;
+
+  function saveProfileDataForPlayerProfile(user: {
+    username: string;
+    email: string;
+    avatarUrl?: string | null;
+  }) {
     const raw = localStorage.getItem("profile_data");
     let previous: any = {};
     try {
@@ -55,7 +65,7 @@ export default function App() {
     localStorage.setItem("profile_data", JSON.stringify(next));
   }
 
-    useEffect(() => {
+  useEffect(() => {
     async function boot() {
       const saved = getStoredToken();
 
@@ -68,8 +78,9 @@ export default function App() {
         const me = await apiGetMe(saved); // protected request
         setToken(saved);
         // setSessionMode("user");
+        setUser(me); // Store user data
         saveProfileDataForPlayerProfile(me);
-      } catch(e : any) {
+      } catch (e: any) {
         // token expired/invalid
         clearToken();
         console.log("has been caled ", e);
@@ -84,8 +95,7 @@ export default function App() {
     boot();
   }, []);
 
-
-    async function handleLogin(email: string, password: string) {
+  async function handleLogin(email: string, password: string) {
     const data = await apiLogin(email, password);
 
     storeToken(data.accessToken);
@@ -97,7 +107,11 @@ export default function App() {
     navigate("/games");
   }
 
-  async function handleRegister(username: string, email: string, password: string) {
+  async function handleRegister(
+    username: string,
+    email: string,
+    password: string,
+  ) {
     await apiRegister(username, email, password);
     await handleLogin(email, password); // auto login
   }
@@ -108,37 +122,15 @@ export default function App() {
     if (current) {
       try {
         await apiLogout(current);
-      } catch {
-      }
+      } catch {}
     }
 
     clearToken();
     setToken(null);
+    setUser(null);
     // setSessionMode("guest");
     navigate("/home");
   }
-
-
-
-  const getUUID = () =>
-    globalThis.crypto && typeof globalThis.crypto.randomUUID === "function"
-      ? globalThis.crypto.randomUUID()
-      : `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`;
-
-  const [profileId] = useState(() => {
-    const key = "pong_profile_id";
-    const id = sessionStorage.getItem(key) ?? getUUID();
-    sessionStorage.setItem(key, id);
-    return id;
-  });
-
-  const onlineProfile = {
-    id: profileId,
-    nickname:
-      isAuthed
-        ? `User-${profileId.slice(0, 4)}`
-        : `Guest-${profileId.slice(0, 4)}`,
-  };
 
   const hideTopBar =
     location.pathname === "/register" ||
@@ -154,21 +146,24 @@ export default function App() {
     location.pathname === "/home"
       ? "home"
       : location.pathname === "/games" ||
-        location.pathname === "/landing" ||
-        location.pathname === "/guest" ||
-        location.pathname === "/offline" ||
-        location.pathname === "/online" ||
-        location.pathname === "/agario"
-      ? "games"
-      : location.pathname.startsWith("/social")
-      ? "social"
-      : location.pathname.startsWith("/profile")
-      ? "profile"
-      : "none";
+          location.pathname === "/landing" ||
+          location.pathname === "/guest" ||
+          location.pathname === "/offline" ||
+          location.pathname === "/online" ||
+          location.pathname === "/agario"
+        ? "games"
+        : location.pathname.startsWith("/social")
+          ? "social"
+          : location.pathname.startsWith("/profile")
+            ? "profile"
+            : "none";
 
   const handleReturn = () => {
     if (globalThis.history.length > 1) {
-      if (location.pathname.startsWith("/login") || location.pathname === "/register") {
+      if (
+        location.pathname.startsWith("/login") ||
+        location.pathname === "/register"
+      ) {
         navigate("/home", { replace: true });
         return;
       }
@@ -259,7 +254,7 @@ export default function App() {
               <HomePage
                 onPlay={() => navigate("/games")}
                 onLogin={() => navigate("/login/form")}
-               onLogout={() => void handleLogout()}
+                onLogout={() => void handleLogout()}
                 loggedIn={isAuthed}
               />
             </div>
@@ -280,8 +275,7 @@ export default function App() {
           element={
             <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
               <LoginForm
-               onSubmit={handleLogin}
-
+                onSubmit={handleLogin}
                 onRegister={() => navigate("/register")}
               />
             </div>
@@ -291,9 +285,7 @@ export default function App() {
           path="/register"
           element={
             <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
-              <RegisterForm
-               onSubmit={handleRegister}
-              />
+              <RegisterForm onSubmit={handleRegister} />
             </div>
           }
         />
@@ -333,9 +325,7 @@ export default function App() {
                     </ul>
                     <button
                       onClick={() =>
-                        navigate(
-                          !isAuthed ? "/guest" : "/landing"
-                        )
+                        navigate(!isAuthed ? "/guest" : "/landing")
                       }
                       className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
                     >
@@ -377,7 +367,7 @@ export default function App() {
         <Route
           path="/landing"
           element={
-           isAuthed ? (
+            isAuthed ? (
               <div
                 className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center ${topPaddingClass}`}
               >
@@ -461,7 +451,7 @@ export default function App() {
               <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
                 Loading...
               </div>
-            ) : isAuthed ?  (
+            ) : isAuthed ? (
               <div
                 className={`relative h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass}`}
               >
@@ -480,7 +470,7 @@ export default function App() {
                 Loading...
               </div>
             ) : isAuthed ? (
-             <div
+              <div
                 className={`relative h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass}`}
               >
                 <PlayerProfile />
@@ -538,20 +528,6 @@ export default function App() {
             </div>
           }
         />
-        {/* <Route
-          path="/online"
-          element={
-            sessionMode === "user" ? (
-              <div
-                className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-8 ${topPaddingClass}`}
-              >
-                <OnlinePong profile={onlineProfile} />
-              </div>
-            ) : (
-              <Navigate to="/guest" replace />
-            )
-          }
-        /> */}
         <Route
           path="/online"
           element={
@@ -559,11 +535,20 @@ export default function App() {
               <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
                 Loading...
               </div>
-            ) : isAuthed ? (
-             <div
+            ) : isAuthed && user && token ? (
+              <div
                 className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-8 ${topPaddingClass}`}
               >
-                <OnlinePong profile={onlineProfile} onReturn={handleReturn} />
+                <OnlinePong
+                  profile={{
+                    id: user.id,
+                    nickname: user.username,
+                    email: user.email,
+                    avatarUrl: user.avatarUrl ?? undefined,
+                  }}
+                  token={token}
+                  onReturn={handleReturn}
+                />
               </div>
             ) : (
               <Navigate to="/login/form" replace />

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { io, type Socket } from "socket.io-client";
-import { Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeX, LogOut } from "lucide-react";
 import { beepSound } from "@/utils/sound";
 import {
   ClientToServerEvents,
@@ -8,22 +9,45 @@ import {
   GameSnapshot,
   MatchFoundPayload,
 } from "../../shared/pong/gameTypes";
+import {
+  OnlinePongHUD,
+  OnlinePlayerLite,
+  OnlinePongStats,
+  Status,
+  Side,
+} from "./OnlinePongHUD";
+import { GameOverPopup, WinReason } from "./GameOverPopup";
+// import { set } from "zod";
 
 export interface OnlinePongProps {
   profile: {
-    id: string;
+    id: number;
     nickname: string;
+    email: string;
     avatarUrl?: string;
   };
+  token: string;
   onReturn?: () => void;
 }
 
-type PhaseUI = "searching" | "inMatch" | "gameover" | "opponentLeft";
+type PhaseUI = "searching" | "inMatch" | "gameover" | "opponentLeft" | "error";
 
 const GAME_WIDTH = 810;
 const GAME_HEIGHT = 600;
 
-const OnlinePong: React.FC<OnlinePongProps> = ({ profile, onReturn }) => {
+// Placeholder for when opponent is unknown
+const UNKNOWN_PLAYER: OnlinePlayerLite = {
+  id: 0,
+  nickname: "???",
+  avatarUrl: null,
+};
+
+const OnlinePong: React.FC<OnlinePongProps> = ({
+  profile,
+  token,
+  onReturn,
+}) => {
+  const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const socketRef = useRef<Socket<
     ServerToClientEvents,
@@ -33,58 +57,226 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ profile, onReturn }) => {
   const snapshotRef = useRef<GameSnapshot | null>(null);
   const animationRef = useRef<number | null>(null);
   const keysRef = useRef({ up: false, down: false });
+
   const [soundOn, setSoundOn] = useState(true);
   const [uiPhase, setUiPhase] = useState<PhaseUI>("searching");
-  const [side, setSide] = useState<"left" | "right" | null>(null);
-  const [opponentName, setOpponentName] = useState<string>("?");
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [side, setSide] = useState<Side | null>(null);
+
+  // Player info state
+  const [opponent, setOpponent] = useState<OnlinePlayerLite>(UNKNOWN_PLAYER);
+  const [myStatus, setMyStatus] = useState<Status>("connected");
+  const [opponentStatus, setOpponentStatus] = useState<Status>("disconnected");
+
+  // Stats (could be fetched from API in the future)
+  const [myStats] = useState<OnlinePongStats | undefined>(undefined);
+  const [opponentStats] = useState<OnlinePongStats | undefined>(undefined);
+
+  // Game over state
+  const [gameOverData, setGameOverData] = useState<{
+    isWinner: boolean;
+    myScore: number;
+    opponentScore: number;
+    winReason?: WinReason;
+  } | null>(null);
+  const [showGameOverPopup, setShowGameOverPopup] = useState(false);
 
   const soundOnRef = useRef(soundOn);
   useEffect(() => {
     soundOnRef.current = soundOn;
   }, [soundOn]);
 
+  // Ref to track current side for socket callbacks (avoids stale closure)
+  const sideRef = useRef<Side | null>(null);
+  useEffect(() => {
+    sideRef.current = side;
+  }, [side]);
+
+  // Create player objects for HUD
+  const myPlayer: OnlinePlayerLite = {
+    id: profile.id,
+    nickname: profile.nickname,
+    avatarUrl: profile.avatarUrl,
+  };
+
+  // Determine which player is on which side
+  const leftPlayer = side === "left" ? myPlayer : opponent;
+  const rightPlayer = side === "right" ? myPlayer : opponent;
+  const leftStatus = side === "left" ? myStatus : opponentStatus;
+  const rightStatus = side === "right" ? myStatus : opponentStatus;
+
   // --- Setup socket & matchmaking ---
   useEffect(() => {
     console.log("Connecting to /pong namespace");
-    // Connect to the same socket.io path as Agario, but in /pong namespace
+    console.log("Token being used:", token ? "present" : "MISSING"); // Add this
+    console.log("Token value:", token?.substring(0, 20) + "..."); // Add this (partial for security)
     const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
       "/pong",
       {
-        path: "/socket.io", // matches your backend socket index.ts
+        path: "/socket.io",
+        auth: { token },
         transports: ["websocket", "polling"],
         withCredentials: true,
-      }
+      },
     );
 
     socketRef.current = socket;
 
     socket.on("connect", () => {
       console.log("[pong] connected", socket.id, profile);
+      setMyStatus("connected");
+      setConnectionError(null);
       socket.emit("match.join", {
         id: profile.id,
         nickname: profile.nickname,
+        email: profile.email,
         avatarUrl: profile.avatarUrl,
       });
     });
 
-    socket.on("match.waiting", () => setUiPhase("searching"));
+    socket.on("disconnect", () => {
+      setMyStatus("disconnected");
+    });
+
+    socket.on("match.waiting", () => {
+      setUiPhase("searching");
+      setOpponentStatus("disconnected");
+      setOpponent(UNKNOWN_PLAYER);
+    });
+
     socket.on("match.found", (payload: MatchFoundPayload) => {
+      console.log("[match.found] side:", payload.side);
       setSide(payload.side);
-      setOpponentName(payload.opponent.nickname);
+      sideRef.current = payload.side; // Update ref immediately
+      setOpponent({
+        id: payload.opponent.id,
+        nickname: payload.opponent.nickname,
+        avatarUrl: payload.opponent.avatarUrl,
+      });
+      setOpponentStatus("connected");
       setUiPhase("inMatch");
     });
+
     socket.on("game.state", (snapshot) => (snapshotRef.current = snapshot));
+
     socket.on("game.over", (payload) => {
       snapshotRef.current = {
         ...(snapshotRef.current as GameSnapshot),
         phase: "gameover",
         winner: payload.winnerSide,
       };
+
+      // Use ref to get current side (avoids stale closure)
+      const currentSide = sideRef.current;
+      const isWinner = payload.winnerSide === currentSide;
+      const myScore =
+        currentSide === "left" ? payload.leftScore : payload.rightScore;
+      const opponentScore =
+        currentSide === "left" ? payload.rightScore : payload.leftScore;
+
+      console.log("[game.over] payload:", payload);
+      console.log(
+        "[game.over] currentSide:",
+        currentSide,
+        "winnerSide:",
+        payload.winnerSide,
+        "isWinner:",
+        isWinner,
+      );
+
+      setGameOverData({
+        isWinner,
+        myScore,
+        opponentScore,
+        winReason: payload.reason as WinReason,
+      });
+      setShowGameOverPopup(true);
       setUiPhase("gameover");
       if (soundOnRef.current) beepSound(true, 659, 0.15, 0.4);
     });
+
     socket.on("opponent.disconnected", () => {
-      setUiPhase((prev) => (prev === "gameover" ? prev : "gameover"));
+      setOpponentStatus("disconnected");
+      if (uiPhase !== "gameover") {
+        // If opponent disconnected mid-game, show as a win
+        const snap = snapshotRef.current;
+        const currentSide = sideRef.current;
+        setGameOverData({
+          isWinner: true,
+          myScore: snap
+            ? currentSide === "left"
+              ? snap.left.score
+              : snap.right.score
+            : 0,
+          opponentScore: snap
+            ? currentSide === "left"
+              ? snap.right.score
+              : snap.left.score
+            : 0,
+          winReason: "disconnect",
+        });
+        setShowGameOverPopup(true);
+        setUiPhase("opponentLeft");
+      }
+    });
+
+    socket.on("opponent.connectionLost", () => {
+      setOpponentStatus("disconnected");
+    });
+
+    socket.on("opponent.reconnected", () => {
+      setOpponentStatus("connected");
+    });
+
+    // Handle reconnection to existing match (after page refresh)
+    socket.on("match.reconnected", (payload) => {
+      console.log("[match.reconnected]", payload);
+      setSide(payload.side);
+      sideRef.current = payload.side;
+      snapshotRef.current = payload.snapshot;
+      setOpponent({
+        id: payload.opponent.id,
+        nickname: payload.opponent.nickname,
+        avatarUrl: payload.opponent.avatarUrl,
+      });
+      setOpponentStatus("connected");
+      setUiPhase("inMatch");
+    });
+
+    socket.on("opponent.left", () => {
+      setOpponentStatus("disconnected");
+      if (uiPhase !== "gameover") {
+        const snap = snapshotRef.current;
+        const currentSide = sideRef.current;
+        setGameOverData({
+          isWinner: true,
+          myScore: snap
+            ? currentSide === "left"
+              ? snap.left.score
+              : snap.right.score
+            : 0,
+          opponentScore: snap
+            ? currentSide === "left"
+              ? snap.right.score
+              : snap.left.score
+            : 0,
+          winReason: "disconnect",
+        });
+        setShowGameOverPopup(true);
+        setUiPhase("opponentLeft");
+      }
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("[pong] connection error:", err.message);
+      setConnectionError(err.message);
+      setMyStatus("disconnected");
+      setUiPhase("error");
+    });
+
+    socket.on("error", (payload) => {
+      console.error("[pong] server error:", payload.message);
+      setConnectionError(payload.message);
     });
 
     return () => {
@@ -93,23 +285,13 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ profile, onReturn }) => {
       if (animationRef.current !== null)
         cancelAnimationFrame(animationRef.current);
     };
-  }, [profile.id, profile.nickname, profile.avatarUrl]);
+  }, [profile.id, profile.nickname, profile.avatarUrl, profile.email, token]);
 
   // --- Key handling: local input + send to server ---
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "ArrowUp" || e.key === "ArrowDown") e.preventDefault();
-      if (e.key === "ArrowUp") keysRef.current.up = true;
-      if (e.key === "ArrowDown") keysRef.current.down = true;
-      emitInput();
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === "ArrowUp" || e.key === "ArrowDown") e.preventDefault();
-      if (e.key === "ArrowUp") keysRef.current.up = false;
-      if (e.key === "ArrowDown") keysRef.current.down = false;
-      emitInput();
-    };
+    const isUpKey = (k: string) => k === "ArrowUp" || k === "w" || k === "W";
+    const isDownKey = (k: string) =>
+      k === "ArrowDown" || k === "s" || k === "S";
 
     function emitInput() {
       const socket = socketRef.current;
@@ -120,12 +302,37 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ profile, onReturn }) => {
       });
     }
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isUpKey(e.key) && !isDownKey(e.key)) return;
+
+      e.preventDefault();
+
+      // optional: prevents spamming when holding key down
+      // if (e.repeat) return;
+
+      if (isUpKey(e.key)) keysRef.current.up = true;
+      if (isDownKey(e.key)) keysRef.current.down = true;
+
+      emitInput();
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (!isUpKey(e.key) && !isDownKey(e.key)) return;
+
+      e.preventDefault();
+
+      if (isUpKey(e.key)) keysRef.current.up = false;
+      if (isDownKey(e.key)) keysRef.current.down = false;
+
+      emitInput();
+    };
+
     document.addEventListener("keydown", handleKeyDown, { passive: false });
     document.addEventListener("keyup", handleKeyUp, { passive: false });
 
     return () => {
-      document.removeEventListener("keydown", handleKeyDown as any);
-      document.removeEventListener("keyup", handleKeyUp as any);
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keyup", handleKeyUp);
     };
   }, []);
 
@@ -140,6 +347,15 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ profile, onReturn }) => {
       const snap = snapshotRef.current;
       ctx.fillStyle = "#1e1e2e";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (uiPhase === "error") {
+        ctx.fillStyle = "#f38ba8";
+        ctx.font = "28px monospace";
+        const msg = connectionError || "Connection error.";
+        const w = ctx.measureText(msg).width;
+        ctx.fillText(msg, (canvas.width - w) / 2, canvas.height / 2);
+        return;
+      }
 
       if (!snap) {
         // no state yet
@@ -159,7 +375,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ profile, onReturn }) => {
         canvas.width / 2 - 2,
         0,
         canvas.width / 2 + 2,
-        0
+        0,
       );
       gradient.addColorStop(0, "rgba(137, 180, 250, 0)");
       gradient.addColorStop(0.5, "rgba(137, 180, 250, 0.5)");
@@ -226,7 +442,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ profile, onReturn }) => {
       ctx.fillText(
         snap.right.score.toString(),
         (canvas.width * 3) / 4 - 12,
-        60
+        60,
       );
 
       // combo
@@ -245,7 +461,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ profile, onReturn }) => {
         if (snap.countdown > 0) {
           centered(snap.countdown.toString(), canvas.height / 2 + 20, 96);
           centered("Game Ready!", canvas.height / 2 - 60, 32);
-          centered(`vs ${opponentName}`, canvas.height / 2 + 100, 24);
+          centered(`vs ${opponent.nickname}`, canvas.height / 2 + 100, 24);
         }
       }
     };
@@ -268,88 +484,122 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ profile, onReturn }) => {
       if (animationRef.current !== null)
         cancelAnimationFrame(animationRef.current);
     };
-  }, [uiPhase, opponentName, side]);
-
-  // Resize canvas like your offline component
-  useEffect(() => {
-    const resizeCanvas = () => {
-      if (!canvasRef.current?.parentElement) return;
-      const parent = canvasRef.current.parentElement;
-      const rect = parent.getBoundingClientRect();
-      const ratio = GAME_WIDTH / GAME_HEIGHT;
-      const scale = 0.8;
-      const effectiveScale = Math.min(scale, 1);
-
-      let w = rect.width;
-      let h = rect.height;
-      if (w / h > ratio) w = h * ratio;
-      else h = w / ratio;
-
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      canvas.style.width = `${w * effectiveScale}px`;
-      canvas.style.height = `${h * effectiveScale}px`;
-    };
-    const observer = new ResizeObserver(resizeCanvas);
-    if (canvasRef.current?.parentElement)
-      observer.observe(canvasRef.current.parentElement);
-    resizeCanvas();
-
-    return () => observer.disconnect();
-  }, []);
+  }, [uiPhase, opponent.nickname, side, connectionError]);
 
   // --- UI ---
+
+  // Handler for finding a new match
+  const handleFindMatch = () => {
+    setShowGameOverPopup(false);
+    setGameOverData(null);
+    snapshotRef.current = null;
+    setUiPhase("searching");
+    setOpponent(UNKNOWN_PLAYER);
+    setSide(null);
+
+    // Reconnect and join matchmaking again
+    const socket = socketRef.current;
+    if (socket) {
+      socket.emit("match.join", {
+        id: profile.id,
+        nickname: profile.nickname,
+        email: profile.email,
+        avatarUrl: profile.avatarUrl,
+      });
+    }
+  };
+
+  // Handler for rematch (request rematch with same opponent)
+  const handleRematch = () => {
+    // For now, just find a new match (rematch logic would need server support)
+    handleFindMatch();
+  };
+
+  // Handler for leaving to games page
+  const handleLeave = () => {
+    setShowGameOverPopup(false);
+    navigate("/games");
+  };
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">
-      {/* Top-right controls */}
-      <div className="absolute top-20 right-4 flex gap-2 z-10">
-        <button
-          onClick={() => setSoundOn((s) => !s)}
-          className="bg-gray-800/80 hover:bg-gray-800 text-white p-3 rounded-lg transition-all"
-        >
-          {soundOn ? <Volume2 size={20} /> : <VolumeX size={20} />}
-        </button>
-        {onReturn && (
+    <div className="fixed inset-0 flex flex-col bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">
+      {/* Top bar with controls */}
+      <div className="flex items-center justify-end px-4 py-2 mb-4">
+        {/* Action buttons */}
+        <div className="flex items-center gap-2">
           <button
-            onClick={onReturn}
-            className="bg-gray-800/80 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-all"
+            onClick={() => setSoundOn((s) => !s)}
+            className="bg-gray-800/80 hover:bg-gray-700 text-white p-2.5 rounded-lg transition-all border border-gray-700/50"
+            title={soundOn ? "Mute" : "Unmute"}
           >
-            Return
+            {soundOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
           </button>
+          {onReturn && (
+            <button
+              onClick={onReturn}
+              className="flex items-center gap-2 bg-red-600/80 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-all border border-red-500/50"
+            >
+              <LogOut size={16} />
+              <span className="text-sm font-medium">Leave</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Main game area with HUD */}
+      <div className="flex-1 flex items-center justify-center overflow-auto">
+        {side ? (
+          <OnlinePongHUD
+            mySide={side}
+            leftPlayer={leftPlayer}
+            rightPlayer={rightPlayer}
+            leftStatus={leftStatus}
+            rightStatus={rightStatus}
+            leftStats={side === "left" ? myStats : opponentStats}
+            rightStats={side === "right" ? myStats : opponentStats}
+          >
+            <canvas
+              ref={canvasRef}
+              width={GAME_WIDTH}
+              height={GAME_HEIGHT}
+              className="border-4 border-gray-700 rounded-lg shadow-2xl"
+              style={{ imageRendering: "pixelated" }}
+            />
+          </OnlinePongHUD>
+        ) : (
+          // Searching state - show canvas without HUD
+          <div className="flex flex-col items-center gap-6">
+            <canvas
+              ref={canvasRef}
+              width={GAME_WIDTH}
+              height={GAME_HEIGHT}
+              className="border-4 border-gray-700 rounded-lg shadow-2xl"
+              style={{ imageRendering: "pixelated" }}
+            />
+            <div className="flex items-center gap-3 text-gray-400">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping" />
+              <span>Waiting for an opponent to join...</span>
+            </div>
+          </div>
         )}
       </div>
 
-      {/* Status overlay */}
-      <div className="absolute top-20 left-4 text-gray-200 z-10 space-y-1">
-        <p className="font-semibold">
-          You: <span className="text-blue-400">{profile.nickname}</span>
-        </p>
-        {side && (
-          <p>
-            Side:{" "}
-            <span className="font-mono">
-              {side === "left" ? "Left (↑/↓)" : "Right (↑/↓)"}
-            </span>
-          </p>
-        )}
-        {uiPhase === "searching" && <p>Matching...</p>}
-        {uiPhase === "inMatch" && (
-          <p>
-            Opponent: <span className="text-pink-300">{opponentName}</span>
-          </p>
-        )}
-        {uiPhase === "opponentLeft" && (
-          <p className="text-yellow-300">Opponent disconnected</p>
-        )}
-      </div>
-
-      <canvas
-        ref={canvasRef}
-        width={GAME_WIDTH}
-        height={GAME_HEIGHT}
-        className="max-w-full max-h-full w-auto h-auto border-4 border-gray-700 rounded-lg shadow-2xl"
-        style={{ imageRendering: "pixelated" }}
-      />
+      {/* Game Over Popup */}
+      {side && gameOverData && (
+        <GameOverPopup
+          isOpen={showGameOverPopup}
+          isWinner={gameOverData.isWinner}
+          myScore={gameOverData.myScore}
+          opponentScore={gameOverData.opponentScore}
+          myNickname={profile.nickname}
+          opponentNickname={opponent.nickname}
+          mySide={side}
+          winReason={gameOverData.winReason}
+          onFindMatch={handleFindMatch}
+          onRematch={handleRematch}
+          onLeave={handleLeave}
+        />
+      )}
     </div>
   );
 };
