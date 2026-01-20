@@ -3,6 +3,7 @@ import fp from "fastify-plugin";
 import { Server as SocketIOServer } from "socket.io";
 import { init_agario } from "./agario";
 import { init_pong } from "./pong";
+import {registerChatHandlers} from "./chatHandler";
 
 export default fp(async function socketPlugin(fastify: FastifyInstance) {
   const io = new SocketIOServer(fastify.server, {
@@ -21,6 +22,10 @@ export default fp(async function socketPlugin(fastify: FastifyInstance) {
 
   init_agario(io, fastify);
   init_pong(io, fastify);
+
+  io.on("connection", (socket) => { 
+    registerChatHandlers(io, socket);
+  });
 
   fastify.decorate("io", io);
 });
