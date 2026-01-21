@@ -45,7 +45,7 @@ export async function loginHandler(
 
   const accessToken = await rep.jwtSign(
     { id: user.id },
-    { sign: { expiresIn: "15m" } },
+    { sign: { expiresIn: "1d" } },
   );
   // console.log("uder is ", user)
   return rep.send({
