@@ -5,7 +5,7 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from "fastify-type-provider-zod";
-import { NODE_ENV, SSL_CERT_PATH, SSL_KEY_PATH } from "./config.ts";
+import { NODE_ENV, SSL_CERT_PATH, SSL_KEY_PATH } from "./config";
 
 const logger = {
   transport: {
