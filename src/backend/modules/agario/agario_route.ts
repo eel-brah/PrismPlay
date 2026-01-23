@@ -30,11 +30,11 @@ export async function agario_routes(server: FastifyInstance){
     });
     server.get("/history/rooms", {preHandler: [server.auth]}, async (req, res) => {
         const q = req.query as any;
-        return listRoomsHistoryDb({
-            take: q.take,
-            skip: q.skip,
-            onlyEnded: q.onlyEnded
-        });
+        return listRoomsHistoryDb(
+            q.take,
+            q.skip,
+            q.onlyEnded
+        );
     });
     server.get("/history/rooms/:roomId/leaderboard", {preHandler: [server.auth]}, async (req, reply) => {
         const params = req.params as { roomId: string };

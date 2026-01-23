@@ -154,60 +154,84 @@ export async function listRoomsHistoryDb(
 ) {
   const rooms = await prisma.room.findMany({
     where: onlyEnded ? { endedAt: { not: null } } : undefined,
-    orderBy: [{ startedAt: "asc" }],
+    orderBy: [{ startedAt: "desc" }], 
     take,
     skip,
     include: {
       createdBy: { select: { id: true, username: true, avatarUrl: true } },
       players: {
-        select: {
-          id: true,
-          name: true,
-          kills: true,
-          isWinner: true,
-          rank: true,
-          createdAt: true,
-          userId: true,
-          guestId: true,
-          user: true,
-          guest: true,
+        include: {
+          user: { select: { id: true, username: true, avatarUrl: true } },
+          guest: { select: { id: true } },
         },
+        orderBy: [{ rank: "asc" }, { kills: "desc" }, { maxMass: "desc" }],
       },
     },
   });
 
-  return rooms.map((r) => {
-    const winner = r.players.find((p) => p.isWinner) ?? null;
+  return rooms.map((room) => {
+    const leaderboard = room.players.map((p, index) => {
+      const type = p.userId ? "user" : "guest";
+      const trueName = p.userId && p.user ? p.user.username : null;
 
-    const winnerType = winner?.userId ? "user" : winner ? "guest" : null;
+      return {
+        id: p.userId ? p.userId : p.guestId,
+        type,
+        trueName,
+        name: p.name,
 
-    const winnerName =
-      winner?.userId && winner.user ? winner.user.username : null;
+        rank: p.rank ?? index + 1,
+        kills: p.kills,
+        maxMass: p.maxMass,
+        durationMs: p.durationMs,
+        isWinner: p.isWinner,
+
+        user: p.user ?? null,
+        guest: p.guest ?? null,
+
+        createdAt: p.createdAt,
+      };
+    });
+
+    const winnerPlayer =
+      room.players.find((p) => p.isWinner) ?? room.players[0] ?? null;
+
+    const winner =
+      winnerPlayer === null
+        ? null
+        : {
+            id: winnerPlayer.userId
+              ? winnerPlayer.userId
+              : winnerPlayer.guestId,
+            type: winnerPlayer.userId ? "user" : "guest",
+            name: winnerPlayer.name,
+            trueName:
+              winnerPlayer.userId && winnerPlayer.user
+                ? winnerPlayer.user.username
+                : null,
+            kills: winnerPlayer.kills,
+            rank: winnerPlayer.rank ?? 1,
+            durationMs: winnerPlayer.durationMs,
+            maxMass: winnerPlayer.maxMass,
+          };
 
     return {
-      id: r.id,
-      name: r.name,
-      visibility: r.visibility,
-      isDefault: r.isDefault,
-      maxPlayers: r.maxPlayers,
-      maxDurationMin: r.maxDurationMin,
-      startedAt: r.startedAt,
-      endedAt: r.endedAt,
-      createdBy: r.createdBy,
+      id: room.id,
+      name: room.name,
+      visibility: room.visibility,
+      isDefault: room.isDefault,
+      maxPlayers: room.maxPlayers,
+      maxDurationMin: room.maxDurationMin,
+      startedAt: room.startedAt,
+      endedAt: room.endedAt,
 
-      playersCount: r.players.length,
+      createdBy: room.createdBy,
 
-      winner: winner
-        ? {
-            id: winner.userId ? winner.userId : winner.guestId,
-            type: winnerType,
-            name: winner.name,
-            trueName: winnerName,
-            kills: winner.kills,
-            rank: winner.rank,
-            durationMs: winner.durationMs,
-          }
-        : null,
+      playersCount: room.players.length,
+
+      leaderboard,
+
+      winner,
     };
   });
 }
