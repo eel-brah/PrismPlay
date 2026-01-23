@@ -17,7 +17,6 @@ export function registerRoutes(
   server.register(userRoutes, { prefix: "/api/users" });
   server.register(agario_routes, {prefix: "/api/agario"});
   server.register(friendsRoutes, {prefix:"/api/friend"});
-  server.register(agario_routes, {prefix: "/api/agario"})
   server.register(pingRoute, {prefix: "/api/pong"})
 
   server.get("/api/healthcheck", async () => ({ status: "OK" }));
