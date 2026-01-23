@@ -8,16 +8,16 @@ import {
   ServerToClientEvents,
   GameSnapshot,
   MatchFoundPayload,
+  PlayerStats,
+  Side,
 } from "../../shared/pong/gameTypes";
 import {
   OnlinePongHUD,
   OnlinePlayerLite,
   OnlinePongStats,
   Status,
-  Side,
 } from "./OnlinePongHUD";
 import { GameOverPopup, WinReason } from "./GameOverPopup";
-// import { set } from "zod";
 
 export interface OnlinePongProps {
   profile: {
@@ -68,9 +68,14 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
   const [myStatus, setMyStatus] = useState<Status>("connected");
   const [opponentStatus, setOpponentStatus] = useState<Status>("disconnected");
 
-  // Stats (could be fetched from API in the future)
-  const [myStats] = useState<OnlinePongStats | undefined>(undefined);
-  const [opponentStats] = useState<OnlinePongStats | undefined>(undefined);
+  // Stats
+  const [myStats, setMyStats] = useState<OnlinePongStats | undefined>(
+    undefined,
+  );
+  const [opponentStats, setOpponentStats] = useState<
+    OnlinePongStats | undefined
+  >(undefined);
+  const [loadingStats, setLoadingStats] = useState(true);
 
   // Game over state
   const [gameOverData, setGameOverData] = useState<{
@@ -104,12 +109,14 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
   const rightPlayer = side === "right" ? myPlayer : opponent;
   const leftStatus = side === "left" ? myStatus : opponentStatus;
   const rightStatus = side === "right" ? myStatus : opponentStatus;
+  const leftStats = side === "left" ? myStats : opponentStats;
+  const rightStats = side === "right" ? myStats : opponentStats;
 
   // --- Setup socket & matchmaking ---
   useEffect(() => {
     console.log("Connecting to /pong namespace");
-    console.log("Token being used:", token ? "present" : "MISSING"); // Add this
-    console.log("Token value:", token?.substring(0, 20) + "..."); // Add this (partial for security)
+    console.log("Token being used:", token ? "present" : "MISSING");
+    console.log("Token value:", token?.substring(0, 20) + "...");
     const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
       "/pong",
       {
@@ -142,18 +149,33 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
       setUiPhase("searching");
       setOpponentStatus("disconnected");
       setOpponent(UNKNOWN_PLAYER);
+      //Reset stats
+      setMyStats(undefined);
+      setOpponentStats(undefined);
+      setLoadingStats(true);
     });
 
     socket.on("match.found", (payload: MatchFoundPayload) => {
       console.log("[match.found] side:", payload.side);
+      console.log("[match.found] playerStats:", payload.playerStats);
+      console.log("[match.found] opponentStats:", payload.opponentStats);
+
       setSide(payload.side);
-      sideRef.current = payload.side; // Update ref immediately
+      sideRef.current = payload.side;
+
       setOpponent({
         id: payload.opponent.id,
         nickname: payload.opponent.nickname,
         avatarUrl: payload.opponent.avatarUrl,
       });
+
       setOpponentStatus("connected");
+
+      // Set stats from payload
+      setMyStats(payload.playerStats);
+      setOpponentStats(payload.opponentStats);
+      setLoadingStats(false);
+
       setUiPhase("inMatch");
     });
 
@@ -287,7 +309,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
     };
   }, [profile.id, profile.nickname, profile.avatarUrl, profile.email, token]);
 
-  // --- Key handling: local input + send to server ---
+  // --- Key handling  ---
   useEffect(() => {
     const isUpKey = (k: string) => k === "ArrowUp" || k === "w" || k === "W";
     const isDownKey = (k: string) =>
@@ -306,9 +328,6 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
       if (!isUpKey(e.key) && !isDownKey(e.key)) return;
 
       e.preventDefault();
-
-      // optional: prevents spamming when holding key down
-      // if (e.repeat) return;
 
       if (isUpKey(e.key)) keysRef.current.up = true;
       if (isDownKey(e.key)) keysRef.current.down = true;
@@ -496,7 +515,11 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
     setUiPhase("searching");
     setOpponent(UNKNOWN_PLAYER);
     setSide(null);
-
+  
+    //Reset stats
+    setMyStats(undefined);
+    setOpponentStats(undefined);
+    setLoadingStats(true);
     // Reconnect and join matchmaking again
     const socket = socketRef.current;
     if (socket) {
@@ -555,8 +578,10 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
             rightPlayer={rightPlayer}
             leftStatus={leftStatus}
             rightStatus={rightStatus}
-            leftStats={side === "left" ? myStats : opponentStats}
-            rightStats={side === "right" ? myStats : opponentStats}
+            leftStats={leftStats}
+            rightStats={rightStats}
+            loadingLeft={loadingStats}
+            loadingRight={loadingStats}
           >
             <canvas
               ref={canvasRef}
