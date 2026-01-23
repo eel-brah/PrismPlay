@@ -16,6 +16,25 @@ export type LoginResponse = {
   user: User;
 };
 
+export type MatchHistoryItem = {
+  id: number;
+  opponentName: string;
+  result: "win" | "lose";
+  score: string;
+  date: string;
+};
+
+export type MatchHistoryResponse = {
+  history: MatchHistoryItem[];
+};
+
+export type PlayerStats = {
+  wins: number;
+  losses: number;
+  totalGames: number;
+  winrate: number;
+};
+
 export function getStoredToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -89,6 +108,20 @@ export function apiUpdateMe(
 export function apiLogout(token: string) {
   return requestJson<{ message: string }>("/api/auth/logout", {
     method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export function apiGetMatchHistory(token: string, playerId: number) {
+  return requestJson<MatchHistoryResponse>(`/api/matchs/history/${playerId}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export function apiGetPlayerStats(token: string, playerId: number) {
+  return requestJson<PlayerStats>(`/api/matchs/stats/${playerId}`, {
+    method: "GET",
     headers: { Authorization: `Bearer ${token}` },
   });
 }
