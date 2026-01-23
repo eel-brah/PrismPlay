@@ -11,11 +11,15 @@ import {
 export async function agario_routes(server: FastifyInstance){
     server.get("/history/players", { preHandler: [server.auth]}, async (req) => {
         const q = req.query;
-        return listPlayerHistoryDb({
-            userId :q.userId ? Number(q.userId) : undefined,
-            take: q.take,
-            skip: q.skip
-        });
+      //TODO: userId must exist
+      if (!q.userId) {
+        throw new Error("userId is required");
+      }
+        return listPlayerHistoryDb(
+            Number(q.userId),
+            q.take,
+            q.skip
+        );
     });
     server.get("/history/rooms/:roomId", {preHandler: [server.auth]}, async (req, res) => {
         const {roomId} = req.params as any;

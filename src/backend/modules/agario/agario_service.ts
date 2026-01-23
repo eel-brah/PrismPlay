@@ -147,27 +147,19 @@ export async function getRoomLeaderboard(
   });
 }
 
-export async function listRoomsHistoryDb(params?: {
-  take?: number;
-  skip?: number;
-  onlyEnded?: boolean;
-}) {
-  //TODO:
-  const take = params?.take ?? 20;
-  const skip = params?.skip ?? 0;
-
+export async function listRoomsHistoryDb(
+  take: number = 20,
+  skip: number = 0,
+  onlyEnded: boolean = false,
+) {
   const rooms = await prisma.room.findMany({
-    where: params?.onlyEnded ? { endedAt: { not: null } } : undefined,
-    orderBy: [{ startedAt: "desc" }],
+    where: onlyEnded ? { endedAt: { not: null } } : undefined,
+    orderBy: [{ startedAt: "asc" }],
     take,
     skip,
     include: {
       createdBy: { select: { id: true, username: true, avatarUrl: true } },
       players: {
-        // include: {
-        //   user: { select: { id: true, username: true, avatarUrl: true } },
-        //   guest: { select: { id: true } },
-        // },
         select: {
           id: true,
           name: true,
@@ -201,7 +193,7 @@ export async function listRoomsHistoryDb(params?: {
       maxDurationMin: r.maxDurationMin,
       startedAt: r.startedAt,
       endedAt: r.endedAt,
-      createdBy: r.createdBy,//TODO: change it to username
+      createdBy: r.createdBy,
 
       playersCount: r.players.length,
 
@@ -244,7 +236,7 @@ export async function getRoomHistoryDb(roomId: number) {
 
     return {
       id: p.userId ? p.userId : p.guestId,
-      type, 
+      type,
       trueName,
       name: p.name,
 
@@ -265,32 +257,20 @@ export async function getRoomHistoryDb(roomId: number) {
     isDefault: room.isDefault,
     startedAt: room.startedAt,
     endedAt: room.endedAt,
-    maxPlayers: room.maxPlayers,
-    maxDurationMin: room.maxDurationMin,
+    // maxPlayers: room.maxPlayers,
+    // maxDurationMin: room.maxDurationMin,
     createdBy: room.createdBy,
     leaderboard,
   };
 }
 
-export async function listPlayerHistoryDb(params: {
-  userId?: number;
-  take?: number;
-  skip?: number;
-}) {
-  //TODO:
-  const take = params.take ?? 50;
-  const skip = params.skip ?? 0;
-
-  if (!params.userId) {
-    throw new Error("userId is required");
-  }
-
+export async function listPlayerHistoryDb(
+  userId: number,
+  take: number = 20,
+  skip: number = 0,
+) {
   return prisma.playerHistory.findMany({
-    where: {
-      OR: [
-        params.userId ? { userId: params.userId } : undefined,
-      ].filter(Boolean) as any,
-    },
+    where: { userId: userId },
     include: {
       room: {
         select: {
@@ -299,10 +279,11 @@ export async function listPlayerHistoryDb(params: {
           startedAt: true,
           endedAt: true,
           visibility: true,
+          isDefault: true,
         },
       },
     },
-    orderBy: [{ createdAt: "desc" }],
+    orderBy: { createdAt: "desc" },
     take,
     skip,
   });
