@@ -274,7 +274,6 @@ export async function getRoomHistoryDb(roomId: number) {
 
 export async function listPlayerHistoryDb(params: {
   userId?: number;
-  guestId?: string;
   take?: number;
   skip?: number;
 }) {
@@ -282,15 +281,14 @@ export async function listPlayerHistoryDb(params: {
   const take = params.take ?? 50;
   const skip = params.skip ?? 0;
 
-  if (!params.userId && !params.guestId) {
-    throw new Error("userId or guestId is required");
+  if (!params.userId) {
+    throw new Error("userId is required");
   }
 
   return prisma.playerHistory.findMany({
     where: {
       OR: [
         params.userId ? { userId: params.userId } : undefined,
-        params.guestId ? { guestId: params.guestId } : undefined,
       ].filter(Boolean) as any,
     },
     include: {

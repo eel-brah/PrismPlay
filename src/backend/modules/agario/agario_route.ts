@@ -13,7 +13,6 @@ export async function agario_routes(server: FastifyInstance){
         const q = req.query;
         return listPlayerHistoryDb({
             userId :q.userId ? Number(q.userId) : undefined,
-            guestId: q.guestId,
             take: q.take,
             skip: q.skip
         });
