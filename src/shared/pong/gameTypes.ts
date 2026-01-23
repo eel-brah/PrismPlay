@@ -29,13 +29,21 @@ export interface GameSnapshot {
   right: PaddleSnapshot;
   combo: number;
   maxCombo: number;
-  countdown: number; // seconds remaining in countdown (0 when not in countdown)
+  countdown: number;
+}
+
+export interface PlayerStats {
+  wins: number;
+  losses: number;
+  winrate: number;
 }
 
 export interface MatchFoundPayload {
   matchId: string;
   side: Side;
   opponent: PlayerProfile;
+  playerStats: PlayerStats;
+  opponentStats: PlayerStats;
 }
 
 export interface MatchResultPayload {
@@ -69,7 +77,7 @@ export interface ServerToClientEvents {
   "opponent.reconnected": () => void;
   "opponent.surrendered": () => void;
   "opponent.left": () => void;
-  "error": (payload: { message: string }) => void;
+  error: (payload: { message: string }) => void;
 }
 
 export interface ClientToServerEvents {

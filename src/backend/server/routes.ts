@@ -1,6 +1,7 @@
 import {  type FastifyInstance } from "fastify";
 import { authRoutes, userRoutes } from "../modules/user/user_route";
 import {agario_routes} from "../modules/agario/agario_route";
+import pingRoute from "../modules/pong/pong_route";
 export function registerRoutes(
   server: FastifyInstance,
   http_server: FastifyInstance,
@@ -14,6 +15,7 @@ export function registerRoutes(
   server.register(authRoutes, { prefix: "/api/auth" });
   server.register(userRoutes, { prefix: "/api/users" });
   server.register(agario_routes, {prefix: "/api/agario"})
+  server.register(pingRoute, {prefix: "/api/pong"})
 
   server.get("/api/healthcheck", async () => ({ status: "OK" }));
 

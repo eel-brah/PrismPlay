@@ -28,14 +28,14 @@ type SocketData = {
 type PongSocket = Socket<
   ClientToServerEvents,
   ServerToClientEvents,
-  {},
+  object,
   SocketData
 >;
 
 type PongNS = Namespace<
   ClientToServerEvents,
   ServerToClientEvents,
-  {},
+  object,
   SocketData
 >;
 
@@ -84,7 +84,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
   const waitingQueue: PongSocket[] = [];
   const matches = new Map<string, Match>();
 
-  // Map odlayerId (odlayer.id from profile) -> matchId for reconnection
+  // Map PlayerId (Player.id from profile) -> matchId for reconnection
   const playerMatchMap = new Map<number, string>();
 
   let matchCounter = 1;
@@ -108,11 +108,11 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
 
       socket.data.profile = profile;
       fastify.log.info(
-        { id: socket.id, odlayerId: profile.id, nickname: profile.nickname },
-        "[pong] odlayer joined matchmaking",
+        { id: socket.id, PlayerId: profile.id, nickname: profile.nickname },
+        "[pong] Player joined matchmaking",
       );
 
-      // Check if odlayer can reconnect to existing match
+      // Check if Player can reconnect to existing match
       const existingMatchId = playerMatchMap.get(profile.id);
       if (existingMatchId) {
         const match = matches.get(existingMatchId);
@@ -142,16 +142,16 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       match.inputs[side].down = !!payload.down;
     });
 
-    // Surrender - odlayer intentionally leaves
+    // Surrender - Player intentionally leaves
     socket.on("match.surrender", () => {
-      fastify.log.info({ id: socket.id }, "[pong] odlayer surrendered");
+      fastify.log.info({ id: socket.id }, "[pong] Player surrendered");
       removeFromQueue(socket);
       handleSurrender(socket);
     });
 
     // Leave queue or match (intentional)
     socket.on("match.leave", () => {
-      fastify.log.info({ id: socket.id }, "[pong] odlayer left");
+      fastify.log.info({ id: socket.id }, "[pong] Player left");
       removeFromQueue(socket);
       handleLeave(socket);
     });
@@ -180,7 +180,24 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     }
   }
 
-  function createMatch(leftSocket: PongSocket, rightSocket: PongSocket) {
+  async function getPlayerStats(playerId: number) {
+    const [wins, losses] = await Promise.all([
+      prisma.pongMatch.count({ where: { winnerId: playerId } }),
+      prisma.pongMatch.count({
+        where: {
+          OR: [{ leftPlayerId: playerId }, { rightPlayerId: playerId }],
+          NOT: { winnerId: playerId },
+        },
+      }),
+    ]);
+
+    const totalGames = wins + losses;
+    const winrate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+
+    return { wins, losses, winrate };
+  }
+
+  async function createMatch(leftSocket: PongSocket, rightSocket: PongSocket) {
     const id = nextMatchId();
     const state = createInitialState();
     state.phase = "countdown";
@@ -207,7 +224,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
 
     matches.set(id, match);
 
-    // Track odlayers for reconnection
+    // Track Players for reconnection
     playerMatchMap.set(leftSocket.data.profile!.id, id);
     playerMatchMap.set(rightSocket.data.profile!.id, id);
 
@@ -216,16 +233,26 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     rightSocket.data.matchId = id;
     rightSocket.data.side = "right";
 
+    // Fetch stats for both players
+    const [leftStats, rightStats] = await Promise.all([
+      getPlayerStats(leftSocket.data.profile!.id),
+      getPlayerStats(rightSocket.data.profile!.id),
+    ]);
+
     leftSocket.emit("match.found", {
       matchId: id,
       side: "left",
       opponent: rightSocket.data.profile!,
+      playerStats: leftStats,
+      opponentStats: rightStats,
     });
 
     rightSocket.emit("match.found", {
       matchId: id,
       side: "right",
       opponent: leftSocket.data.profile!,
+      playerStats: rightStats,
+      opponentStats: leftStats,
     });
 
     fastify.log.info(
@@ -244,8 +271,8 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       side === "left" ? match.rightProfile : match.leftProfile;
 
     fastify.log.info(
-      { matchId: match.id, odlayerId: playerId, side },
-      "[pong] odlayer reconnected",
+      { matchId: match.id, PlayerId: playerId, side },
+      "[pong] Player reconnected",
     );
 
     // Clear reconnect timeout
@@ -266,7 +293,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     match.disconnectedSide = null;
     match.isPaused = false;
 
-    // Notify both odlayers
+    // Notify both Players
     const opponent = side === "left" ? match.right : match.left;
 
     socket.emit("match.reconnected", {
@@ -336,7 +363,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
         "[pong] waiting for reconnection",
       );
     } else {
-      // Immediate disconnect (odlayer closed tab, etc.)
+      // Immediate disconnect (Player closed tab, etc.)
       endMatchDueToDisconnect(match, side);
     }
   }
@@ -353,7 +380,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     const opponent = isLeft ? match.right : match.left;
     const winnerSide: Side = isLeft ? "right" : "left";
 
-    // Notify surrendering odlayer
+    // Notify surrendering Player
     socket.emit("match.surrendered", { matchId });
 
     // Notify opponent they won by surrender
