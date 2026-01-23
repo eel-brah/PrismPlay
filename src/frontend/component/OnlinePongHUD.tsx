@@ -38,7 +38,6 @@ function PlayerStack({
 }: PlayerStackProps) {
   const isLeft = side === "left";
 
-  // Colors based on side
   const avatarBg = isLeft
     ? "from-purple-500 to-blue-500 shadow-purple-500/30"
     : "from-pink-500 to-purple-500 shadow-pink-500/30";
@@ -64,7 +63,6 @@ function PlayerStack({
           alt={displayName}
           className={`w-16 h-16 md:w-20 md:h-20 rounded-xl bg-gradient-to-br ${avatarBg} p-0.5 shadow-lg object-cover`}
         />
-        {/* Status indicator dot */}
         <span
           className={`absolute bottom-0 right-0 w-3 h-3 ${statusColor} rounded-full border-2 border-gray-900`}
         />
@@ -112,7 +110,7 @@ function PlayerStack({
         )}
       </div>
 
-      {/* Optional controls (surrender button, etc.) */}
+      {/* Optional controls */}
       {controls && <div className="w-full">{controls}</div>}
     </div>
   );
@@ -128,10 +126,6 @@ interface OnlinePongHUDProps {
   rightStats?: OnlinePongStats;
   loadingLeft?: boolean;
   loadingRight?: boolean;
-  leftScore?: number;
-  rightScore?: number;
-  showYouControls?: boolean;
-  onSurrender?: () => void;
   children: React.ReactNode;
 }
 
@@ -145,21 +139,8 @@ export function OnlinePongHUD({
   rightStats,
   loadingLeft = false,
   loadingRight = false,
-  leftScore = 0,
-  rightScore = 0,
-  showYouControls = false,
-  onSurrender,
   children,
 }: OnlinePongHUDProps) {
-  const surrenderButton = showYouControls && onSurrender && (
-    <button
-      onClick={onSurrender}
-      className="w-full px-3 py-1.5 text-xs font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg border border-red-500/30 transition-colors"
-    >
-      Surrender
-    </button>
-  );
-
   return (
     <div className="flex items-center justify-center gap-4 md:gap-8 p-4">
       {/* Left Player Stack */}
@@ -171,26 +152,11 @@ export function OnlinePongHUD({
         stats={leftStats}
         loading={loadingLeft}
         isMe={mySide === "left"}
-        controls={mySide === "left" ? surrenderButton : undefined}
       />
 
-      {/* Center: Score + Game Canvas */}
-      <div className="flex flex-col items-center gap-4">
-        {/* Score Display */}
-        <div className="flex items-center gap-6">
-          <div className="text-4xl md:text-5xl font-bold text-purple-400">
-            {leftScore}
-          </div>
-          <div className="text-xl md:text-2xl font-bold text-gray-500">VS</div>
-          <div className="text-4xl md:text-5xl font-bold text-pink-400">
-            {rightScore}
-          </div>
-        </div>
-
-        {/* Game Canvas (passed as children) */}
-        <div className="relative">
-          {children}
-        </div>
+      {/* Center: Game Canvas only (no score) */}
+      <div className="relative">
+        {children}
       </div>
 
       {/* Right Player Stack */}
@@ -202,7 +168,6 @@ export function OnlinePongHUD({
         stats={rightStats}
         loading={loadingRight}
         isMe={mySide === "right"}
-        controls={mySide === "right" ? surrenderButton : undefined}
       />
     </div>
   );

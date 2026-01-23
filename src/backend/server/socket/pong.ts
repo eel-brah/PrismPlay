@@ -53,6 +53,7 @@ interface Match {
   reconnectTimeout: NodeJS.Timeout | null;
   isPaused: boolean;
   startTime: number;
+  isEnding: boolean;
 }
 
 const RECONNECT_TIMEOUT_MS = 15000;
@@ -220,6 +221,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       reconnectTimeout: null,
       isPaused: false,
       startTime: Date.now(),
+      isEnding: false,
     };
 
     matches.set(id, match);
@@ -375,6 +377,8 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     const match = matches.get(matchId);
     if (!match) return;
 
+    match.isEnding = true;
+
     const side = socket.data.side!;
     const isLeft = side === "left";
     const opponent = isLeft ? match.right : match.left;
@@ -458,6 +462,9 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
   }
 
   async function endMatchDueToDisconnect(match: Match, disconnectedSide: Side) {
+    if (match.isEnding) return;
+    match.isEnding = true;
+
     const winnerSide: Side = disconnectedSide === "left" ? "right" : "left";
     const winner = winnerSide === "left" ? match.left : match.right;
 
@@ -487,6 +494,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     match.right?.emit("game.state", snapshot);
 
     if (match.state.phase === "gameover" && match.state.winner) {
+      match.isEnding = true;
       const gameOverPayload = {
         matchId: match.id,
         winnerSide: match.state.winner,
