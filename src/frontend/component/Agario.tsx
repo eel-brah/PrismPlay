@@ -153,7 +153,7 @@ const Agario = () => {
     });
 
     socket.on("agario:room-status", (data: { status: "waiting" | "started", startedAt: number | undefined }) => {
-      setRoomInfo((prev) => (prev ? { ...prev, status: data.status, startedAt: data.startedAt} : prev));
+      setRoomInfo((prev) => (prev ? { ...prev, status: data.status, startedAt: data.startedAt } : prev));
       roomStatusRef.current = data.status;
       if (data.status === "started") setAlert({ type: "", message: "" });
     });
@@ -488,6 +488,8 @@ const Agario = () => {
     if (room.length === 0) room = DEFAULT_ROOM;
     setRoomName(room);
     roomNameRef.current = room;
+
+    if (typeof durationMin != "number") setDurationMin(1);
 
     if (mode === "join") {
       socket.emit("agario:join-room", { name, room, key: joinKey.trim() || undefined, spectator });
@@ -882,7 +884,7 @@ const Agario = () => {
           <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50">
             <FinalLeaderboard
               leaderboard={finalLeaderboard}
-              durationMin={roomInfo?.durationMin ?? 0}
+              durationMin={typeof durationMin === "number" ? durationMin : 0}
             />
 
             <button
