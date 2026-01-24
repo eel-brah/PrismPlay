@@ -187,8 +187,7 @@ const Agario = () => {
       if (spectator) {
         playerRef.current = randomPlayer();
         isSpectatorRef.current = true;
-      }
-      else if (data) {
+      } else if (data) {
         playerRef.current = Player.deserialize(data);
         console.log(
           "Joined game as",

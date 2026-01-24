@@ -41,7 +41,7 @@ export function darkenHex(color: string, amount = 0.3): string {
 }
 
 export function randomId(): string {
-  return crypto.randomUUID();
+  return nanoid(); 
 }
 
 export function randomOrb(): Orb {
