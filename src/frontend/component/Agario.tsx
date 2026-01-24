@@ -152,8 +152,8 @@ const Agario = () => {
       setRoomInfo((prev) => (prev ? { ...prev, players: data.players, hostId: data.hostId, spectatorCount: data.spectatorCount } : prev));
     });
 
-    socket.on("agario:room-status", (data: { status: "waiting" | "started" }) => {
-      setRoomInfo((prev) => (prev ? { ...prev, status: data.status } : prev));
+    socket.on("agario:room-status", (data: { status: "waiting" | "started", startedAt: number | undefined }) => {
+      setRoomInfo((prev) => (prev ? { ...prev, status: data.status, startedAt: data.startedAt} : prev));
       roomStatusRef.current = data.status;
       if (data.status === "started") setAlert({ type: "", message: "" });
     });

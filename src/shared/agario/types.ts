@@ -96,7 +96,7 @@ export type RoomInfo = {
   status: "waiting" | "started";
   maxPlayers: number;
   durationMin: number;
-  startedAt: number;
+  startedAt: number | undefined;
   hostId: string;
   youAreHost: boolean;
   key?: string;
