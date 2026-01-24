@@ -1,5 +1,11 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Trophy, User2, Gamepad2, BarChart3 } from "lucide-react";
+import {
+  apiGetMatchHistory,
+  apiGetMe,
+  getStoredToken,
+  type MatchHistoryItem,
+} from "../api";
 
 type Tab = "profile" | "achievements" | "history";
 
@@ -30,6 +36,10 @@ export default function PlayerProfile() {
   const [editEmail, setEditEmail] = useState(user.email);
   const [editAvatar, setEditAvatar] = useState(user.avatarUrl || "");
   const [editError, setEditError] = useState<string>("");
+  const [history, setHistory] = useState<MatchHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState("");
+  const [historyFetched, setHistoryFetched] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const gamesPlayed = user.wins + user.losses;
   const winRate = Math.round((user.wins / Math.max(1, gamesPlayed)) * 100);
@@ -65,6 +75,48 @@ export default function PlayerProfile() {
     setEditAvatar(user.avatarUrl || "");
     setIsEditing(false);
   };
+
+  useEffect(() => {
+    if (tab !== "history") return;
+    if (historyFetched) return;
+
+    let cancelled = false;
+    const loadHistory = async () => {
+      setHistoryLoading(true);
+      setHistoryError("");
+      try {
+        const token = getStoredToken();
+        if (!token) {
+          if (!cancelled) {
+            setHistory([]);
+            setHistoryError("Not authenticated");
+          }
+          return;
+        }
+        const me = await apiGetMe(token);
+        const data = await apiGetMatchHistory(token, me.id);
+        if (!cancelled) {
+          setHistory(data.history ?? []);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setHistoryError(
+            err instanceof Error ? err.message : "Failed to load match history",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setHistoryLoading(false);
+          setHistoryFetched(true);
+        }
+      }
+    };
+    void loadHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, historyFetched]);
   return (
     <div className="w-full h-full text-white">
       <div className="max-w-6xl mx-auto px-6 pt-8 pb-4">
@@ -279,27 +331,57 @@ export default function PlayerProfile() {
                   <tr className="text-left text-gray-400">
                     <th className="px-3 py-2">Opponent</th>
                     <th className="px-3 py-2">Result</th>
-                    <th className="px-3 py-2">Mode</th>
+                    <th className="px-3 py-2">Score</th>
                     <th className="px-3 py-2">Date</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
-                  {[
-                    { opponent: "AI", result: "Win", mode: "Offline", date: new Date().toLocaleDateString() },
-                    { opponent: "Player123", result: "Loss", mode: "Online", date: new Date().toLocaleDateString() },
-                    { opponent: "Player456", result: "Win", mode: "Online", date: new Date().toLocaleDateString() },
-                  ].map((row, i) => (
-                    <tr key={i} className="text-gray-200">
-                      <td className="px-3 py-2">{row.opponent}</td>
-                      <td className="px-3 py-2">
-                        <span className={`px-2 py-1 rounded ${row.result === "Win" ? "bg-green-600/30 text-green-300" : "bg-red-600/30 text-red-300"}`}>
-                          {row.result}
-                        </span>
+                  {historyLoading && (
+                    <tr className="text-gray-400">
+                      <td className="px-3 py-3" colSpan={4}>
+                        Loading history...
                       </td>
-                      <td className="px-3 py-2">{row.mode}</td>
-                      <td className="px-3 py-2">{row.date}</td>
                     </tr>
-                  ))}
+                  )}
+                  {!historyLoading && historyError && (
+                    <tr className="text-red-300">
+                      <td className="px-3 py-3" colSpan={4}>
+                        {historyError}
+                      </td>
+                    </tr>
+                  )}
+                  {!historyLoading && !historyError && history.length === 0 && (
+                    <tr className="text-gray-400">
+                      <td className="px-3 py-3" colSpan={4}>
+                        No matches yet
+                      </td>
+                    </tr>
+                  )}
+                  {!historyLoading &&
+                    !historyError &&
+                    history.map((row) => {
+                      const resultText = row.result === "win" ? "Win" : "Loss";
+                      const resultClass =
+                        row.result === "win"
+                          ? "bg-green-600/30 text-green-300"
+                          : "bg-red-600/30 text-red-300";
+                      return (
+                        <tr key={row.id} className="text-gray-200">
+                          <td className="px-3 py-2">{row.opponentName}</td>
+                          <td className="px-3 py-2">
+                            <span
+                              className={`px-2 py-1 rounded ${resultClass}`}
+                            >
+                              {resultText}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2">{row.score}</td>
+                          <td className="px-3 py-2">
+                            {new Date(row.date).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>

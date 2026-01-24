@@ -113,14 +113,17 @@ export function apiLogout(token: string) {
 }
 
 export function apiGetMatchHistory(token: string, playerId: number) {
-  return requestJson<MatchHistoryResponse>(`/api/matchs/history/${playerId}`, {
+  return requestJson<MatchHistoryResponse>(
+    `/api/pong/matchs/history/${playerId}`,
+    {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
-  });
+    },
+  );
 }
 
 export function apiGetPlayerStats(token: string, playerId: number) {
-  return requestJson<PlayerStats>(`/api/matchs/stats/${playerId}`, {
+  return requestJson<PlayerStats>(`/api/pong/matchs/stats/${playerId}`, {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
   });
