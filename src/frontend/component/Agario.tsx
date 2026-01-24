@@ -155,6 +155,7 @@ const Agario = () => {
     socket.on("agario:room-status", (data: { status: "waiting" | "started" }) => {
       setRoomInfo((prev) => (prev ? { ...prev, status: data.status } : prev));
       roomStatusRef.current = data.status;
+      if (data.status === "started") setAlert({ type: "", message: "" });
     });
 
     socket.on("agario:rooms", (list: RoomSummary[]) => {
@@ -877,7 +878,7 @@ const Agario = () => {
       }
 
       {
-        menuMode === "leaderboard" && (
+        menuMode === "leaderboard" && finalLeaderboard.length > 0 && (
           <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50">
             <FinalLeaderboard
               leaderboard={finalLeaderboard}
