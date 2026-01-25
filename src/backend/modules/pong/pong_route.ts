@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { Prisma } from "@prisma/client";
 import prisma from "src/backend/utils/prisma";
 
 export default async function pongRoute(server: FastifyInstance) {
@@ -14,17 +15,27 @@ export default async function pongRoute(server: FastifyInstance) {
         return reply.status(400).send({ error: "Invalid player ID" });
       }
 
-      const matches = await prisma.pongMatch.findMany({
-        where: {
-          OR: [{ leftPlayerId: playerID }, { rightPlayerId: playerID }],
-        },
-        include: {
-          leftPlayer: { select: { id: true, username: true } },
-          rightPlayer: { select: { id: true, username: true } },
-        },
-        orderBy: { createdAt: "desc" },
-        take: 20,
-      });
+      let matches = [];
+      try {
+        matches = await prisma.pongMatch.findMany({
+          where: {
+            OR: [{ leftPlayerId: playerID }, { rightPlayerId: playerID }],
+          },
+          include: {
+            leftPlayer: { select: { id: true, username: true } },
+            rightPlayer: { select: { id: true, username: true } },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 20,
+        });
+      } catch (err) {
+        if (err instanceof Prisma.PrismaClientKnownRequestError) {
+          if (err.code === "P2021") {
+            return reply.send({ history: [] });
+          }
+        }
+        throw err;
+      }
 
       const history = matches.map((match) => {
         const isLeft = match.leftPlayerId === playerID;
@@ -58,15 +69,31 @@ export default async function pongRoute(server: FastifyInstance) {
         return reply.status(400).send({ error: "Invalid player ID" });
       }
 
-      const [wins, losses] = await Promise.all([
-        prisma.pongMatch.count({ where: { winnerId: playerId } }),
-        prisma.pongMatch.count({
-          where: {
-            OR: [{ leftPlayerId: playerId }, { rightPlayerId: playerId }],
-            NOT: { winnerId: playerId },
-          },
-        }),
-      ]);
+      let wins = 0;
+      let losses = 0;
+      try {
+        [wins, losses] = await Promise.all([
+          prisma.pongMatch.count({ where: { winnerId: playerId } }),
+          prisma.pongMatch.count({
+            where: {
+              OR: [{ leftPlayerId: playerId }, { rightPlayerId: playerId }],
+              NOT: { winnerId: playerId },
+            },
+          }),
+        ]);
+      } catch (err) {
+        if (err instanceof Prisma.PrismaClientKnownRequestError) {
+          if (err.code === "P2021") {
+            return reply.send({
+              wins: 0,
+              losses: 0,
+              totalGames: 0,
+              winrate: 0,
+            });
+          }
+        }
+        throw err;
+      }
 
       const totalGames = wins + losses;
       const winrate =

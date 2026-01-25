@@ -96,7 +96,7 @@ model PlayerHistory {
   roomId  Int
   userId  Int?
   guestId String?
-  name    String
+  name    String @default("")
 
   durationMs Int
   maxMass    Float
