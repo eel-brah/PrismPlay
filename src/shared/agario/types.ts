@@ -95,8 +95,8 @@ export type RoomInfo = {
   visibility: "public" | "private";
   status: "waiting" | "started";
   maxPlayers: number;
-  durationMin: number;
-  startedAt: number;
+  durationMin: number | undefined;
+  startedAt: number | undefined;
   hostId: string;
   youAreHost: boolean;
   key?: string;

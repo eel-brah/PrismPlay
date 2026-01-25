@@ -228,7 +228,7 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
 
     try {
       await startRoom(socket, world);
-      socket.nsp.to(room).emit("agario:room-status", { status: "started" });
+      socket.nsp.to(room).emit("agario:room-status", { status: "started", started: world.meta.startedAt });
 
       for (const id of Object.keys(world.players)) {
         const client = socket.nsp.sockets.get(id);
@@ -379,7 +379,7 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
         await startRoom(socket, world);
         socket.nsp
           .to(roomName)
-          .emit("agario:room-status", { status: world.meta.status });
+          .emit("agario:room-status", { status: world.meta.status, startedAt: world.meta.startedAt });
       } catch (err) {
         let errorMessage = err instanceof Error ? err.message : "Unknown error";
         fastify.log.error({ id: socket.id }, errorMessage);
@@ -564,10 +564,22 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
   socket.on("disconnect", async (reason) => {
     fastify.log.info({ id: socket.id, reason }, "socket disconnected");
 
+    const room = socket.data.room as string | undefined;
+    if (!room) return null;
+
+    const world = worldByRoom.get(room);
+    if (!world) {
+      socket.emit("agario:error", "Room not found");
+      return;
+    }
+    if (world.meta.spectators.has(socket.id)) {
+      await deletePlayer(fastify.log, socket, room);
+      return;
+    }
+
     const key = identityKey(getIdentity(socket));
     const ap = activePlayers.get(key);
     if (!ap) return;
-
     ap.disconnectedAt = Date.now();
 
     ap.timeoutId = setTimeout(async () => {
@@ -623,7 +635,15 @@ async function deletePlayer(
     }
 
     delete world.players[socket.id];
-  } else world.meta.spectators.delete(socket.id);
+  } else {
+    world.meta.spectators.delete(socket.id);
+    socket.leave(roomName);
+    broadcastPlayers(socket.nsp, roomName, world);
+    for (const id of Object.keys(world.players)) {
+      const client = socket.nsp.sockets.get(id);
+      if (client) sendRoomInfo(client, world);
+    }
+  }
 
   if (world.meta.hostId === socket.data.userId) {
     for (const id of Object.keys(world.players)) {

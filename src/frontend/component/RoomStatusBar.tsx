@@ -11,7 +11,7 @@ export const TopStatusBar = ({
   onLeave,
 }: Props) => {
   const timePassedSec = Math.floor((Date.now() - roomInfo.startedAt) / 1000);
-  // console.log("TIME: ", roomInfo.startedAt)
+  console.log("TIME: ", roomInfo.startedAt)
   const minutes = Math.floor(timePassedSec / 60);
   const seconds = timePassedSec % 60;
 
