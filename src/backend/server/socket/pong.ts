@@ -22,7 +22,7 @@ type SocketData = {
   profile?: PlayerProfile;
   matchId?: string;
   side?: Side;
-  userId: number;
+  userId?: number;
 };
 
 type PongSocket = Socket<
@@ -47,9 +47,10 @@ interface Match {
   rightProfile: PlayerProfile;
   state: ServerGameState;
   inputs: MatchInputs;
-  loop: NodeJS.Timeout;
+  loop: NodeJS.Timeout | null;
   // Reconnection state
-  disconnectedSide: Side | null;
+  leftDisconnectedAt: number | null;
+  rightDisconnectedAt: number | null;
   reconnectTimeout: NodeJS.Timeout | null;
   isPaused: boolean;
   startTime: number;
@@ -61,7 +62,6 @@ const RECONNECT_TIMEOUT_MS = 15000;
 export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
   const pong = io.of("/pong") as PongNS;
 
-  //jwt authentication middleware
   pong.use(async (socket, next) => {
     const token = socket.handshake.auth?.token;
     if (!token) {
@@ -84,8 +84,6 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
 
   const waitingQueue: PongSocket[] = [];
   const matches = new Map<string, Match>();
-
-  // Map PlayerId (Player.id from profile) -> matchId for reconnection
   const playerMatchMap = new Map<number, string>();
 
   let matchCounter = 1;
@@ -94,18 +92,31 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
   pong.on("connection", (socket) => {
     fastify.log.info({ id: socket.id }, "[pong] connected");
 
-    socket.on("match.join", (profile) => {
-      const profileId = profile.id;
-      if (profileId !== socket.data.userId) {
-        fastify.log.warn(
-          { id: socket.id, profileId, userId: socket.data.userId },
-          "[pong] Profile ID mismatch - possible impersonation attempt",
-        );
-        socket.emit("error", {
-          message: "Profile ID does not match authenticated user",
-        });
+    socket.on("match.join", async () => {
+      const userId = socket.data.userId;
+      
+      if (!userId) {
+        socket.emit("match.error", { message: "Not authenticated" });
         return;
       }
+
+      // Load canonical profile from DB
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, username: true,email: true, avatarUrl: true },
+      });
+
+      if (!user) {
+        socket.emit("match.error", { message: "User not found" });
+        return;
+      }
+
+      const profile: PlayerProfile = {
+        id: user.id,
+        nickname: user.username,
+        email: user.email,
+        avatarUrl: user.avatarUrl ?? undefined,
+      };
 
       socket.data.profile = profile;
       fastify.log.info(
@@ -117,14 +128,27 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       const existingMatchId = playerMatchMap.get(profile.id);
       if (existingMatchId) {
         const match = matches.get(existingMatchId);
-        if (match && match.disconnectedSide) {
-          handleReconnect(socket, match, profile.id);
-          return;
+        if (match && (match.leftDisconnectedAt !== null || match.rightDisconnectedAt !== null)) {
+          const side = match.leftProfile.id === profile.id ? "left" : "right";
+          const isDisconnected = side === "left" 
+            ? match.leftDisconnectedAt !== null 
+            : match.rightDisconnectedAt !== null;
+          
+          if (isDisconnected) {
+            handleReconnect(socket, match, profile.id);
+            return;
+          }
         }
       }
 
-      // Avoid duplicates in queue
-      if (waitingQueue.some((s) => s.data.profile?.id === profile.id)) return;
+      const existingInQueue = waitingQueue.findIndex((s) => s.data.profile?.id === profile.id);
+      if (existingInQueue >= 0) {
+        // Kick the older socket
+        const oldSocket = waitingQueue[existingInQueue];
+        waitingQueue.splice(existingInQueue, 1);
+        oldSocket.emit("match.error", { message: "Connected from another tab" });
+        oldSocket.disconnect();
+      }
 
       waitingQueue.push(socket);
       socket.emit("match.waiting");
@@ -143,21 +167,26 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       match.inputs[side].down = !!payload.down;
     });
 
-    // Surrender - Player intentionally leaves
     socket.on("match.surrender", () => {
       fastify.log.info({ id: socket.id }, "[pong] Player surrendered");
       removeFromQueue(socket);
-      handleSurrender(socket);
+      const matchId = socket.data.matchId;
+      if (!matchId) return;
+      const match = matches.get(matchId);
+      if (!match) return;
+      
+      const side = socket.data.side!;
+      const winnerSide: Side = side === "left" ? "right" : "left";
+      
+      endMatch(match, winnerSide, "surrender", { surrenderingSide: side });
     });
 
-    // Leave queue or match (intentional)
     socket.on("match.leave", () => {
       fastify.log.info({ id: socket.id }, "[pong] Player left");
       removeFromQueue(socket);
       handleLeave(socket);
     });
 
-    // Disconnect - could be connection loss
     socket.on("disconnect", (reason) => {
       fastify.log.info({ id: socket.id, reason }, "[pong] disconnected");
       removeFromQueue(socket);
@@ -177,6 +206,14 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     while (waitingQueue.length >= 2) {
       const a = waitingQueue.shift()!;
       const b = waitingQueue.shift()!;
+      
+      // Verify both sockets are still valid
+      if (!a.connected || !b.connected || !a.data.profile || !b.data.profile) {
+        if (a.connected && a.data.profile) waitingQueue.unshift(a);
+        if (b.connected && b.data.profile) waitingQueue.unshift(b);
+        continue;
+      }
+      
       createMatch(a, b);
     }
   }
@@ -216,17 +253,19 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       rightProfile: rightSocket.data.profile!,
       state,
       inputs,
-      loop: setInterval(() => tickMatch(match), 1000 / 60),
-      disconnectedSide: null,
+      loop: null,
+      leftDisconnectedAt: null,
+      rightDisconnectedAt: null,
       reconnectTimeout: null,
       isPaused: false,
       startTime: Date.now(),
       isEnding: false,
     };
 
+    match.loop = setInterval(() => tickMatch(match), 1000 / 60);
+
     matches.set(id, match);
 
-    // Track Players for reconnection
     playerMatchMap.set(leftSocket.data.profile!.id, id);
     playerMatchMap.set(rightSocket.data.profile!.id, id);
 
@@ -235,7 +274,6 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     rightSocket.data.matchId = id;
     rightSocket.data.side = "right";
 
-    // Fetch stats for both players
     const [leftStats, rightStats] = await Promise.all([
       getPlayerStats(leftSocket.data.profile!.id),
       getPlayerStats(rightSocket.data.profile!.id),
@@ -245,6 +283,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       matchId: id,
       side: "left",
       opponent: rightSocket.data.profile!,
+      player: leftSocket.data.profile!,
       playerStats: leftStats,
       opponentStats: rightStats,
     });
@@ -253,6 +292,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       matchId: id,
       side: "right",
       opponent: leftSocket.data.profile!,
+      player: rightSocket.data.profile!,
       playerStats: rightStats,
       opponentStats: leftStats,
     });
@@ -283,19 +323,23 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       match.reconnectTimeout = null;
     }
 
-    // Restore socket reference
+    // Restore socket reference and clear disconnect timestamp
     if (side === "left") {
       match.left = socket;
+      match.leftDisconnectedAt = null;
     } else {
       match.right = socket;
+      match.rightDisconnectedAt = null;
     }
 
     socket.data.matchId = match.id;
     socket.data.side = side;
-    match.disconnectedSide = null;
-    match.isPaused = false;
 
-    // Notify both Players
+    const bothConnected = match.leftDisconnectedAt === null && match.rightDisconnectedAt === null;
+    if (bothConnected) {
+      match.isPaused = false;
+    }
+
     const opponent = side === "left" ? match.right : match.left;
 
     socket.emit("match.reconnected", {
@@ -316,13 +360,12 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     if (!matchId || !playerId) return;
 
     const match = matches.get(matchId);
-    if (!match) return;
+    if (!match || match.isEnding) return;
 
     const side = socket.data.side!;
     const isLeft = side === "left";
     const opponent = isLeft ? match.right : match.left;
 
-    // Check if this is likely a connection loss (not intentional)
     const isConnectionLoss = [
       "transport close",
       "transport error",
@@ -330,34 +373,34 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     ].includes(reason);
 
     if (isConnectionLoss && match.state.phase !== "gameover") {
-      // Pause match and wait for reconnection
       match.isPaused = true;
-      match.disconnectedSide = side;
-
+      
+      const now = Date.now();
       if (isLeft) {
         match.left = null;
+        match.leftDisconnectedAt = now;
       } else {
         match.right = null;
+        match.rightDisconnectedAt = now;
       }
 
-      // Notify opponent
       if (opponent) {
         opponent.emit("opponent.connectionLost", {
           timeout: RECONNECT_TIMEOUT_MS,
         });
       }
 
-      // Set timeout for reconnection
+      // Set/reset timeout for reconnection
       if (match.reconnectTimeout) {
         clearTimeout(match.reconnectTimeout);
-        match.reconnectTimeout = null;
       }
+      
       match.reconnectTimeout = setTimeout(() => {
         fastify.log.info(
-          { matchId: match.id, side },
+          { matchId: match.id },
           "[pong] reconnect timeout expired",
         );
-        endMatchDueToDisconnect(match, side);
+        handleReconnectTimeout(match);
       }, RECONNECT_TIMEOUT_MS);
 
       fastify.log.info(
@@ -365,51 +408,59 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
         "[pong] waiting for reconnection",
       );
     } else {
-      // Immediate disconnect (Player closed tab, etc.)
-      endMatchDueToDisconnect(match, side);
+      // Immediate disconnect
+      const winnerSide: Side = isLeft ? "right" : "left";
+      endMatch(match, winnerSide, "disconnect");
     }
   }
 
-  async function handleSurrender(socket: PongSocket) {
-    const matchId = socket.data.matchId;
-    if (!matchId) return;
+  function handleReconnectTimeout(match: Match) {
+    if (match.isEnding) return;
 
-    const match = matches.get(matchId);
-    if (!match) return;
+    const leftDisconnected = match.leftDisconnectedAt !== null;
+    const rightDisconnected = match.rightDisconnectedAt !== null;
 
+    if (leftDisconnected && rightDisconnected) {
+      const leftTime = match.leftDisconnectedAt!;
+      const rightTime = match.rightDisconnectedAt!;
+      
+      if (Math.abs(leftTime - rightTime) < 1000) {
+        fastify.log.info({ matchId: match.id }, "[pong] Both players disconnected - cancelling match");
+        cancelMatch(match);
+      } else if (leftTime < rightTime) {
+        endMatch(match, "right", "disconnect");
+      } else {
+        endMatch(match, "left", "disconnect");
+      }
+    } else if (leftDisconnected) {
+      endMatch(match, "right", "disconnect");
+    } else if (rightDisconnected) {
+      endMatch(match, "left", "disconnect");
+    }
+  }
+
+  function cancelMatch(match: Match) {
+    if (match.isEnding) return;
     match.isEnding = true;
 
-    const side = socket.data.side!;
-    const isLeft = side === "left";
-    const opponent = isLeft ? match.right : match.left;
-    const winnerSide: Side = isLeft ? "right" : "left";
-
-    // Notify surrendering Player
-    socket.emit("match.surrendered", { matchId });
-
-    // Notify opponent they won by surrender
-    if (opponent) {
-      opponent.emit("opponent.surrendered");
-      opponent.emit("game.over", {
-        matchId,
-        winnerSide,
-        leftScore: match.state.left.score,
-        rightScore: match.state.right.score,
-        reason: "surrender",
-      });
+    if (match.loop) {
+      clearInterval(match.loop);
+      match.loop = null;
     }
-    await saveMatchResult(match, winnerSide, "surrender");
+
+    match.left?.emit("match.cancelled");
+    match.right?.emit("match.cancelled");
+
     cleanupMatch(match);
   }
 
-  async function handleLeave(socket: PongSocket) {
+  function handleLeave(socket: PongSocket) {
     const matchId = socket.data.matchId;
     if (!matchId) return;
 
     const match = matches.get(matchId);
     if (!match) return;
 
-    // If game hasn't started, just cleanup without penalty
     if (match.state.phase === "countdown") {
       const isLeft = socket.data.side === "left";
       const opponent = isLeft ? match.right : match.left;
@@ -419,12 +470,78 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
         opponent.emit("match.cancelled");
       }
 
-      cleanupMatch(match);
+      cancelMatch(match);
       return;
     }
 
     // During game, treat as surrender
-    handleSurrender(socket);
+    const side = socket.data.side!;
+    const winnerSide: Side = side === "left" ? "right" : "left";
+    endMatch(match, winnerSide, "surrender", { surrenderingSide: side });
+  }
+
+  function endMatch(
+    match: Match,
+    winnerSide: Side,
+    reason: "score" | "surrender" | "disconnect",
+    options?: { surrenderingSide?: Side }
+  ) {
+    if (match.isEnding) return;
+    match.isEnding = true;
+
+    if (match.loop) {
+      clearInterval(match.loop);
+      match.loop = null;
+    }
+
+    // Clear any pending reconnect timeout
+    if (match.reconnectTimeout) {
+      clearTimeout(match.reconnectTimeout);
+      match.reconnectTimeout = null;
+    }
+
+    // Finalize asynchronously
+    void finalizeMatch(match, winnerSide, reason, options);
+  }
+
+  async function finalizeMatch(
+    match: Match,
+    winnerSide: Side,
+    reason: "score" | "surrender" | "disconnect",
+    options?: { surrenderingSide?: Side }
+  ) {
+    const gameOverPayload = {
+      matchId: match.id,
+      winnerSide,
+      leftScore: match.state.left.score,
+      rightScore: match.state.right.score,
+      reason,
+    };
+
+    // Emit based on reason
+    if (reason === "surrender" && options?.surrenderingSide) {
+      const surrenderingSide = options.surrenderingSide;
+      const surrenderingSocket = surrenderingSide === "left" ? match.left : match.right;
+      const winnerSocket = surrenderingSide === "left" ? match.right : match.left;
+
+      surrenderingSocket?.emit("match.surrendered", { matchId: match.id });
+      winnerSocket?.emit("opponent.surrendered");
+      winnerSocket?.emit("game.over", gameOverPayload);
+    } else if (reason === "disconnect") {
+      const winner = winnerSide === "left" ? match.left : match.right;
+      winner?.emit("opponent.disconnected");
+      winner?.emit("game.over", gameOverPayload);
+    } else {
+      // Score-based ending
+      match.left?.emit("game.over", gameOverPayload);
+      match.right?.emit("game.over", gameOverPayload);
+    }
+
+    // Save to DB
+    await saveMatchResult(match, winnerSide, reason);
+    
+    // Final cleanup
+    cleanupMatch(match);
   }
 
   async function saveMatchResult(
@@ -461,30 +578,9 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     }
   }
 
-  async function endMatchDueToDisconnect(match: Match, disconnectedSide: Side) {
-    if (match.isEnding) return;
-    match.isEnding = true;
-
-    const winnerSide: Side = disconnectedSide === "left" ? "right" : "left";
-    const winner = winnerSide === "left" ? match.left : match.right;
-
-    if (winner) {
-      winner.emit("opponent.disconnected");
-      winner.emit("game.over", {
-        matchId: match.id,
-        winnerSide,
-        leftScore: match.state.left.score,
-        rightScore: match.state.right.score,
-        reason: "disconnect",
-      });
-    }
-    await saveMatchResult(match, winnerSide, "disconnect");
-    cleanupMatch(match);
-  }
-
-  async function tickMatch(match: Match) {
-    // Don't update if paused (waiting for reconnect)
-    if (match.isPaused) return;
+  function tickMatch(match: Match) {
+    // Guard: don't tick if paused or ending
+    if (match.isPaused || match.isEnding) return;
 
     const dt = 1 / 60;
     stepServerGame(match.state, match.inputs, dt);
@@ -493,25 +589,19 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     match.left?.emit("game.state", snapshot);
     match.right?.emit("game.state", snapshot);
 
+    // Check for game over - use unified endMatch
     if (match.state.phase === "gameover" && match.state.winner) {
-      match.isEnding = true;
-      const gameOverPayload = {
-        matchId: match.id,
-        winnerSide: match.state.winner,
-        leftScore: match.state.left.score,
-        rightScore: match.state.right.score,
-        reason: "score" as const,
-      };
-
-      match.left?.emit("game.over", gameOverPayload);
-      match.right?.emit("game.over", gameOverPayload);
-      await saveMatchResult(match, match.state.winner, "score");
-      cleanupMatch(match);
+      endMatch(match, match.state.winner, "score");
     }
   }
 
   function cleanupMatch(match: Match) {
-    clearInterval(match.loop);
+    // Loop should already be cleared, but just in case
+    if (match.loop) {
+      clearInterval(match.loop);
+      match.loop = null;
+    }
+    
     if (match.reconnectTimeout) {
       clearTimeout(match.reconnectTimeout);
       match.reconnectTimeout = null;
@@ -521,7 +611,6 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     playerMatchMap.delete(match.leftProfile.id);
     playerMatchMap.delete(match.rightProfile.id);
 
-    // Clear socket data
     for (const s of [match.left, match.right]) {
       if (s && s.data.matchId === match.id) {
         s.data.matchId = undefined;

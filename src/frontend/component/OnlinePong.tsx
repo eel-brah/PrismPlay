@@ -8,7 +8,6 @@ import {
   ServerToClientEvents,
   GameSnapshot,
   MatchFoundPayload,
-  PlayerStats,
   Side,
 } from "../../shared/pong/gameTypes";
 import {
@@ -20,12 +19,6 @@ import {
 import { GameOverPopup, WinReason } from "./GameOverPopup";
 
 export interface OnlinePongProps {
-  profile: {
-    id: number;
-    nickname: string;
-    email: string;
-    avatarUrl?: string;
-  };
   token: string;
   onReturn?: () => void;
 }
@@ -42,11 +35,7 @@ const UNKNOWN_PLAYER: OnlinePlayerLite = {
   avatarUrl: null,
 };
 
-const OnlinePong: React.FC<OnlinePongProps> = ({
-  profile,
-  token,
-  onReturn,
-}) => {
+const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const socketRef = useRef<Socket<
@@ -85,6 +74,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
     winReason?: WinReason;
   } | null>(null);
   const [showGameOverPopup, setShowGameOverPopup] = useState(false);
+  const [myProfile, setMyProfile] = useState<OnlinePlayerLite | null>(null);
 
   const soundOnRef = useRef(soundOn);
   useEffect(() => {
@@ -98,10 +88,10 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
   }, [side]);
 
   // Create player objects for HUD
-  const myPlayer: OnlinePlayerLite = {
-    id: profile.id,
-    nickname: profile.nickname,
-    avatarUrl: profile.avatarUrl,
+  const myPlayer: OnlinePlayerLite = myProfile ?? {
+    id: 0,
+    nickname: "you",
+    avatarUrl: undefined,
   };
 
   // Determine which player is on which side
@@ -130,15 +120,10 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      console.log("[pong] connected", socket.id, profile);
+      console.log("[pong] connected", socket.id);
       setMyStatus("connected");
       setConnectionError(null);
-      socket.emit("match.join", {
-        id: profile.id,
-        nickname: profile.nickname,
-        email: profile.email,
-        avatarUrl: profile.avatarUrl,
-      });
+      socket.emit("match.join");
     });
 
     socket.on("disconnect", () => {
@@ -162,6 +147,12 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
 
       setSide(payload.side);
       sideRef.current = payload.side;
+
+      setMyProfile({
+        id: payload.player.id,
+        nickname: payload.player.nickname,
+        avatarUrl: payload.player.avatarUrl,
+      });
 
       setOpponent({
         id: payload.opponent.id,
@@ -289,6 +280,64 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
       }
     });
 
+    socket.on("match.cancelled", () => {
+      console.log("[pong] match cancelled");
+      snapshotRef.current = null;
+      setUiPhase("searching");
+      setOpponent(UNKNOWN_PLAYER);
+      setSide(null);
+      setMyStats(undefined);
+      setOpponentStats(undefined);
+      setLoadingStats(true);
+    });
+
+    socket.on("match.surrendered", (payload) => {
+      console.log("[pong] you surrendered", payload);
+      // You surrendered - show game over as loss
+      const snap = snapshotRef.current;
+      const currentSide = sideRef.current;
+      setGameOverData({
+        isWinner: false,
+        myScore: snap
+          ? currentSide === "left"
+            ? snap.left.score
+            : snap.right.score
+          : 0,
+        opponentScore: snap
+          ? currentSide === "left"
+            ? snap.right.score
+            : snap.left.score
+          : 0,
+        winReason: "surrender",
+      });
+      setShowGameOverPopup(true);
+      setUiPhase("gameover");
+    });
+
+    socket.on("opponent.surrendered", () => {
+      console.log("[pong] opponent surrendered");
+      setOpponentStatus("disconnected");
+      // Opponent surrendered - show game over as win
+      const snap = snapshotRef.current;
+      const currentSide = sideRef.current;
+      setGameOverData({
+        isWinner: true,
+        myScore: snap
+          ? currentSide === "left"
+            ? snap.left.score
+            : snap.right.score
+          : 0,
+        opponentScore: snap
+          ? currentSide === "left"
+            ? snap.right.score
+            : snap.left.score
+          : 0,
+        winReason: "surrender",
+      });
+      setShowGameOverPopup(true);
+      setUiPhase("gameover");
+    });
+
     socket.on("connect_error", (err) => {
       console.error("[pong] connection error:", err.message);
       setConnectionError(err.message);
@@ -296,9 +345,10 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
       setUiPhase("error");
     });
 
-    socket.on("error", (payload) => {
+    socket.on("match.error", (payload) => {
       console.error("[pong] server error:", payload.message);
       setConnectionError(payload.message);
+      setUiPhase("error");
     });
 
     return () => {
@@ -307,7 +357,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
       if (animationRef.current !== null)
         cancelAnimationFrame(animationRef.current);
     };
-  }, [profile.id, profile.nickname, profile.avatarUrl, profile.email, token]);
+  }, [token]);
 
   // --- Key handling  ---
   useEffect(() => {
@@ -515,7 +565,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
     setUiPhase("searching");
     setOpponent(UNKNOWN_PLAYER);
     setSide(null);
-  
+
     //Reset stats
     setMyStats(undefined);
     setOpponentStats(undefined);
@@ -523,12 +573,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
     // Reconnect and join matchmaking again
     const socket = socketRef.current;
     if (socket) {
-      socket.emit("match.join", {
-        id: profile.id,
-        nickname: profile.nickname,
-        email: profile.email,
-        avatarUrl: profile.avatarUrl,
-      });
+      socket.emit("match.join");
     }
   };
 
@@ -559,7 +604,15 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
           </button>
           {onReturn && (
             <button
-              onClick={onReturn}
+              onClick={() => {
+                const socket = socketRef.current;
+                if (socket && uiPhase === "inMatch") {
+                  socket.emit("match.surrender");
+                } else if (socket) {
+                  socket.emit("match.leave");
+                }
+                onReturn();
+              }}
               className="flex items-center gap-2 bg-red-600/80 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-all border border-red-500/50"
             >
               <LogOut size={16} />
@@ -616,7 +669,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
           isWinner={gameOverData.isWinner}
           myScore={gameOverData.myScore}
           opponentScore={gameOverData.opponentScore}
-          myNickname={profile.nickname}
+          myNickname={myPlayer?.nickname ?? "You"}
           opponentNickname={opponent.nickname}
           mySide={side}
           winReason={gameOverData.winReason}

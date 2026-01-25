@@ -41,6 +41,7 @@ export interface PlayerStats {
 export interface MatchFoundPayload {
   matchId: string;
   side: Side;
+  player: PlayerProfile;
   opponent: PlayerProfile;
   playerStats: PlayerStats;
   opponentStats: PlayerStats;
@@ -77,12 +78,13 @@ export interface ServerToClientEvents {
   "opponent.reconnected": () => void;
   "opponent.surrendered": () => void;
   "opponent.left": () => void;
-  error: (payload: { message: string }) => void;
+  "match.error": (payload: { message: string }) => void;
 }
 
 export interface ClientToServerEvents {
-  "match.join": (profile: PlayerProfile) => void;
+  "match.join": () => void;
   "match.leave": () => void;
   "match.surrender": () => void;
   "input.update": (payload: { up: boolean; down: boolean }) => void;
+
 }

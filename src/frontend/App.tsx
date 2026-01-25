@@ -540,12 +540,6 @@ export default function App() {
                 className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-8 ${topPaddingClass}`}
               >
                 <OnlinePong
-                  profile={{
-                    id: user.id,
-                    nickname: user.username,
-                    email: user.email,
-                    avatarUrl: user.avatarUrl ?? undefined,
-                  }}
                   token={token}
                   onReturn={handleReturn}
                 />
