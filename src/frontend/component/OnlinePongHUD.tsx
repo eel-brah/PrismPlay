@@ -155,9 +155,9 @@ function PlayerStack({
               alt={displayName}
               className={`w-20 h-20 rounded-xl bg-gradient-to-br ${avatarBg} p-0.5 shadow-lg object-cover`}
             />
-            <span
+            {/* <span
               className={`absolute bottom-0 right-0 w-3 h-3 ${statusColor} rounded-full border-2 border-gray-900`}
-            />
+            /> */}
           </div>
         </div>
 
