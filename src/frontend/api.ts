@@ -11,6 +11,18 @@ export type User = {
   avatarUrl: string | null;
 };
 
+export type FriendRow = {
+  createdAt: string;
+  friend: User;
+};
+
+export type FriendRequest = {
+  id: Number,
+  status: "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELED",
+  sentAt: string,
+  formUser : User,
+  toUser: User
+}
 export type LoginResponse = {
   accessToken: string;
   user: User;
@@ -125,3 +137,28 @@ export function apiGetPlayerStats(token: string, playerId: number) {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+
+export function apiListFriends(token: string){
+  return requestJson<FriendRow[]>("/api/friend/", {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
+
+export function apiIncomingRequests(token: string){
+  return requestJson<FriendRequest[]>("/api/friend/requests/incoming", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`
+    }  
+  });
+}
+
+// export function apiListFriends(token: string) {
+//   return requestJson<FriendRow[]>("/api/friends", {
+//     method: "GET",
+//     headers: { Authorization: `Bearer ${token}` },
+//   });
+// }
