@@ -1,5 +1,4 @@
 import { FinalLeaderboardEntry, LeaderboardEntry } from "src/shared/agario/types";
-import { StatsRow } from "./FinalStatusOverlay";
 
 type LeaderboardProps = {
   leaderboard: LeaderboardEntry[];
@@ -10,8 +9,8 @@ export const Leaderboard = ({ leaderboard }: LeaderboardProps) => {
     <div
       className="
         absolute top-4 right-4
-        bg-black/40 backdrop-blur-sm
-        text-white text-sm
+        bg-zinc-900/70 backdrop-blur-sm
+        text-zinc-100 border border-white/10
         rounded-lg
         px-4 py-3
         min-w-[200px]
@@ -66,7 +65,6 @@ export const FinalLeaderboard = ({
 
   return (
     <div className="w-[480px] max-w-[92vw] bg-zinc-900 rounded-xl shadow-xl p-6 text-white">
-      {/* Header */}
       <div className="text-center mb-6">
         <div className="text-3xl font-bold text-yellow-400">
           🏆 {winner.name} Wins!
@@ -76,31 +74,30 @@ export const FinalLeaderboard = ({
         </div>
       </div>
 
-      {/* Scrollable leaderboard */}
       <div className="border border-white/10 rounded-lg overflow-hidden">
-        <div className="max-h-[320px] overflow-y-auto">
-          {leaderboard.map((p) => (
-            <div
-              key={p.id}
-              className={`
-                flex justify-between items-center
-                px-4 py-3
-                border-b last:border-b-0 border-white/10
-              `}
-            >
-              <div className={`flex items-center gap-3 ${medalStyle(p.rank)}`}>
-                <span className="w-6 text-right">{p.rank}</span>
-                <span>{p.name}</span>
-                {p.rank <= 3 && <span>★</span>}
-              </div>
-
-              <StatsRow
-                kills={p.kills}
-                maxMass={p.maxMass}
-              />
+        {leaderboard.map((p) => (
+          <div
+            key={p.id}
+            className={`
+              flex justify-between items-center
+              px-4 py-3
+              border-b last:border-b-0 border-white/10
+            `}
+          // TODO: is me
+          // ${p.id ===  ? "bg-white/10 font-semibold" : ""}
+          >
+            <div className={`flex items-center gap-3 ${medalStyle(p.rank)}`}>
+              <span className="w-6 text-right">{p.rank}</span>
+              <span>{p.name}</span>
+              {p.rank <= 3 && <span>★</span>}
             </div>
-          ))}
-        </div>
+
+            <div className="flex items-center gap-6 text-sm text-gray-300">
+              <span className="text-red-400">⚔ {p.kills}</span>
+              <span>⬤ {p.maxMass}</span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

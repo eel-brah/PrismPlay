@@ -19,10 +19,10 @@ import {
 } from "@/../shared/agario/types";
 import { drawEjects, drawOrbs, drawViruses, getOrCreateGuestId, randomColor, randomId, randomPlayer } from "@/../shared/agario/utils";
 import { drawGrid } from "@/game/agario/utils";
-import { FinalLeaderboard, Leaderboard } from "./LeaderBoard";
-import { TopStatusBar } from "./RoomStatusBar";
+import { FinalLeaderboard, Leaderboard } from "./agario/LeaderBoard";
+import { FinalStatusOverlay } from "./agario/FinalStatusOverlay";
+import { TopStatusBar } from "./agario/RoomStatusBar";
 import { nanoid } from "nanoid"
-import { FinalStatusOverlay } from "./FinalStatusOverlay";
 import { TOKEN_KEY } from "@/api";
 
 type AlertType = "error" | "warning" | "info" | "";
@@ -411,11 +411,13 @@ const Agario = () => {
       const player = playerRef.current;
       if (!camera || !player) return;
 
+      ctx.fillStyle = "#121212";
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       drawGrid(ctx, camera);
 
-      ctx.strokeStyle = "#000";
+      ctx.strokeStyle = "#fff"; // tailwind gray-200
+      ctx.lineWidth = 2;
       ctx.strokeRect(-camera.x, -camera.y, MAP_WIDTH, MAP_HEIGHT);
 
       drawOrbs(ctx, orbsRef.current, camera);
@@ -544,7 +546,7 @@ const Agario = () => {
   }
 
   return (
-    <div className="fixed inset-0">
+    <div className="fixed inset-0 bg-zinc-950 text-zinc-100">
       <div className="pointer-events-none fixed top-6 left-1/2 -translate-x-1/2 z-50">
         <div
           className={`
@@ -561,10 +563,18 @@ const Agario = () => {
 
       {!hasJoined && (
         <div className="absolute inset-0 flex flex-col justify-center items-center gap-4">
-          <h1 className="text-4xl mb-4 font-bold text-gray-800">Agario</h1>
+          <h1 className="text-4xl mb-4 font-bold text-zinc-100">Agario</h1>
 
           <input
-            className="px-4 py-2 rounded-md border-2 border-gray-400 text-black text-xl bg-white focus:outline-none focus:border-gray-600 placeholder-gray-500"
+            className="
+                px-4 py-2 rounded-md border
+                border-fuchsia-500/60
+                text-white text-xl
+                bg-zinc-900
+                placeholder-zinc-400
+                focus:outline-none focus:ring-2 focus:ring-zinc-500
+              "
+spellCheck={false}
             placeholder="Name (max 6)"
             maxLength={6}
             value={playerName}
@@ -580,7 +590,7 @@ const Agario = () => {
                 roomNameRef.current = DEFAULT_ROOM;
                 handleJoinRoom("join");
               }}
-              className="px-6 py-3 bg-gray-300 text-black rounded-md text-xl hover:bg-gray-400 transition"
+              className="px-6 py-3 bg-zinc-800 text-white rounded-md text-xl hover:bg-zinc-700 transition"
             >
               Start (FFA)
             </button>
@@ -590,7 +600,7 @@ const Agario = () => {
                 setAlert({ type: "", message: "" });
                 setMenuMode("join");
               }}
-              className="px-6 py-3 bg-gray-300 text-black rounded-md text-xl hover:bg-gray-400 transition"
+              className="px-6 py-3 bg-zinc-800 text-white rounded-md text-xl hover:bg-zinc-700 transition"
             >
               Join Room
             </button>
@@ -600,31 +610,31 @@ const Agario = () => {
                 setAlert({ type: "", message: "" });
                 setMenuMode("create");
               }}
-              className="px-6 py-3 bg-gray-300 text-black rounded-md text-xl hover:bg-gray-400 transition"
+              className="px-6 py-3 bg-zinc-800 text-white rounded-md text-xl hover:bg-zinc-700 transition"
             >
               Create Room
             </button>
           </div>
 
           {menuMode === "join" && (
-            <div className="w-[560px] max-w-[92vw] bg-white/95 rounded-lg p-4 border border-gray-300">
-              <div className="text-black font-bold text-xl mb-2">Rooms</div>
+            <div className="w-[560px] max-w-[92vw] bg-zinc-900/90 rounded-lg p-4 border border-fuchsia-500/60 backdrop-blur">
+              <div className="text-white font-bold text-xl mb-2">Rooms</div>
 
               <div className="max-h-[260px] overflow-auto flex flex-col gap-2">
                 {rooms.length === 0 && (
-                  <div className="text-gray-700">No rooms right now.</div>
+                  <div className="text-zinc-400">No rooms right now.</div>
                 )}
 
                 {rooms.map((r) => (
                   <div
                     key={r.room}
-                    className="flex items-center justify-between border rounded p-2"
+                    className="flex items-center justify-between border border-fuchsia-500/60 rounded p-2 bg-zinc-950/40"
                   >
-                    <div className="text-black">
+                    <div className="text-white">
                       <div className="font-semibold">
                         {r.room} {r.visibility === "private" ? "🔒" : "🌐"}
                       </div>
-                      <div className="text-sm text-gray-700">
+                      <div className="text-sm text-gray-200">
                         {r.status} • {r.playerCount}/{r.maxPlayers}
                         {r.room !== DEFAULT_ROOM && (
                           <>
@@ -677,7 +687,15 @@ const Agario = () => {
 
               <div className="mt-4 flex flex-col gap-2">
                 <input
-                  className="px-4 py-2 rounded-md border-2 border-gray-400 text-black text-xl bg-white"
+                  className="
+                      px-4 py-2 rounded-md border
+                      border-fuchsia-500/60
+                      text-white text-xl
+                      bg-zinc-900
+                      placeholder-zinc-400
+                      focus:outline-none focus:ring-2 focus:ring-zinc-500
+                    "
+spellCheck={false}
                   placeholder="Room name (or select above)"
                   maxLength={20}
                   value={roomName}
@@ -688,7 +706,15 @@ const Agario = () => {
                 />
 
                 <input
-                  className="px-4 py-2 rounded-md border-2 border-gray-400 text-black text-xl bg-white"
+                  className="
+                      px-4 py-2 rounded-md border
+                      border-fuchsia-500/60
+                      text-white text-xl
+                      bg-zinc-900
+                      placeholder-zinc-400
+                      focus:outline-none focus:ring-2 focus:ring-zinc-500
+                    "
+spellCheck={false}
                   placeholder="Key (only for private rooms)"
                   value={joinKey}
                   onChange={(e) => setJoinKey(e.target.value)}
@@ -718,7 +744,7 @@ const Agario = () => {
                       setJoinKey("");
                       setAlert({ type: "", message: "" });
                     }}
-                    className="px-6 py-3 bg-gray-200 text-black rounded-md text-xl hover:bg-gray-300 transition"
+                    className="px-6 py-3 bg-zinc-700 text-white rounded-md text-xl hover:bg-zinc-600 transition"
                   >
                     Back
                   </button>
@@ -728,11 +754,19 @@ const Agario = () => {
           )}
 
           {menuMode === "create" && (
-            <div className="w-[560px] max-w-[92vw] bg-white/95 rounded-lg p-4 border border-gray-300">
-              <div className="text-black font-bold text-xl mb-3">Create Room</div>
+            <div className="w-[560px] max-w-[92vw] bg-zinc-900/90 rounded-lg p-4 border border-fuchsia-500/60 backdrop-blur">
+              <div className="text-white font-bold text-xl mb-3">Create Room</div>
 
               <input
-                className="px-4 py-2 rounded-md border-2 border-gray-400 text-black text-xl bg-white w-full"
+                className="
+                    px-4 py-2 rounded-md border
+                    border-fuchsia-500/60
+                    text-white text-xl
+                    bg-zinc-900
+                    placeholder-zinc-400
+                    focus:outline-none focus:ring-2 focus:ring-zinc-500
+                  "
+spellCheck={false}
                 placeholder="Room name (A-Z, 0-9, _ or -)"
                 maxLength={20}
                 value={roomName}
@@ -744,7 +778,7 @@ const Agario = () => {
               />
 
               <div className="mt-3 flex gap-5 items-center">
-                <label className="text-black flex items-center gap-2">
+                <label className="text-white flex items-center gap-2">
                   <input
                     type="radio"
                     checked={visibility === "public"}
@@ -753,7 +787,7 @@ const Agario = () => {
                   Public
                 </label>
 
-                <label className="text-black flex items-center gap-2">
+                <label className="text-white flex items-center gap-2">
                   <input
                     type="radio"
                     checked={visibility === "private"}
@@ -764,7 +798,7 @@ const Agario = () => {
               </div>
 
               <div className="mt-3 flex items-center">
-                <label className="text-black flex items-center gap-2">
+                <label className="text-white flex items-center gap-2">
                   <input
                     type="checkbox"
                     checked={allowSpectators}
@@ -776,7 +810,15 @@ const Agario = () => {
 
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <input
-                  className="px-4 py-2 rounded-md border-2 border-gray-400 text-black text-xl bg-white"
+                  className="
+                      px-4 py-2 rounded-md border
+                      border-fuchsia-500/60
+                      text-white text-xl
+                      bg-zinc-900
+                      placeholder-zinc-400
+                      focus:outline-none focus:ring-2 focus:ring-zinc-500
+                    "
+      spellCheck={false}
                   type="number"
                   min={MIN_PLAYERS_PER_ROOM}
                   max={MAX_PLAYERS_PER_ROOM}
@@ -787,8 +829,16 @@ const Agario = () => {
                   }
                 />
                 <input
-                  className="px-4 py-2 rounded-md border-2 border-gray-400 text-black text-xl bg-white"
+                  className="
+                      px-4 py-2 rounded-md border
+                      border-fuchsia-500/60
+                      text-white text-xl
+                      bg-zinc-900
+                      placeholder-zinc-400
+                      focus:outline-none focus:ring-2 focus:ring-zinc-500
+                    "
                   type="number"
+spellCheck={false}
                   min={MIN_MINUTES}
                   max={MAX_MINUTES}
                   placeholder="Duration (min)"
@@ -831,7 +881,7 @@ const Agario = () => {
                     setCreatedKey("");
                     setAlert({ type: "", message: "" });
                   }}
-                  className="px-6 py-3 bg-gray-200 text-black rounded-md text-xl hover:bg-gray-300 transition"
+                  className="px-6 py-3 bg-zinc-700 text-white rounded-md text-xl hover:bg-zinc-600 transition"
                 >
                   Back
                 </button>
@@ -870,7 +920,7 @@ const Agario = () => {
 
               <button
                 onClick={() => { backToMainMenu(false); }}
-                className="px-6 py-3 bg-gray-500 text-white rounded-md text-xl hover:bg-gray-600"
+                className="px-6 py-3 bg-zinc-700 text-white rounded-md text-xl hover:bg-zinc-600 transition"
               >
                 Back to Menu
               </button>
@@ -900,23 +950,23 @@ const Agario = () => {
       {
         hasJoined && roomInfo?.status === "waiting" && (
           <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-40">
-            <div className="bg-white rounded-lg p-6 w-[560px] max-w-[92vw]">
-              <div className="text-2xl font-bold text-black flex items-center justify-between">
+            <div className="bg-zinc-900 rounded-lg p-6 w-[560px] max-w-[92vw] border border-white/10 text-white">
+              <div className="text-2xl font-bold text-zinc-100 flex items-center justify-between">
                 <span>
                   Lobby: {roomInfo.room}{" "}
                   {roomInfo.visibility === "private" ? "🔒" : "🌐"}
                 </span>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-zinc-400">
                   {lobbyPlayers.length}/{roomInfo.maxPlayers}
                 </span>
               </div>
 
-              <div className="text-gray-700 mt-1">
+              <div className="text-zinc-400 mt-1">
                 Duration: {roomInfo.durationMin} minutes
               </div>
 
               <div className="mt-6 flex items-center justify-center">
-                <span className="text-xl font-bold text-black text-center">
+                <span className="text-xl font-bold text-zinc-100 text-center">
                   Waiting for players to join...
                 </span>
               </div>
@@ -930,16 +980,16 @@ const Agario = () => {
                 )}
 
               <div className="mt-4">
-                <div className="font-semibold text-black mb-2">Players</div>
-                <div className="max-h-[220px] overflow-auto border rounded">
+                <div className="font-semibold text-zinc-100 mb-2">Players</div>
+                <div className="max-h-[220px] overflow-auto border border-gray rounded bg-black">
                   {lobbyPlayers.map((p) => (
                     <div
                       key={p.id}
                       className="px-3 py-2 border-b last:border-b-0 flex justify-between"
                     >
-                      <span className="text-black">{p.name}</span>
+                      <span className="text-zinc-100">{p.name}</span>
                       {p.id === roomInfo.hostId && (
-                        <span className="text-sm text-gray-600">Host</span>
+                        <span className="text-sm text-zinc-400">Host</span>
                       )}
                     </div>
                   ))}
@@ -960,12 +1010,12 @@ const Agario = () => {
                     Start Match
                   </button>
                 ) : (
-                  <div className="text-gray-700">Waiting for host to start…</div>
+                  <div className="text-zinc-400">Waiting for host to start…</div>
                 )}
 
                 <button
                   onClick={() => { backToMainMenu(true); }}
-                  className="px-5 py-3 bg-gray-300 text-black rounded hover:bg-gray-400"
+                  className="px-5 py-3 bg-red-500 text-zinc-100 rounded hover:bg-red-600"
                 >
                   Leave
                 </button>

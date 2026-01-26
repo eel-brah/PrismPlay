@@ -1,9 +1,6 @@
 import { Camera } from "src/shared/agario/types";
 
-export function drawGrid(
-  ctx: CanvasRenderingContext2D,
-  camera: Camera,
-) {
+export function drawGrid(ctx: CanvasRenderingContext2D, camera: Camera) {
   const gridSize = 50;
 
   const startX = -(camera.x % gridSize);
@@ -12,7 +9,7 @@ export function drawGrid(
   const width = camera.width;
   const height = camera.height;
 
-  ctx.strokeStyle = "#b8c1c5";
+  ctx.strokeStyle = "rgba(255,255,255,0.18)"; // visible but not too bright
   ctx.lineWidth = 1;
 
   for (let x = startX; x < width; x += gridSize) {

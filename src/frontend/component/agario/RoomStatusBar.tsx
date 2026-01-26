@@ -10,8 +10,7 @@ export const TopStatusBar = ({
   roomInfo,
   onLeave,
 }: Props) => {
-  const timePassedSec = Math.floor((Date.now() - roomInfo.startedAt) / 1000);
-  console.log("TIME: ", roomInfo.startedAt)
+  const timePassedSec = Math.floor((Date.now() - (roomInfo.startedAt ?? 0)) / 1000);
   const minutes = Math.floor(timePassedSec / 60);
   const seconds = timePassedSec % 60;
 
@@ -19,7 +18,7 @@ export const TopStatusBar = ({
     <div className="fixed top-0 left-0 right-0 z-40 flex justify-center group">
       <div className="flex flex-col items-center">
         <div className="pointer-events-auto mt-2">
-          <div className="bg-black/70 text-white px-4 py-1 rounded-md text-sm">
+          <div className="bg-zinc-900/70 text-zinc-100 border border-white/10 px-4 py-1 rounded-md text-sm">
             {roomInfo.room} · {roomInfo.players.length}/{roomInfo.maxPlayers}
           </div>
         </div>
@@ -30,7 +29,7 @@ export const TopStatusBar = ({
             mt-2
             h-10
             w-full max-w-[1200px]
-            bg-black/80 text-white
+bg-zinc-900/80 text-zinc-100 border border-white/10
             rounded-md
             flex items-center gap-5
             px-4 text-sm
@@ -71,7 +70,7 @@ export const TopStatusBar = ({
           <span className="ml-auto">
             <button
               onClick={onLeave}
-              className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded transition"
+              className="px-3 py-1 bg-red-600/90 hover:bg-red-600 rounded transition"
             >
               Leave
             </button>

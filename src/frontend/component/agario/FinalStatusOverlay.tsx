@@ -1,4 +1,3 @@
-
 import { FinalStatus } from "src/shared/agario/types";
 
 type Props = {
