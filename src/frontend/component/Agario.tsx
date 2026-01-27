@@ -286,6 +286,7 @@ const Agario = () => {
           id,
           name: p.name,
           totalMass: p.totalMass,
+          decayMultiplier: p.decayMultiplier,
         }));
 
         playersArray.sort((a, b) => b.totalMass - a.totalMass);
@@ -294,6 +295,7 @@ const Agario = () => {
           ...p,
           rank: index + 1,
           isMe: p.id === myId,
+          decayMultiplier: p.decayMultiplier,
         }));
 
         const top10 = ranked.slice(0, 10);

@@ -35,6 +35,8 @@ export const VIRUS_EAT_MIN_MASS = 132 * MASS;
 export const VIRUS_MAX_FEED = 7;
 export const VIRUS_POP_PIECES = 16;
 export const VIRUS_SPLIT_FORCE = 900;
+export const VIRUS_PENALTY_WINDOW_MS = 2 * 60 * 1000; // 2 minutes
+export const VIRUS_EAT_THRESHOLD = 2;
 
 export const MAX_BLOBS_PER_PLAYER = 16;
 export const MERGE_BASE_TIME = 30;

@@ -1,5 +1,29 @@
 import { FinalLeaderboardEntry, LeaderboardEntry } from "src/shared/agario/types";
 
+type DecayIndicatorProps = {
+  multiplier: number;
+};
+
+function decaySeverity(multiplier: number) {
+  if (multiplier >= 4) return "☠";
+  if (multiplier >= 2) return "☣ ☣ ";
+  return "☣ ";
+}
+
+const DecayIndicator = ({ multiplier }: DecayIndicatorProps) => {
+  if (multiplier <= 1) return null;
+
+  const severity = decaySeverity(multiplier);
+  return (
+    <span
+      className={`ml-2 text-xs font-semibold `}
+      title={`Mass decay increased (${multiplier.toFixed(2)}×)`}
+    >
+      {severity}
+    </span>
+  );
+};
+
 type LeaderboardProps = {
   leaderboard: LeaderboardEntry[];
 };
@@ -26,8 +50,9 @@ export const Leaderboard = ({ leaderboard }: LeaderboardProps) => {
             className={`flex justify-between ${p.isMe ? "text-yellow-300 font-semibold" : ""
               }`}
           >
-            <span>
+            <span className="flex items-center">
               {p.rank}. {p.name}
+              <DecayIndicator multiplier={p.decayMultiplier} />
             </span>
             <span>{Math.floor(p.totalMass)}</span>
           </li>

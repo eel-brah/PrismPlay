@@ -70,6 +70,7 @@ export interface PlayerState {
   input: InputState | null;
   splitRequested: boolean;
   ejectRequested: boolean;
+  virusEatTimes: number[];
 }
 
 export type LeaderboardEntry = {
@@ -78,6 +79,7 @@ export type LeaderboardEntry = {
   totalMass: number;
   rank: number;
   isMe: boolean;
+  decayMultiplier: number;
 };
 
 export interface Virus {

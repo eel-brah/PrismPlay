@@ -10,7 +10,9 @@ import {
   ORB_MAX_MASS,
   VIRUS_BASE_MASS,
   VIRUS_EAT_MIN_MASS,
+  VIRUS_EAT_THRESHOLD,
   VIRUS_MAX_FEED,
+  VIRUS_PENALTY_WINDOW_MS,
 } from "src/shared/agario/config";
 import {
   BlobData,
@@ -152,6 +154,8 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
       }
       // }
       state.maxMass = Math.max(state.maxMass, state.player.getTotalMass());
+
+      updateVirusPenalty(state, Date.now());
     }
 
     // if (!started) return;
@@ -362,6 +366,7 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
 
   function handleVirusCollisions(state: PlayerState, viruses: Virus[]) {
     const player = state.player;
+    const now = Date.now();
 
     for (let i = viruses.length - 1; i >= 0; i--) {
       const virus = viruses[i];
@@ -378,11 +383,24 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
 
         if (blob.mass < VIRUS_EAT_MIN_MASS) continue;
 
-        blob.mass += virus.mass;
-        if (blob.mass > MAXIMUM_MASS_LIMIT) blob.mass = MAXIMUM_MASS_LIMIT;
-        state.maxMass = Math.max(state.maxMass, state.player.getTotalMass());
+        blob.mass = Math.min(blob.mass + virus.mass, MAXIMUM_MASS_LIMIT);
+        state.maxMass = Math.max(state.maxMass, player.getTotalMass());
 
         viruses.splice(i, 1);
+
+        state.virusEatTimes.push(now);
+
+        while (
+          state.virusEatTimes.length &&
+          now - state.virusEatTimes[0] > VIRUS_PENALTY_WINDOW_MS
+        )
+          state.virusEatTimes.shift();
+
+        if (state.virusEatTimes.length >= VIRUS_EAT_THRESHOLD)
+          player.decayMultiplier = Math.min(
+            state.virusEatTimes.length * 0.75,
+            6,
+          );
 
         if (player.blobs.length >= MAX_BLOBS_PER_PLAYER) return;
 
@@ -450,6 +468,22 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
       ejects: world.ejects,
       viruses: world.viruses,
     });
+  }
+
+  function updateVirusPenalty(state: PlayerState, now: number) {
+    while (
+      state.virusEatTimes.length &&
+      now - state.virusEatTimes[0] > VIRUS_PENALTY_WINDOW_MS
+    )
+      state.virusEatTimes.shift();
+
+    state.player.decayMultiplier = Math.max(
+      1,
+      Math.min(state.virusEatTimes.length * 0.75, 6),
+    );
+    // if (state.virusEatTimes.length < VIRUS_EAT_THRESHOLD)
+    //   state.player.decayMultiplier = 1;
+    console.log(state.player.name, ": ", state.player.decayMultiplier);
   }
 
   let lastTime = Date.now();

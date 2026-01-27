@@ -39,12 +39,14 @@ export class Player {
   private _color: string;
   private _blobs: BlobData[];
   private _splitOrderCounter: number;
+  private _decayMultiplier: number;
 
-  constructor(id: string, name: string, color: string, blobs?: BlobData[]) {
+  constructor(id: string, name: string, color: string, blobs?: BlobData[], decayMultiplier = 1) {
     this._id = id;
     this._name = name;
     this._color = color;
     this._splitOrderCounter = 0;
+    this._decayMultiplier = decayMultiplier;
 
     if (blobs && blobs.length > 0) {
       this._blobs = blobs.map((b) => this.fromBlobData(b));
@@ -60,7 +62,7 @@ export class Player {
           //TODO: random
           x: MAP_WIDTH / 2,
           y: MAP_HEIGHT / 2,
-          mass: INIT_MASS,
+          mass: 100000,
           vx: 0,
           vy: 0,
           mergeCooldown: 0,
@@ -121,11 +123,19 @@ export class Player {
     return this._name;
   }
 
+  get decayMultiplier(): number {
+    return this._decayMultiplier;
+  }
+
+  set decayMultiplier(n: number) {
+    this._decayMultiplier = n;
+  }
+
   get id(): string {
     return this._id;
   }
   //TODO:
-  set id(id: string){
+  set id(id: string) {
     this._id = id;
   }
 
@@ -162,11 +172,12 @@ export class Player {
       })),
       lastProcessedSeq: 0,
       totalMass: this.getTotalMass(),
+      decayMultiplier: this.decayMultiplier,
     };
   }
 
   static deserialize(data: PlayerData): Player {
-    return new Player(data.id, data.name, data.color, data.blobs);
+    return new Player(data.id, data.name, data.color, data.blobs, data.decayMultiplier);
   }
 
   private clampBlobToMap(blob: BlobData) {
@@ -353,7 +364,8 @@ export class Player {
     }
 
     // Mass decay (0.2% per second)
-    const decayFactor = Math.pow(0.998, dt);
+    const baseDecay = Math.pow(0.998, dt);
+    const decayFactor = Math.pow(baseDecay, this._decayMultiplier);
     for (const blob of this._blobs) {
       blob.mass *= decayFactor;
       if (blob.mass < INIT_MASS) blob.mass = INIT_MASS;
