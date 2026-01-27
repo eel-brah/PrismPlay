@@ -11,6 +11,18 @@ export type User = {
   avatarUrl: string | null;
 };
 
+export type FriendRow = {
+  createdAt: string;
+  friend: User;
+};
+
+export type FriendRequest = {
+  id: Number,
+  status: "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELED",
+  sentAt: string,
+  formUser : User,
+  toUser: User
+}
 export type LoginResponse = {
   accessToken: string;
   user: User;
@@ -113,15 +125,35 @@ export function apiLogout(token: string) {
 }
 
 export function apiGetMatchHistory(token: string, playerId: number) {
-  return requestJson<MatchHistoryResponse>(`/api/matchs/history/${playerId}`, {
+  return requestJson<MatchHistoryResponse>(
+    `/api/pong/matchs/history/${playerId}`,
+    {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+}
+
+export function apiGetPlayerStats(token: string, playerId: number) {
+  return requestJson<PlayerStats>(`/api/pong/matchs/stats/${playerId}`, {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
   });
 }
 
-export function apiGetPlayerStats(token: string, playerId: number) {
-  return requestJson<PlayerStats>(`/api/matchs/stats/${playerId}`, {
+export function apiListFriends(token: string){
+  return requestJson<FriendRow[]>("/api/friend/", {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
+
+export function apiIncomingRequests(token: string){
+  return requestJson<FriendRequest[]>("/api/friend/requests/incoming", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`
+    }  
   });
 }

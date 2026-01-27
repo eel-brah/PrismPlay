@@ -1,36 +1,80 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState , useEffect} from "react";
 import { MessageCircle, Gamepad2, UserPlus, UserMinus, Search, Clock, Send, MessageSquarePlus } from "lucide-react";
 import { io, type Socket } from "socket.io-client";
-import { apiGetMe, getStoredToken } from "../api";
+import { apiGetMe, getStoredToken, apiListFriends , apiIncomingRequests} from "../api";
 
 type TabKey = "friends" | "chat" | "groups";
 
 export default function SocialHub() {
   const [activeTab, setActiveTab] = useState<TabKey>("friends");
-
   const [friends, setFriends] = useState<
     {
       id: string;
       name: string;
-      status: "online" | "offline" | "busy" | "away" | "in_game";
-      lastSeen: string;
-      gamesPlayed: number;
-      winRate: number;
-      mutualFriends: number;
+      lastLogin: string | null;
+      createdAt: string;
       avatarUrl?: string;
     }[]
-  >([
-    { id: "1", name: "Alice", status: "online", lastSeen: "Online now", gamesPlayed: 45, winRate: 78, mutualFriends: 3 },
-    { id: "2", name: "Bob", status: "in_game", lastSeen: "Playing now", gamesPlayed: 67, winRate: 65, mutualFriends: 5 },
-    { id: "3", name: "Charlie", status: "away", lastSeen: "2 hours ago", gamesPlayed: 23, winRate: 52, mutualFriends: 1 },
-    { id: "4", name: "Diana", status: "offline", lastSeen: "1 day ago", gamesPlayed: 89, winRate: 82, mutualFriends: 7 },
-  ]);
-  const [requests, setRequests] = useState<
-    { id: string; name: string; avatarUrl?: string; mutualFriends?: number }[]
-  >([
-    { id: "r1", name: "Ethan", mutualFriends: 2 },
-    { id: "r2", name: "Mia", mutualFriends: 1 },
-  ]);
+    >([]);
+   const [requests, setRequests] = useState<
+    { id: string;
+       name: string; 
+       avatarUrl?: string
+      }[]
+  >([]);
+  useEffect(() => {
+    const token = getStoredToken();
+    if (!token)
+        return;
+    (async () => {
+      console.log("token isss ", token)
+      const firendList = await apiListFriends(token);
+      const incomingRequest = await apiIncomingRequests(token);
+      setFriends(
+        firendList.map((r) => ({
+          name: r.friend.username,
+          lastLogin : r.friend.lastLogin,
+          createdAt: r.friend.createdAt,
+          avatarUrl: r.friend.avatarUrl
+        }))
+      )
+      console.log("Incomis is ", incomingRequest)
+      setRequests(
+        incomingRequest.map((r) => ({
+          id: String(r.fromUser.id),
+          name: r.fromUser.username,
+          avatarUrl: r.fromUser.avatarUrl
+        }))
+      )
+      
+    })().catch((e) => {
+      console.error(e);
+    });
+    
+  }, []);
+  // const [friends, setFriends] = useState<
+  //   {
+  //     id: string;
+  //     name: string;
+  //     status: "online" | "offline" | "busy" | "away" | "in_game";
+  //     lastSeen: string;
+  //     gamesPlayed: number;
+  //     winRate: number;
+  //     mutualFriends: number;
+  //     avatarUrl?: string;
+  //   }[]
+  // >([
+  //   { id: "1", name: "Alice", status: "online", lastSeen: "Online now", gamesPlayed: 45, winRate: 78, mutualFriends: 3 },
+  //   { id: "2", name: "Bob", status: "in_game", lastSeen: "Playing now", gamesPlayed: 67, winRate: 65, mutualFriends: 5 },
+  //   { id: "3", name: "Charlie", status: "away", lastSeen: "2 hours ago", gamesPlayed: 23, winRate: 52, mutualFriends: 1 },
+  //   { id: "4", name: "Diana", status: "offline", lastSeen: "1 day ago", gamesPlayed: 89, winRate: 82, mutualFriends: 7 },
+  // ]);
+  // const [requests, setRequests] = useState<
+  //   { id: string; name: string; avatarUrl?: string; mutualFriends?: number }[]
+  // >([
+  //   { id: "r1", name: "Ethan", mutualFriends: 2 },
+  //   { id: "r2", name: "Mia", mutualFriends: 1 },
+  // ]);
   const [suggestions, setSuggestions] = useState<
     { id: string; name: string; avatarUrl?: string; mutualFriends?: number }[]
   >([
@@ -97,7 +141,7 @@ export default function SocialHub() {
       ...prev,
       {
         id: Math.random().toString(36).slice(2),
-        name: n,
+        name: n,  
         status: "offline",
         lastSeen: "Just now",
         gamesPlayed: 0,
@@ -251,20 +295,20 @@ export default function SocialHub() {
                               <div className="font-semibold text-gray-100">{f.name}</div>
                               <div className="text-xs text-gray-400 flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
-                                <span>{f.lastSeen}</span>
+                                <span>{f.lastLogin}</span>
                               </div>
                             </div>
                           </div>
                           <span className={`text-xs px-2 py-1 rounded-full ${pill.cls}`}>{pill.text}</span>
                         </div>
-                        <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                        {/* <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                           <div className="text-gray-300">Games played</div>
                           <div className="text-right text-gray-100">{f.gamesPlayed}</div>
                           <div className="text-gray-300">Win rate</div>
                           <div className="text-right text-gray-100">{f.winRate}%</div>
                           <div className="text-gray-300">Mutual friends</div>
                           <div className="text-right text-gray-100">{f.mutualFriends}</div>
-                        </div>
+                        </div> */}
                         <div className="mt-5 flex items-center gap-3">
                           <button
                             onClick={() => {
