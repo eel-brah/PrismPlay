@@ -416,7 +416,7 @@ const Agario = () => {
 
       drawGrid(ctx, camera);
 
-      ctx.strokeStyle = "#fff"; // tailwind gray-200
+      ctx.strokeStyle = "#fff";
       ctx.lineWidth = 2;
       ctx.strokeRect(-camera.x, -camera.y, MAP_WIDTH, MAP_HEIGHT);
 
@@ -574,7 +574,7 @@ const Agario = () => {
                 placeholder-zinc-400
                 focus:outline-none focus:ring-2 focus:ring-zinc-500
               "
-spellCheck={false}
+            spellCheck={false}
             placeholder="Name (max 6)"
             maxLength={6}
             value={playerName}
@@ -695,7 +695,7 @@ spellCheck={false}
                       placeholder-zinc-400
                       focus:outline-none focus:ring-2 focus:ring-zinc-500
                     "
-spellCheck={false}
+                  spellCheck={false}
                   placeholder="Room name (or select above)"
                   maxLength={20}
                   value={roomName}
@@ -714,7 +714,7 @@ spellCheck={false}
                       placeholder-zinc-400
                       focus:outline-none focus:ring-2 focus:ring-zinc-500
                     "
-spellCheck={false}
+                  spellCheck={false}
                   placeholder="Key (only for private rooms)"
                   value={joinKey}
                   onChange={(e) => setJoinKey(e.target.value)}
@@ -766,7 +766,7 @@ spellCheck={false}
                     placeholder-zinc-400
                     focus:outline-none focus:ring-2 focus:ring-zinc-500
                   "
-spellCheck={false}
+                spellCheck={false}
                 placeholder="Room name (A-Z, 0-9, _ or -)"
                 maxLength={20}
                 value={roomName}
@@ -818,7 +818,7 @@ spellCheck={false}
                       placeholder-zinc-400
                       focus:outline-none focus:ring-2 focus:ring-zinc-500
                     "
-      spellCheck={false}
+                  spellCheck={false}
                   type="number"
                   min={MIN_PLAYERS_PER_ROOM}
                   max={MAX_PLAYERS_PER_ROOM}
@@ -838,7 +838,7 @@ spellCheck={false}
                       focus:outline-none focus:ring-2 focus:ring-zinc-500
                     "
                   type="number"
-spellCheck={false}
+                  spellCheck={false}
                   min={MIN_MINUTES}
                   max={MAX_MINUTES}
                   placeholder="Duration (min)"

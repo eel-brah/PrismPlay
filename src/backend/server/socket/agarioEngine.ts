@@ -313,8 +313,7 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
 
         if (world.meta.hostId === state.userId) {
           for (const id of Object.keys(players)) {
-            if (players[id].userId)
-              world.meta.hostId = players[id].userId;
+            if (players[id].userId) world.meta.hostId = players[id].userId;
           }
         }
 
@@ -552,6 +551,7 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
 
   setInterval(() => {
     for (const [room, world] of worldByRoom) {
+      if (room === DEFAULT_ROOM) continue;
       for (const orb of world.orbs) {
         if (orb.mass < ORB_MAX_MASS) {
           orb.mass = Math.min(ORB_MAX_MASS, orb.mass + ORB_GROWTH_RATE * 60);
