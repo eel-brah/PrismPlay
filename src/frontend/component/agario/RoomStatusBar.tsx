@@ -19,7 +19,9 @@ export const TopStatusBar = ({
       <div className="flex flex-col items-center">
         <div className="pointer-events-auto mt-2">
           <div className="bg-zinc-900/70 text-zinc-100 border border-white/10 px-4 py-1 rounded-md text-sm">
-            {roomInfo.room} · {roomInfo.players.length}/{roomInfo.maxPlayers}
+            {roomInfo.room} · {roomInfo.players.length}
+            {roomInfo.room !== DEFAULT_ROOM && (<span> /{roomInfo.maxPlayers} </span>)}
+
           </div>
         </div>
 
@@ -47,7 +49,8 @@ bg-zinc-900/80 text-zinc-100 border border-white/10
           </span>
 
           <span>
-            Players: {roomInfo.players.length}/{roomInfo.maxPlayers}
+            Players: {roomInfo.players.length}
+            {roomInfo.room !== DEFAULT_ROOM && (<span> /{roomInfo.maxPlayers} </span>)}
           </span>
 
           <span>

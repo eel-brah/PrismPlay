@@ -83,7 +83,7 @@ const Agario = () => {
   const [createdKey, setCreatedKey] = useState("");
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [lobbyPlayers, setLobbyPlayers] = useState<LobbyPlayer[]>([]);
-  const roomStatusRef = useRef<"waiting" | "started">("waiting");
+  const roomStatusRef = useRef<"waiting" | "started" | "ended">("waiting");
 
   useEffect(() => {
     const socket = io("/agario", {
@@ -169,6 +169,7 @@ const Agario = () => {
     socket.on("agario:room-ended", () => {
       clearing("leaderboard")
       setAlert({ type: "info", message: "Room ended" });
+      roomStatusRef.current = "ended";
     });
 
     socket.on("agario:leaderboard", (leaderboard: FinalLeaderboardEntry[]) => {
@@ -177,7 +178,7 @@ const Agario = () => {
     // socket.on("leaderboard:final", setLeaderboard);
 
     socket.on("agario:left-room", () => {
-      clearing(Object.keys(enemiesRef.current).length ? HOME_PAGE : "leaderboard");
+      clearing(Object.keys(enemiesRef.current).length === 0 && roomNameRef.current != DEFAULT_ROOM ? "leaderboard" : HOME_PAGE);
     });
 
     socket.on("agario:final-status", (status: FinalStatus) => {

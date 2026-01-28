@@ -676,6 +676,7 @@ async function deletePlayer(
       }
       if (leaderboard)
         socket.nsp.to(roomName).emit("agario:leaderboard", leaderboard);
+      socket.to(world.meta.room).emit("agario:room-ended");
     }
     worldByRoom.delete(roomName);
     socket.leave(roomName);
