@@ -1,11 +1,14 @@
-import { nanoid } from "nanoid"
+import { nanoid } from "nanoid";
 import {
   MAP_HEIGHT,
   MAP_WIDTH,
   MERGE_BASE_TIME,
   MERGE_FACTOR,
   ORB_MIN_MASS,
+  ORB_RADIUS,
   VIRUS_BASE_MASS,
+  VIRUS_RADIUS,
+  VIRUS_SAFE_RADIUS,
 } from "./config";
 import { Player } from "./player";
 import { Camera, Eject, Orb, Virus } from "./types";
@@ -41,14 +44,14 @@ export function darkenHex(color: string, amount = 0.3): string {
 }
 
 export function randomId(): string {
-  return nanoid(); 
+  return nanoid();
 }
 
 export function randomOrb(): Orb {
   return {
     id: randomId(),
-    x: Math.random() * MAP_WIDTH,
-    y: Math.random() * MAP_HEIGHT,
+    x: ORB_RADIUS + Math.random() * (MAP_WIDTH - ORB_RADIUS * 2),
+    y: ORB_RADIUS + Math.random() * (MAP_HEIGHT - ORB_RADIUS * 2),
     mass: ORB_MIN_MASS,
     color: randomColor(),
   };
@@ -57,8 +60,8 @@ export function randomOrb(): Orb {
 export function randomViruses(): Virus {
   return {
     id: randomId(),
-    x: Math.random() * MAP_WIDTH,
-    y: Math.random() * MAP_HEIGHT,
+    x: VIRUS_SAFE_RADIUS + Math.random() * (MAP_WIDTH - VIRUS_SAFE_RADIUS * 2),
+    y: VIRUS_SAFE_RADIUS + Math.random() * (MAP_HEIGHT - VIRUS_SAFE_RADIUS * 2),
     mass: VIRUS_BASE_MASS,
     vx: 0,
     vy: 0,

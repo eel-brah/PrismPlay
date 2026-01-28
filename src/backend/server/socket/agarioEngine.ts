@@ -481,9 +481,6 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
       1,
       Math.min(state.virusEatTimes.length * 0.75, 6),
     );
-    // if (state.virusEatTimes.length < VIRUS_EAT_THRESHOLD)
-    //   state.player.decayMultiplier = 1;
-    console.log(state.player.name, ": ", state.player.decayMultiplier);
   }
 
   let lastTime = Date.now();

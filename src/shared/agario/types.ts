@@ -38,6 +38,7 @@ export interface PlayerData {
   blobs: BlobData[];
   lastProcessedSeq: number;
   totalMass: number;
+  decayMultiplier: number;
 }
 
 export interface Mouse {

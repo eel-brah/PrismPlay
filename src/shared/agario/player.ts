@@ -41,7 +41,13 @@ export class Player {
   private _splitOrderCounter: number;
   private _decayMultiplier: number;
 
-  constructor(id: string, name: string, color: string, blobs?: BlobData[], decayMultiplier = 1) {
+  constructor(
+    id: string,
+    name: string,
+    color: string,
+    blobs?: BlobData[],
+    decayMultiplier = 1,
+  ) {
     this._id = id;
     this._name = name;
     this._color = color;
@@ -56,13 +62,13 @@ export class Player {
       );
       this._splitOrderCounter = maxOrder;
     } else {
+      const playerRadius = radiusFromMass(INIT_MASS);
       this._blobs = [
         {
           id: randomId(),
-          //TODO: random
-          x: MAP_WIDTH / 2,
-          y: MAP_HEIGHT / 2,
-          mass: 100000,
+          x: playerRadius + Math.random() * (MAP_WIDTH - playerRadius * 2),
+          y: playerRadius + Math.random() * (MAP_HEIGHT - playerRadius * 2),
+          mass: INIT_MASS,
           vx: 0,
           vy: 0,
           mergeCooldown: 0,
@@ -177,7 +183,13 @@ export class Player {
   }
 
   static deserialize(data: PlayerData): Player {
-    return new Player(data.id, data.name, data.color, data.blobs, data.decayMultiplier);
+    return new Player(
+      data.id,
+      data.name,
+      data.color,
+      data.blobs,
+      data.decayMultiplier,
+    );
   }
 
   private clampBlobToMap(blob: BlobData) {

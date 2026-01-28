@@ -30,7 +30,11 @@ export const EJECT_COST = MASS * 18;
 export const EJECT_MASS = MASS * 13;
 export const EJECT_SPEED = 900;
 
-export const VIRUS_BASE_MASS = 100 * MASS;
+export const VIRUS_SIZE = 100;
+export const VIRUS_RADIUS = VIRUS_SIZE / 2;
+export const PADDING = 10;
+export const VIRUS_SAFE_RADIUS = VIRUS_RADIUS + PADDING;
+export const VIRUS_BASE_MASS = VIRUS_SIZE * MASS;
 export const VIRUS_EAT_MIN_MASS = 132 * MASS;
 export const VIRUS_MAX_FEED = 7;
 export const VIRUS_POP_PIECES = 16;
@@ -46,4 +50,3 @@ export const MAX_ORBS = 200;
 export const MAX_VIRUSES = 7;
 
 export const MAX_SPECTATORS_PER_ROOM = 15;
-
