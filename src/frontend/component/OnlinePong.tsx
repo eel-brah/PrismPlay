@@ -81,6 +81,12 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
     soundOnRef.current = soundOn;
   }, [soundOn]);
 
+  const uiPhaseRef = useRef<PhaseUI>("searching");
+
+  useEffect(() => {
+    uiPhaseRef.current = uiPhase;
+  }, [uiPhase]);
+
   // Ref to track current side for socket callbacks (avoids stale closure)
   const sideRef = useRef<Side | null>(null);
   useEffect(() => {
@@ -210,7 +216,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
 
     socket.on("opponent.disconnected", () => {
       setOpponentStatus("disconnected");
-      if (uiPhase !== "gameover") {
+      if (uiPhaseRef.current !== "gameover") {
         // If opponent disconnected mid-game, show as a win
         const snap = snapshotRef.current;
         const currentSide = sideRef.current;
@@ -241,24 +247,56 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
       setOpponentStatus("connected");
     });
 
-    // Handle reconnection to existing match (after page refresh)
-    socket.on("match.reconnected", (payload) => {
-      console.log("[match.reconnected]", payload);
-      setSide(payload.side);
-      sideRef.current = payload.side;
-      snapshotRef.current = payload.snapshot;
-      setOpponent({
-        id: payload.opponent.id,
-        nickname: payload.opponent.nickname,
-        avatarUrl: payload.opponent.avatarUrl,
-      });
-      setOpponentStatus("connected");
-      setUiPhase("inMatch");
-    });
+    // // Handle reconnection to existing match (after page refresh)
+    // socket.on("match.reconnected", (payload) => {
+    //   console.log("[match.reconnected]", payload);
+    //   setSide(payload.side);
+    //   sideRef.current = payload.side;
+    //   snapshotRef.current = payload.snapshot;
+    //   setOpponent({
+    //     id: payload.opponent.id,
+    //     nickname: payload.opponent.nickname,
+    //     avatarUrl: payload.opponent.avatarUrl,
+    //   });
+    //   setOpponentStatus("connected");
+    //   setUiPhase("inMatch");
+    // });
+
+socket.on("match.reconnected", (payload) => {
+  console.log("[match.reconnected]", payload);
+
+  setSide(payload.side);
+  sideRef.current = payload.side;
+
+  snapshotRef.current = payload.snapshot;
+
+  // ✅ restore "me"
+  setMyProfile({
+    id: payload.player.id,
+    nickname: payload.player.nickname,
+    avatarUrl: payload.player.avatarUrl,
+  });
+
+  // ✅ restore opponent
+  setOpponent({
+    id: payload.opponent.id,
+    nickname: payload.opponent.nickname,
+    avatarUrl: payload.opponent.avatarUrl,
+  });
+
+  // ✅ restore stats so HUD is correct after refresh
+  setMyStats(payload.playerStats);
+  setOpponentStats(payload.opponentStats);
+  setLoadingStats(false);
+
+  setOpponentStatus("connected");
+  setUiPhase("inMatch");
+});
+
 
     socket.on("opponent.left", () => {
       setOpponentStatus("disconnected");
-      if (uiPhase !== "gameover") {
+      if (uiPhaseRef.current !== "gameover") {
         const snap = snapshotRef.current;
         const currentSide = sideRef.current;
         setGameOverData({
