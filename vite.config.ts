@@ -42,6 +42,11 @@ export default defineConfig({
          target: "https://localhost:9443",
         changeOrigin: true,
         secure: false,
+      }, 
+      "/uploads/":{
+         target: "https://localhost:9443",
+        changeOrigin: true,
+        secure: false,
       },  
       "/socket.io": {
         target: "https://localhost:9443",

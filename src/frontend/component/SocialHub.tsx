@@ -1,7 +1,21 @@
-import React, { useMemo, useRef, useState , useEffect} from "react";
-import { MessageCircle, Gamepad2, UserPlus, UserMinus, Search, Clock, Send, MessageSquarePlus } from "lucide-react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
+import {
+  MessageCircle,
+  Gamepad2,
+  UserPlus,
+  UserMinus,
+  Search,
+  Clock,
+  Send,
+  MessageSquarePlus,
+} from "lucide-react";
 import { io, type Socket } from "socket.io-client";
-import { apiGetMe, getStoredToken, apiListFriends , apiIncomingRequests} from "../api";
+import {
+  apiGetMe,
+  getStoredToken,
+  apiListFriends,
+  apiIncomingRequests,
+} from "../api";
 
 type TabKey = "friends" | "chat" | "groups";
 
@@ -15,42 +29,35 @@ export default function SocialHub() {
       createdAt: string;
       avatarUrl?: string;
     }[]
-    >([]);
-   const [requests, setRequests] = useState<
-    { id: string;
-       name: string; 
-       avatarUrl?: string
-      }[]
+  >([]);
+  const [requests, setRequests] = useState<
+    { id: string; name: string; avatarUrl?: string }[]
   >([]);
   useEffect(() => {
     const token = getStoredToken();
-    if (!token)
-        return;
+    if (!token) return;
     (async () => {
-      console.log("token isss ", token)
       const firendList = await apiListFriends(token);
       const incomingRequest = await apiIncomingRequests(token);
       setFriends(
         firendList.map((r) => ({
+          id: String(r.friend.id),
           name: r.friend.username,
-          lastLogin : r.friend.lastLogin,
+          lastLogin: r.friend.lastLogin,
           createdAt: r.friend.createdAt,
-          avatarUrl: r.friend.avatarUrl
-        }))
-      )
-      console.log("Incomis is ", incomingRequest)
+          avatarUrl: r.friend.avatarUrl ?? undefined,
+        })),
+      );
       setRequests(
         incomingRequest.map((r) => ({
           id: String(r.fromUser.id),
           name: r.fromUser.username,
-          avatarUrl: r.fromUser.avatarUrl
-        }))
-      )
-      
+          avatarUrl: r.fromUser.avatarUrl ?? undefined,
+        })),
+      );
     })().catch((e) => {
       console.error(e);
     });
-    
   }, []);
   // const [friends, setFriends] = useState<
   //   {
@@ -83,7 +90,9 @@ export default function SocialHub() {
     { id: "s3", name: "Liam", mutualFriends: 2 },
   ]);
   const [friendSearch, setFriendSearch] = useState("");
-  const [friendsSubTab, setFriendsSubTab] = useState<"friends" | "requests" | "suggestions">("friends");
+  const [friendsSubTab, setFriendsSubTab] = useState<
+    "friends" | "requests" | "suggestions"
+  >("friends");
 
   // Chat state (frontend-only mock)
   type Message = { id: string; author: string; text: string; ts: number };
@@ -91,18 +100,37 @@ export default function SocialHub() {
   const [selectedChannel, setSelectedChannel] = useState<string>(channels[0]);
   const [chatMode, setChatMode] = useState<"channel" | "dm">("channel");
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
-  const [messagesByChannel, setMessagesByChannel] = useState<Record<string, Message[]>>({
+  const [messagesByChannel, setMessagesByChannel] = useState<
+    Record<string, Message[]>
+  >({
     general: [
-      { id: "m1", author: "System", text: "Welcome to General!", ts: Date.now() - 60_000 },
+      {
+        id: "m1",
+        author: "System",
+        text: "Welcome to General!",
+        ts: Date.now() - 60_000,
+      },
     ],
     lobby: [
-      { id: "m2", author: "System", text: "Chat with players in the lobby.", ts: Date.now() - 120_000 },
+      {
+        id: "m2",
+        author: "System",
+        text: "Chat with players in the lobby.",
+        ts: Date.now() - 120_000,
+      },
     ],
     support: [
-      { id: "m3", author: "System", text: "Need help? Ask here.", ts: Date.now() - 240_000 },
+      {
+        id: "m3",
+        author: "System",
+        text: "Need help? Ask here.",
+        ts: Date.now() - 240_000,
+      },
     ],
   });
-  const [messagesByDM, setMessagesByDM] = useState<Record<string, Message[]>>({});
+  const [messagesByDM, setMessagesByDM] = useState<Record<string, Message[]>>(
+    {},
+  );
   const [chatInput, setChatInput] = useState("");
   const [unreadByDM, setUnreadByDM] = useState<Record<string, number>>({
     "2": 2,
@@ -114,7 +142,9 @@ export default function SocialHub() {
   const socketRef = useRef<Socket | null>(null);
   const [myUserId, setMyUserId] = useState<number | null>(null);
   const chatIdByOther = useRef<Record<string, number>>({});
-  const [displayNameById, setDisplayNameById] = useState<Record<string, string>>({});
+  const [displayNameById, setDisplayNameById] = useState<
+    Record<string, string>
+  >({});
 
   // Groups state (frontend-only mock)
   const [groups, setGroups] = useState<
@@ -126,29 +156,52 @@ export default function SocialHub() {
   ]);
   const [newGroupName, setNewGroupName] = useState("");
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>("g1");
-  const [messagesByGroup, setMessagesByGroup] = useState<Record<string, Message[]>>({
-    g1: [{ id: "gmsg1", author: "System", text: "Welcome to Casual Players", ts: Date.now() - 180_000 }],
-    g2: [{ id: "gmsg2", author: "System", text: "Welcome to Ranked Grind", ts: Date.now() - 180_000 }],
-    g3: [{ id: "gmsg3", author: "System", text: "Welcome to Weekend Warriors", ts: Date.now() - 180_000 }],
+  const [messagesByGroup, setMessagesByGroup] = useState<
+    Record<string, Message[]>
+  >({
+    g1: [
+      {
+        id: "gmsg1",
+        author: "System",
+        text: "Welcome to Casual Players",
+        ts: Date.now() - 180_000,
+      },
+    ],
+    g2: [
+      {
+        id: "gmsg2",
+        author: "System",
+        text: "Welcome to Ranked Grind",
+        ts: Date.now() - 180_000,
+      },
+    ],
+    g3: [
+      {
+        id: "gmsg3",
+        author: "System",
+        text: "Welcome to Weekend Warriors",
+        ts: Date.now() - 180_000,
+      },
+    ],
   });
   const [groupChatInput, setGroupChatInput] = useState("");
   const [groupSearch, setGroupSearch] = useState("");
 
   const addFriend = (name: string) => {
-    const n = name.trim();
-    if (!n) return;
-    setFriends((prev) => [
-      ...prev,
-      {
-        id: Math.random().toString(36).slice(2),
-        name: n,  
-        status: "offline",
-        lastSeen: "Just now",
-        gamesPlayed: 0,
-        winRate: 0,
-        mutualFriends: 0,
-      },
-    ]);
+    // const n = name.trim();
+    // if (!n) return;
+    // setFriends((prev) => [
+    //   ...prev,
+    //   {
+    //     id: Math.random().toString(36).slice(2),
+    //     name: n,
+    //     status: "offline",
+    //     lastSeen: "Just now",
+    //     gamesPlayed: 0,
+    //     winRate: 0,
+    //     mutualFriends: 0,
+    //   },
+    // ]);
   };
 
   const removeFriend = (id: string) => {
@@ -167,46 +220,62 @@ export default function SocialHub() {
         ...prev,
         [selectedChannel]: [
           ...prev[selectedChannel],
-          { id: Math.random().toString(36).slice(2), author: "You", text, ts: Date.now() },
+          {
+            id: Math.random().toString(36).slice(2),
+            author: "You",
+            text,
+            ts: Date.now(),
+          },
         ],
       }));
     } else if (chatMode === "dm" && selectedFriendId) {
-        const chatId = chatIdByOther.current[selectedFriendId];
-        const s = socketRef.current;
+      const chatId = chatIdByOther.current[selectedFriendId];
+      const s = socketRef.current;
 
-        // If we have a connected socket and a chat ID, send via socket and rely on server broadcast
-        // (prevents duplicate display of the same message locally)
-        if (s && chatId && myUserId) {
-          s.emit("send_message", { chatId, senderId: myUserId, content: text });
-        } else {
-          // fallback: optimistic UI update when socket/chat isn't ready
-          setMessagesByDM((prev) => ({
-            ...prev,
-            [selectedFriendId]: [
-              ...(prev[selectedFriendId] || []),
-              { id: Math.random().toString(36).slice(2), author: "You", text, ts: Date.now() },
-            ],
-          }));
-        }
+      // If we have a connected socket and a chat ID, send via socket and rely on server broadcast
+      // (prevents duplicate display of the same message locally)
+      if (s && chatId && myUserId) {
+        s.emit("send_message", { chatId, senderId: myUserId, content: text });
+      } else {
+        // fallback: optimistic UI update when socket/chat isn't ready
+        setMessagesByDM((prev) => ({
+          ...prev,
+          [selectedFriendId]: [
+            ...(prev[selectedFriendId] || []),
+            {
+              id: Math.random().toString(36).slice(2),
+              author: "You",
+              text,
+              ts: Date.now(),
+            },
+          ],
+        }));
+      }
     }
     setChatInput("");
   };
 
   const toggleJoinGroup = (id: string) => {
-    setGroups((prev) => prev.map((g) => (g.id === id ? { ...g, joined: !g.joined } : g)));
+    setGroups((prev) =>
+      prev.map((g) => (g.id === id ? { ...g, joined: !g.joined } : g)),
+    );
   };
 
   const createGroup = () => {
     const name = newGroupName.trim();
     if (!name) return;
     const id = Math.random().toString(36).slice(2);
-    setGroups((prev) => [
-      ...prev,
-      { id, name, members: 1, joined: true },
-    ]);
+    setGroups((prev) => [...prev, { id, name, members: 1, joined: true }]);
     setMessagesByGroup((prev) => ({
       ...prev,
-      [id]: [{ id: Math.random().toString(36).slice(2), author: "System", text: `Welcome to ${name}`, ts: Date.now() }],
+      [id]: [
+        {
+          id: Math.random().toString(36).slice(2),
+          author: "System",
+          text: `Welcome to ${name}`,
+          ts: Date.now(),
+        },
+      ],
     }));
     setSelectedGroupId(id);
     setNewGroupName("");
@@ -219,7 +288,9 @@ export default function SocialHub() {
           <h2 className="text-2xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
             Social Hub
           </h2>
-          <p className="text-sm text-gray-400 mt-1">Friends, chat, and groups</p>
+          <p className="text-sm text-gray-400 mt-1">
+            Friends, chat, and groups
+          </p>
         </div>
         <div className="mt-6 flex items-center justify-center">
           <div className="inline-flex rounded-full bg-gray-800/60 p-1">
@@ -228,7 +299,9 @@ export default function SocialHub() {
                 key={key}
                 onClick={() => setActiveTab(key)}
                 className={`px-4 py-1 rounded-full text-sm transition-colors ${
-                  activeTab === key ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-800"
+                  activeTab === key
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-300 hover:bg-gray-800"
                 }`}
               >
                 {key[0].toUpperCase() + key.slice(1)}
@@ -259,12 +332,15 @@ export default function SocialHub() {
                     key={t}
                     onClick={() => setFriendsSubTab(t)}
                     className={`px-4 py-1 rounded-full text-sm transition-colors ${
-                      friendsSubTab === t ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-800"
+                      friendsSubTab === t
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-300 hover:bg-gray-800"
                     }`}
                   >
                     {t === "friends" && `Friends (${friends.length})`}
                     {t === "requests" && `Requests (${requests.length})`}
-                    {t === "suggestions" && `Suggestions (${suggestions.length})`}
+                    {t === "suggestions" &&
+                      `Suggestions (${suggestions.length})`}
                   </button>
                 ))}
               </div>
@@ -272,34 +348,52 @@ export default function SocialHub() {
             {friendsSubTab === "friends" && (
               <div className="grid grid-cols-1 md:grid-cols-2 xl-grid-cols-3 xl:grid-cols-3 gap-6">
                 {friends
-                  .filter((f) => f.name.toLowerCase().includes(friendSearch.toLowerCase()))
+                  .filter((f) =>
+                    f.name.toLowerCase().includes(friendSearch.toLowerCase()),
+                  )
                   .map((f) => {
                     const pill =
                       f.status === "online"
                         ? { text: "Online", cls: "bg-green-600 text-white" }
                         : f.status === "in_game"
-                        ? { text: "In Game", cls: "bg-blue-600 text-white" }
-                        : f.status === "away"
-                        ? { text: "Away", cls: "bg-yellow-600 text-black" }
-                        : { text: "Offline", cls: "bg-gray-600 text-white" };
+                          ? { text: "In Game", cls: "bg-blue-600 text-white" }
+                          : f.status === "away"
+                            ? { text: "Away", cls: "bg-yellow-600 text-black" }
+                            : {
+                                text: "Offline",
+                                cls: "bg-gray-600 text-white",
+                              };
                     return (
-                      <div key={f.id} className="rounded-2xl border border-white/10 bg-gray-900/60 shadow-xl p-5">
+                      <div
+                        key={f.id}
+                        className="rounded-2xl border border-white/10 bg-gray-900/60 shadow-xl p-5"
+                      >
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
                             {f.avatarUrl ? (
-                              <img src={f.avatarUrl} alt={f.name} className="w-10 h-10 rounded-full object-cover" />
+                              <img
+                                src={f.avatarUrl}
+                                alt={f.name}
+                                className="w-10 h-10 rounded-full object-cover"
+                              />
                             ) : (
                               <div className="w-10 h-10 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
                             )}
                             <div>
-                              <div className="font-semibold text-gray-100">{f.name}</div>
+                              <div className="font-semibold text-gray-100">
+                                {f.name}
+                              </div>
                               <div className="text-xs text-gray-400 flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
                                 <span>{f.lastLogin}</span>
                               </div>
                             </div>
                           </div>
-                          <span className={`text-xs px-2 py-1 rounded-full ${pill.cls}`}>{pill.text}</span>
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full ${pill.cls}`}
+                          >
+                            {pill.text}
+                          </span>
                         </div>
                         {/* <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                           <div className="text-gray-300">Games played</div>
@@ -342,32 +436,51 @@ export default function SocialHub() {
             {friendsSubTab === "requests" && (
               <div className="grid grid-cols-1 md:grid-cols-2 xl-grid-cols-3 xl:grid-cols-3 gap-6">
                 {requests
-                  .filter((r) => r.name.toLowerCase().includes(friendSearch.toLowerCase()))
+                  .filter((r) =>
+                    r.name.toLowerCase().includes(friendSearch.toLowerCase()),
+                  )
                   .map((r) => (
-                    <div key={r.id} className="rounded-2xl border border-white/10 bg-gray-900/60 shadow-xl p-5">
+                    <div
+                      key={r.id}
+                      className="rounded-2xl border border-white/10 bg-gray-900/60 shadow-xl p-5"
+                    >
                       <div className="flex items-center gap-3">
                         {r.avatarUrl ? (
-                          <img src={r.avatarUrl} alt={r.name} className="w-10 h-10 rounded-full object-cover" />
+                          <img
+                            src={r.avatarUrl}
+                            alt={r.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
                         )}
                         <div>
-                          <div className="font-semibold text-gray-100">{r.name}</div>
-                          <div className="text-xs text-gray-400">{r.mutualFriends || 0} mutual friends</div>
+                          <div className="font-semibold text-gray-100">
+                            {r.name}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {r.mutualFriends || 0} mutual friends
+                          </div>
                         </div>
                       </div>
                       <div className="mt-4 flex gap-3">
                         <button
                           onClick={() => {
                             addFriend(r.name);
-                            setRequests((prev) => prev.filter((x) => x.id !== r.id));
+                            setRequests((prev) =>
+                              prev.filter((x) => x.id !== r.id),
+                            );
                           }}
                           className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white"
                         >
                           Accept
                         </button>
                         <button
-                          onClick={() => setRequests((prev) => prev.filter((x) => x.id !== r.id))}
+                          onClick={() =>
+                            setRequests((prev) =>
+                              prev.filter((x) => x.id !== r.id),
+                            )
+                          }
                           className="px-4 py-2 rounded-md bg-gray-800/80 hover:bg-gray-800 text-gray-200"
                         >
                           Decline
@@ -380,25 +493,40 @@ export default function SocialHub() {
             {friendsSubTab === "suggestions" && (
               <div className="grid grid-cols-1 md:grid-cols-2 xl-grid-cols-3 xl:grid-cols-3 gap-6">
                 {suggestions
-                  .filter((s) => s.name.toLowerCase().includes(friendSearch.toLowerCase()))
+                  .filter((s) =>
+                    s.name.toLowerCase().includes(friendSearch.toLowerCase()),
+                  )
                   .map((s) => (
-                    <div key={s.id} className="rounded-2xl border border-white/10 bg-gray-900/60 shadow-xl p-5">
+                    <div
+                      key={s.id}
+                      className="rounded-2xl border border-white/10 bg-gray-900/60 shadow-xl p-5"
+                    >
                       <div className="flex items-center gap-3">
                         {s.avatarUrl ? (
-                          <img src={s.avatarUrl} alt={s.name} className="w-10 h-10 rounded-full object-cover" />
+                          <img
+                            src={s.avatarUrl}
+                            alt={s.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
                         )}
                         <div>
-                          <div className="font-semibold text-gray-100">{s.name}</div>
-                          <div className="text-xs text-gray-400">{s.mutualFriends || 0} mutual friends</div>
+                          <div className="font-semibold text-gray-100">
+                            {s.name}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {s.mutualFriends || 0} mutual friends
+                          </div>
                         </div>
                       </div>
                       <div className="mt-4 flex gap-3">
                         <button
                           onClick={() => {
                             addFriend(s.name);
-                            setSuggestions((prev) => prev.filter((x) => x.id !== s.id));
+                            setSuggestions((prev) =>
+                              prev.filter((x) => x.id !== s.id),
+                            );
                           }}
                           className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
                         >
@@ -421,42 +549,46 @@ export default function SocialHub() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-gray-200">
                       <MessageCircle className="w-4 h-4" />
-                      <span className="text-sm font-semibold">Private Chats</span>
+                      <span className="text-sm font-semibold">
+                        Private Chats
+                      </span>
                     </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setShowChatTest((s) => !s)}
-                          className="px-3 py-1 rounded-md bg-gray-800/60 hover:bg-gray-800 text-sm"
-                          title="Open test DM input"
-                        >
-                          <MessageSquarePlus className="w-4 h-4 inline-block mr-2" />
-                          Chat Test
-                        </button>
-                        <button
-                          onClick={() => {
-                            setActiveTab("friends");
-                            setFriendsSubTab("suggestions");
-                          }}
-                          className="p-2 rounded-md bg-gray-800/60 hover:bg-gray-800"
-                        >
-                          <UserPlus className="w-4 h-4" />
-                        </button>
-                      </div>
-                </div>
-                <div className="mt-3">
-                  <div className="relative">
-                    <input
-                      value={dmSearch}
-                      onChange={(e) => setDmSearch(e.target.value)}
-                      placeholder="Search chats..."
-                      className="w-full px-4 py-2 rounded-xl bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700"
-                    />
-                    <Search className="w-4 h-4 text-gray-400 absolute right-3 top-2.5" />
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setShowChatTest((s) => !s)}
+                        className="px-3 py-1 rounded-md bg-gray-800/60 hover:bg-gray-800 text-sm"
+                        title="Open test DM input"
+                      >
+                        <MessageSquarePlus className="w-4 h-4 inline-block mr-2" />
+                        Chat Test
+                      </button>
+                      <button
+                        onClick={() => {
+                          setActiveTab("friends");
+                          setFriendsSubTab("suggestions");
+                        }}
+                        className="p-2 rounded-md bg-gray-800/60 hover:bg-gray-800"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
+                  <div className="mt-3">
+                    <div className="relative">
+                      <input
+                        value={dmSearch}
+                        onChange={(e) => setDmSearch(e.target.value)}
+                        placeholder="Search chats..."
+                        className="w-full px-4 py-2 rounded-xl bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700"
+                      />
+                      <Search className="w-4 h-4 text-gray-400 absolute right-3 top-2.5" />
+                    </div>
+                  </div>
                   {showChatTest && (
                     <div className="mt-3 p-3 rounded-md bg-gray-800/50 border border-gray-700">
-                      <div className="text-xs text-gray-300 mb-2">Start a test DM by ID</div>
+                      <div className="text-xs text-gray-300 mb-2">
+                        Start a test DM by ID
+                      </div>
                       <div className="flex gap-2">
                         <input
                           value={chatTestId}
@@ -478,7 +610,11 @@ export default function SocialHub() {
 
                               // ensure socket connected
                               if (!socketRef.current) {
-                                const s = io("/", { path: "/socket.io", transports: ["websocket", "polling"], withCredentials: true });
+                                const s = io("/", {
+                                  path: "/socket.io",
+                                  transports: ["websocket", "polling"],
+                                  withCredentials: true,
+                                });
                                 socketRef.current = s;
 
                                 s.on("dm_joined", (payload: any) => {
@@ -489,35 +625,67 @@ export default function SocialHub() {
 
                                 s.on("new_message", (msg: any) => {
                                   // append incoming messages to any matching DM
-                                  const other = Object.keys(chatIdByOther.current).find((k) => chatIdByOther.current[k] === msg.chatId);
+                                  const other = Object.keys(
+                                    chatIdByOther.current,
+                                  ).find(
+                                    (k) =>
+                                      chatIdByOther.current[k] === msg.chatId,
+                                  );
                                   if (!other) return;
                                   setMessagesByDM((prev) => ({
                                     ...prev,
                                     [other]: [
                                       ...(prev[other] || []),
-                                      { id: String(msg.id), author: msg.sender?.username || "", text: msg.content, ts: Date.now() },
+                                      {
+                                        id: String(msg.id),
+                                        author: msg.sender?.username || "",
+                                        text: msg.content,
+                                        ts: Date.now(),
+                                      },
                                     ],
                                   }));
                                 });
                               }
 
                               // emit join_dm (backend will create/return chat)
-                              socketRef.current!.emit("join_dm", { myId: me.id, otherUserId: Number(id) });
+                              socketRef.current!.emit("join_dm", {
+                                myId: me.id,
+                                otherUserId: Number(id),
+                              });
 
                               // wait for dm_joined once
                               const handler = (payload: any) => {
                                 const chatId = payload.chatId as number;
                                 chatIdByOther.current[id] = chatId;
-                                const msgs = (payload.messages || []).map((m: any) => ({ id: String(m.id), author: m.sender?.username || "", text: m.content, ts: Date.now() }));
-                                setMessagesByDM((prev) => ({ ...prev, [id]: msgs }));
+                                const msgs = (payload.messages || []).map(
+                                  (m: any) => ({
+                                    id: String(m.id),
+                                    author: m.sender?.username || "",
+                                    text: m.content,
+                                    ts: Date.now(),
+                                  }),
+                                );
+                                setMessagesByDM((prev) => ({
+                                  ...prev,
+                                  [id]: msgs,
+                                }));
 
                                 // derive display name: prefer any non-me message sender, else fallback to generic label
                                 let otherName = undefined as string | undefined;
                                 if (msgs.length > 0) {
-                                  const otherMsg = msgs.find((mm) => mm.author && mm.author !== (me.username ?? String(me.id)));
-                                  otherName = otherMsg?.author ?? msgs[0].author;
+                                  const otherMsg = msgs.find(
+                                    (mm) =>
+                                      mm.author &&
+                                      mm.author !==
+                                        (me.username ?? String(me.id)),
+                                  );
+                                  otherName =
+                                    otherMsg?.author ?? msgs[0].author;
                                 }
-                                setDisplayNameById((prev) => ({ ...prev, [id]: otherName ?? `User-${id}` }));
+                                setDisplayNameById((prev) => ({
+                                  ...prev,
+                                  [id]: otherName ?? `User-${id}`,
+                                }));
 
                                 setSelectedFriendId(id);
                                 setChatMode("dm");
@@ -528,7 +696,6 @@ export default function SocialHub() {
                               };
 
                               socketRef.current!.on("dm_joined", handler);
-
                             } catch (e) {
                               console.error("Failed to start DM test:", e);
                             }
@@ -540,67 +707,107 @@ export default function SocialHub() {
                       </div>
                     </div>
                   )}
-                <ul className="mt-3 space-y-2">
-                    {friends.filter((f)=>f.name.toLowerCase().includes(dmSearch.toLowerCase())).map((f) => {
-                      const last = (messagesByDM[f.id] || []).slice(-1)[0];
-                      const unread = unreadByDM[f.id] || 0;
-                      return (
-                        <li key={f.id}>
-                          <button
-                            onClick={() => {
-                              setSelectedFriendId(f.id);
-                              setChatMode("dm");
-                              setUnreadByDM((prev) => ({ ...prev, [f.id]: 0 }));
-                            }}
-                            className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center gap-3 ${
-                              chatMode === "dm" && selectedFriendId === f.id ? "bg-blue-600/20" : "hover:bg-gray-800/60"
-                            }`}
-                          >
-                            {f.avatarUrl ? (
-                              <img src={f.avatarUrl} alt={f.name} className="w-8 h-8 rounded-full object-cover" />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-gray-100">{f.name}</span>
-                                {unread > 0 && (
-                                  <span className="text-xs px-2 py-0.5 rounded-full bg-red-600 text-white">{unread}</span>
-                                )}
+                  <ul className="mt-3 space-y-2">
+                    {friends
+                      .filter((f) =>
+                        f.name.toLowerCase().includes(dmSearch.toLowerCase()),
+                      )
+                      .map((f) => {
+                        const last = (messagesByDM[f.id] || []).slice(-1)[0];
+                        const unread = unreadByDM[f.id] || 0;
+                        return (
+                          <li key={f.id}>
+                            <button
+                              onClick={() => {
+                                setSelectedFriendId(f.id);
+                                setChatMode("dm");
+                                setUnreadByDM((prev) => ({
+                                  ...prev,
+                                  [f.id]: 0,
+                                }));
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center gap-3 ${
+                                chatMode === "dm" && selectedFriendId === f.id
+                                  ? "bg-blue-600/20"
+                                  : "hover:bg-gray-800/60"
+                              }`}
+                            >
+                              {f.avatarUrl ? (
+                                <img
+                                  src={f.avatarUrl}
+                                  alt={f.name}
+                                  className="w-8 h-8 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-gray-100">
+                                    {f.name}
+                                  </span>
+                                  {unread > 0 && (
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-red-600 text-white">
+                                      {unread}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-gray-400 truncate">
+                                  {last ? last.text : "No messages yet"}
+                                </div>
                               </div>
-                              <div className="text-xs text-gray-400 truncate">
-                                {last ? last.text : "No messages yet"}
-                              </div>
-                            </div>
-                          </button>
-                        </li>
-                      );
-                    })}
+                            </button>
+                          </li>
+                        );
+                      })}
                   </ul>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-gray-900/60 p-4">
-                  <div className="text-sm font-semibold text-gray-200">Online Now</div>
+                  <div className="text-sm font-semibold text-gray-200">
+                    Online Now
+                  </div>
                   <div className="mt-2 space-y-2">
                     {friends
-                      .filter((f) => f.status === "online" || f.status === "in_game" || f.status === "away")
+                      .filter(
+                        (f) =>
+                          f.status === "online" ||
+                          f.status === "in_game" ||
+                          f.status === "away",
+                      )
                       .map((f) => {
                         const pill =
                           f.status === "online"
                             ? { text: "Online", cls: "bg-green-600 text-white" }
                             : f.status === "in_game"
-                            ? { text: "In Game", cls: "bg-blue-600 text-white" }
-                            : { text: "Away", cls: "bg-yellow-600 text-black" };
+                              ? {
+                                  text: "In Game",
+                                  cls: "bg-blue-600 text-white",
+                                }
+                              : {
+                                  text: "Away",
+                                  cls: "bg-yellow-600 text-black",
+                                };
                         return (
                           <div key={f.id} className="flex items-center gap-3">
                             {f.avatarUrl ? (
-                              <img src={f.avatarUrl} alt={f.name} className="w-8 h-8 rounded-full object-cover" />
+                              <img
+                                src={f.avatarUrl}
+                                alt={f.name}
+                                className="w-8 h-8 rounded-full object-cover"
+                              />
                             ) : (
                               <div className="w-8 h-8 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
                             )}
                             <div className="flex-1">
-                              <div className="text-sm text-gray-100">{f.name}</div>
+                              <div className="text-sm text-gray-100">
+                                {f.name}
+                              </div>
                             </div>
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${pill.cls}`}>{pill.text}</span>
+                            <span
+                              className={`text-xs px-2 py-0.5 rounded-full ${pill.cls}`}
+                            >
+                              {pill.text}
+                            </span>
                           </div>
                         );
                       })}
@@ -614,8 +821,21 @@ export default function SocialHub() {
                     : `${friends.find((x) => x.id === selectedFriendId)?.name || "Select a friend"}`}
                 </div>
                 <div className="text-xs text-gray-400">
-                  {(chatMode === "channel" ? (messagesByChannel[selectedChannel] || []) : selectedFriendId ? (messagesByDM[selectedFriendId] || []) : []).length} messages •{" "}
-                  {friends.filter((f) => f.status === "online" || f.status === "in_game").length} online
+                  {
+                    (chatMode === "channel"
+                      ? messagesByChannel[selectedChannel] || []
+                      : selectedFriendId
+                        ? messagesByDM[selectedFriendId] || []
+                        : []
+                    ).length
+                  }{" "}
+                  messages •{" "}
+                  {
+                    friends.filter(
+                      (f) => f.status === "online" || f.status === "in_game",
+                    ).length
+                  }{" "}
+                  online
                 </div>
                 <div className="mt-3">
                   <div className="text-center text-xs text-gray-400">
@@ -624,16 +844,22 @@ export default function SocialHub() {
                 </div>
                 <div className="flex-1 mt-3 space-y-3 overflow-y-auto">
                   {(chatMode === "channel"
-                    ? (messagesByChannel[selectedChannel] || [])
+                    ? messagesByChannel[selectedChannel] || []
                     : selectedFriendId
-                    ? (messagesByDM[selectedFriendId] || [])
-                    : ([] as Message[])
+                      ? messagesByDM[selectedFriendId] || []
+                      : ([] as Message[])
                   ).map((m) => {
-                    const mins = Math.max(0, Math.floor((Date.now() - m.ts) / 60000));
+                    const mins = Math.max(
+                      0,
+                      Math.floor((Date.now() - m.ts) / 60000),
+                    );
                     return (
                       <div key={m.id} className="max-w-xl">
                         <div className="text-xs text-gray-400 mb-1">
-                          <span className="text-gray-200 font-semibold">{m.author}</span> {mins}m
+                          <span className="text-gray-200 font-semibold">
+                            {m.author}
+                          </span>{" "}
+                          {mins}m
                         </div>
                         <div className="px-3 py-2 rounded-lg bg-gray-700/70 text-gray-100">
                           {m.text}
@@ -693,7 +919,9 @@ export default function SocialHub() {
               </div>
               <div className="p-3 space-y-3 flex-1 overflow-y-auto">
                 {groups
-                  .filter((g) => g.name.toLowerCase().includes(groupSearch.toLowerCase()))
+                  .filter((g) =>
+                    g.name.toLowerCase().includes(groupSearch.toLowerCase()),
+                  )
                   .map((g) => (
                     <div
                       key={g.id}
@@ -703,8 +931,12 @@ export default function SocialHub() {
                         onClick={() => setSelectedGroupId(g.id)}
                         className="text-left flex-1"
                       >
-                        <div className="font-medium text-gray-100">{g.name}</div>
-                        <div className="text-xs text-gray-400">{g.members} members</div>
+                        <div className="font-medium text-gray-100">
+                          {g.name}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {g.members} members
+                        </div>
                       </button>
                       <div className="flex items-center gap-2">
                         <button
@@ -716,7 +948,9 @@ export default function SocialHub() {
                         <button
                           onClick={() => toggleJoinGroup(g.id)}
                           className={`px-3 py-1 rounded-md ${
-                            g.joined ? "bg-gray-800/80 hover:bg-gray-800 text-gray-200" : "bg-blue-600 hover:bg-blue-700 text-white"
+                            g.joined
+                              ? "bg-gray-800/80 hover:bg-gray-800 text-gray-200"
+                              : "bg-blue-600 hover:bg-blue-700 text-white"
                           }`}
                         >
                           {g.joined ? "Leave" : "Join"}
@@ -729,14 +963,23 @@ export default function SocialHub() {
 
             <div className="rounded-2xl border border-white/10 bg-gray-900/60 flex flex-col">
               <div className="px-3 py-2 text-sm font-semibold border-b border-white/10">
-                {selectedGroupId ? groups.find((g) => g.id === selectedGroupId)?.name : "Select a group"}
+                {selectedGroupId
+                  ? groups.find((g) => g.id === selectedGroupId)?.name
+                  : "Select a group"}
               </div>
               <div className="flex-1 p-3 space-y-2 overflow-y-auto">
-                {(selectedGroupId ? (messagesByGroup[selectedGroupId] || []) : ([] as Message[])).map((m) => (
+                {(selectedGroupId
+                  ? messagesByGroup[selectedGroupId] || []
+                  : ([] as Message[])
+                ).map((m) => (
                   <div key={m.id} className="">
-                    <span className="text-blue-300 font-semibold mr-2">{m.author}</span>
+                    <span className="text-blue-300 font-semibold mr-2">
+                      {m.author}
+                    </span>
                     <span className="text-gray-200">{m.text}</span>
-                    <span className="text-xs text-gray-500 ml-2">{new Date(m.ts).toLocaleTimeString()}</span>
+                    <span className="text-xs text-gray-500 ml-2">
+                      {new Date(m.ts).toLocaleTimeString()}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -744,9 +987,16 @@ export default function SocialHub() {
                 <input
                   value={groupChatInput}
                   onChange={(e) => setGroupChatInput(e.target.value)}
-                  placeholder={selectedGroupId ? `Message ${groups.find((g) => g.id === selectedGroupId)?.name}` : "Select a group to chat"}
+                  placeholder={
+                    selectedGroupId
+                      ? `Message ${groups.find((g) => g.id === selectedGroupId)?.name}`
+                      : "Select a group to chat"
+                  }
                   className="flex-1 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none"
-                  disabled={!selectedGroupId || !groups.find((g) => g.id === selectedGroupId)?.joined}
+                  disabled={
+                    !selectedGroupId ||
+                    !groups.find((g) => g.id === selectedGroupId)?.joined
+                  }
                 />
                 <button
                   onClick={() => {
@@ -756,19 +1006,36 @@ export default function SocialHub() {
                       ...prev,
                       [selectedGroupId]: [
                         ...(prev[selectedGroupId] || []),
-                        { id: Math.random().toString(36).slice(2), author: "You", text, ts: Date.now() },
+                        {
+                          id: Math.random().toString(36).slice(2),
+                          author: "You",
+                          text,
+                          ts: Date.now(),
+                        },
                       ],
                     }));
                     setGroupChatInput("");
                   }}
                   className="px-4 py-2 rounded-md bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 disabled:opacity-50"
-                  disabled={!selectedGroupId || !groups.find((g) => g.id === selectedGroupId)?.joined}
+                  disabled={
+                    !selectedGroupId ||
+                    !groups.find((g) => g.id === selectedGroupId)?.joined
+                  }
                 >
                   Send
                 </button>
               </div>
-              {!selectedGroupId && <div className="p-3 text-sm text-gray-400">Select a group from the list to view chat.</div>}
-              {selectedGroupId && !groups.find((g) => g.id === selectedGroupId)?.joined && <div className="p-3 text-sm text-yellow-400">Join the group to send messages.</div>}
+              {!selectedGroupId && (
+                <div className="p-3 text-sm text-gray-400">
+                  Select a group from the list to view chat.
+                </div>
+              )}
+              {selectedGroupId &&
+                !groups.find((g) => g.id === selectedGroupId)?.joined && (
+                  <div className="p-3 text-sm text-yellow-400">
+                    Join the group to send messages.
+                  </div>
+                )}
             </div>
           </div>
         )}

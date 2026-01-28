@@ -17,12 +17,12 @@ export type FriendRow = {
 };
 
 export type FriendRequest = {
-  id: Number,
-  status: "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELED",
-  sentAt: string,
-  formUser : User,
-  toUser: User
-}
+  id: number;
+  status: "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELED";
+  sentAt: string;
+  fromUser: User;
+  toUser: User;
+};
 export type LoginResponse = {
   accessToken: string;
   user: User;
@@ -56,8 +56,8 @@ export function storeToken(token: string) {
 }
 
 export function clearToken() {
-  // localStorage.removeItem(TOKEN_KEY);
-  console.log("has been called ")
+  localStorage.removeItem(TOKEN_KEY);
+  console.log("has been called ");
 }
 
 async function readJson(res: Response) {
@@ -105,7 +105,7 @@ export function apiGetMe(token: string) {
 
 export function apiUpdateMe(
   token: string,
-  body: { username?: string; email?: string; password?: string }
+  body: { username?: string; email?: string; password?: string },
 ) {
   return requestJson<User>("/api/users/me", {
     method: "PATCH",
@@ -128,8 +128,8 @@ export function apiGetMatchHistory(token: string, playerId: number) {
   return requestJson<MatchHistoryResponse>(
     `/api/pong/matchs/history/${playerId}`,
     {
-    method: "GET",
-    headers: { Authorization: `Bearer ${token}` },
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
     },
   );
 }
@@ -141,19 +141,30 @@ export function apiGetPlayerStats(token: string, playerId: number) {
   });
 }
 
-export function apiListFriends(token: string){
+export function apiListFriends(token: string) {
   return requestJson<FriendRow[]>("/api/friend/", {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
-  })
+  });
 }
 
-
-export function apiIncomingRequests(token: string){
+export function apiIncomingRequests(token: string) {
   return requestJson<FriendRequest[]>("/api/friend/requests/incoming", {
     method: "GET",
     headers: {
-      Authorization: `Bearer ${token}`
-    }  
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export function apiUploadAvatar(token: string, file: File) {
+  const form = new FormData();
+  form.append("avatar", file);
+  return requestJson("/api/users/avatar", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: form,
   });
 }

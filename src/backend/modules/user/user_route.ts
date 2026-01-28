@@ -5,6 +5,7 @@ import {
   logoutHandler,
   getMeHandler,
   updateMeHandler,
+  uploadAvatar,
 } from "./user_controller.ts";
 import {
   createResponseSchema,
@@ -60,5 +61,9 @@ export async function userRoutes(server: FastifyInstance) {
       },
     },
     handler: updateMeHandler,
+  });
+  server.post("/avatar", {
+    preHandler: [server.auth],
+    handler: uploadAvatar,
   });
 }

@@ -6,6 +6,9 @@ import {
   validatorCompiler,
 } from "fastify-type-provider-zod";
 import { NODE_ENV, SSL_CERT_PATH, SSL_KEY_PATH } from "./config";
+import multipart from "@fastify/multipart";
+import fastifyStatic from "@fastify/static";
+import path from "node:path";
 
 const logger = {
   transport: {
@@ -21,6 +24,7 @@ const logger = {
 if (!SSL_KEY_PATH || !SSL_CERT_PATH) {
   throw new Error("Missing SSL_KEY_PATH or SSL_CERT_PATH environment variable");
 }
+
 const server = Fastify({
   https: {
     key: fs.readFileSync(SSL_KEY_PATH),
@@ -38,5 +42,17 @@ export const http_server = Fastify({
 // Attach Zod validator/serializer
 server.setValidatorCompiler(validatorCompiler);
 server.setSerializerCompiler(serializerCompiler);
+
+server.register(multipart, {
+  limits: {
+    files: 1,
+    fileSize: 2 * 1024 * 1024,
+  },
+});
+
+server.register(fastifyStatic, {
+  root: path.join(process.cwd(), "uploads"),
+  prefix: "/uploads/",
+});
 
 export default server;

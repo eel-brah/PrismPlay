@@ -30,7 +30,10 @@ export async function listIncomingRequests(userId: number) {
   });
 }
 
-export async function sendFriendRequest(fromUserId: number, toUsername: string) {
+export async function sendFriendRequest(
+  fromUserId: number,
+  toUsername: string,
+) {
   const toUser = await prisma.user.findUnique({
     where: { username: toUsername },
     select: { id: true },
@@ -63,13 +66,19 @@ export async function sendFriendRequest(fromUserId: number, toUsername: string) 
   }
 }
 
-
-export async function acceptFriendRequest(requestId: number, currentUserId: number) {
-  const fr = await prisma.friendRequest.findUnique({ where: { id: requestId } });
+export async function acceptFriendRequest(
+  requestId: number,
+  currentUserId: number,
+) {
+  const fr = await prisma.friendRequest.findUnique({
+    where: { id: requestId },
+  });
 
   if (!fr) return { ok: false as const, code: "NOT_FOUND" as const };
-  if (fr.toUserId !== currentUserId) return { ok: false as const, code: "FORBIDDEN" as const };
-  if (fr.status !== "PENDING") return { ok: false as const, code: "NOT_PENDING" as const };
+  if (fr.toUserId !== currentUserId)
+    return { ok: false as const, code: "FORBIDDEN" as const };
+  if (fr.status !== "PENDING")
+    return { ok: false as const, code: "NOT_PENDING" as const };
 
   await prisma.$transaction(async (tx) => {
     await tx.friendRequest.update({
@@ -88,12 +97,19 @@ export async function acceptFriendRequest(requestId: number, currentUserId: numb
   return { ok: true as const };
 }
 
-export async function declineFriendRequest(requestId: number, currentUserId: number) {
-  const fr = await prisma.friendRequest.findUnique({ where: { id: requestId } });
+export async function declineFriendRequest(
+  requestId: number,
+  currentUserId: number,
+) {
+  const fr = await prisma.friendRequest.findUnique({
+    where: { id: requestId },
+  });
 
   if (!fr) return { ok: false as const, code: "NOT_FOUND" as const };
-  if (fr.toUserId !== currentUserId) return { ok: false as const, code: "FORBIDDEN" as const };
-  if (fr.status !== "PENDING") return { ok: false as const, code: "NOT_PENDING" as const };
+  if (fr.toUserId !== currentUserId)
+    return { ok: false as const, code: "FORBIDDEN" as const };
+  if (fr.status !== "PENDING")
+    return { ok: false as const, code: "NOT_PENDING" as const };
 
   await prisma.friendRequest.update({
     where: { id: requestId },
@@ -102,7 +118,6 @@ export async function declineFriendRequest(requestId: number, currentUserId: num
 
   return { ok: true as const };
 }
-
 
 export async function removeFriend(userId: number, friendId: number) {
   const existing = await prisma.friend.findFirst({
