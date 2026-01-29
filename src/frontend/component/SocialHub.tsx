@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import {
   MessageCircle,
@@ -18,14 +19,40 @@ import {
   apiAcceptFriend,
   apiDeclineFriend,
   apiRemoveFriend,
+  apiAddFriend,
 } from "../api";
 
 type TabKey = "friends" | "chat" | "groups";
 
 export default function SocialHub() {
   const sendFriendRequestByUsername = async () => {
-    setAddErr(null);
-    setAddMsg("Friend request sent Success");
+    const token = getStoredToken();
+    if (!token) return;
+    const username = addUsername.trim();
+    if (!username) return;
+    if (username.toLowerCase() === user.username.toLowerCase()) {
+      setAddErr("You can't add yourself");
+      return;
+    }
+    if (
+      friends.some((f) => f.name.toLowerCase() == username.toLocaleLowerCase())
+    ) {
+      setAddErr("you are already friend with this user");
+      setAddMsg(null);
+      return;
+    }
+    try {
+      setAddLoading(true);
+      setAddErr(null);
+      setAddMsg(null);
+      await apiAddFriend(token, username);
+      setAddMsg("Friend request sent Success");
+      setAddUsername("");
+    } catch (e: any) {
+      setAddErr(e?.message ?? "Request Send failed");
+    } finally {
+      setAddLoading(false);
+    }
   };
   const [addUsername, setAddUsername] = useState("");
   const [addMsg, setAddMsg] = useState<string | null>(null);
@@ -99,13 +126,13 @@ export default function SocialHub() {
   //   { id: "r1", name: "Ethan", mutualFriends: 2 },
   //   { id: "r2", name: "Mia", mutualFriends: 1 },
   // ]);
-  const [suggestions, setSuggestions] = useState<
-    { id: string; name: string; avatarUrl?: string; mutualFriends?: number }[]
-  >([
-    { id: "s1", name: "Noah", mutualFriends: 4 },
-    { id: "s2", name: "Ava", mutualFriends: 3 },
-    { id: "s3", name: "Liam", mutualFriends: 2 },
-  ]);
+  // const [suggestions, setSuggestions] = useState<
+  //   { id: string; name: string; avatarUrl?: string; mutualFriends?: number }[]
+  // >([
+  //   { id: "s1", name: "Noah", mutualFriends: 4 },
+  //   { id: "s2", name: "Ava", mutualFriends: 3 },
+  //   { id: "s3", name: "Liam", mutualFriends: 2 },
+  // ]);
   const [friendSearch, setFriendSearch] = useState("");
   const [friendsSubTab, setFriendsSubTab] = useState<
     "friends" | "requests" | "add"
@@ -536,7 +563,11 @@ export default function SocialHub() {
                   <div className="mt-3 flex gap-2">
                     <input
                       value={addUsername}
-                      onChange={(e) => setAddUsername(e.target.value)}
+                      onChange={(e) => {
+                        setAddUsername(e.target.value);
+                        setAddErr(null);
+                        setAddMsg(null);
+                      }}
                       placeholder="Enter username (exact)..."
                       className="flex-1 min-w-0 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700"
                       onKeyDown={(e) => {
