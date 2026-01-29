@@ -140,7 +140,8 @@ export default function SocialHub() {
                   id: String(m.id),
                   author: m.sender?.username || "Unknown",
                   text: m.content,
-                  ts: Date.now(), // or parse m.createdAt if available
+                  ts: Date.now(), // LATER
+                  senderId: m.senderId,
                 }));
                 setMessagesByDM((prev) => ({ ...prev, [friendId]: msgs }));
              }
@@ -161,6 +162,7 @@ export default function SocialHub() {
                      author: msg.sender?.username || "",
                      text: msg.content,
                      ts: Date.now(),
+                     senderId: msg.senderId,
                    },
                  ],
                }));
@@ -179,8 +181,7 @@ export default function SocialHub() {
     "friends" | "requests" | "add"
   >("friends");
 
-  // Chat state (frontend-only mock)
-  type Message = { id: string; author: string; text: string; ts: number };
+  type Message = { id: string; author: string; text: string; ts: number; senderId?: number }; //TODO CHECK
   const channels = useMemo(() => ["general", "lobby", "support"], []);
   const [selectedChannel, setSelectedChannel] = useState<string>(channels[0]);
   const [chatMode, setChatMode] = useState<"channel" | "dm">("channel");
@@ -390,6 +391,7 @@ const handleStartDirectMessage = (friendId: string) => {
               author: m.sender?.username || "Unknown",
               text: m.content,
               ts: Date.now(), // mock timestamp for now 
+              senderId: m.senderId,
            }));
 
            setMessagesByDM((prev) => ({
@@ -693,129 +695,7 @@ const handleStartDirectMessage = (friendId: string) => {
                       <Search className="w-4 h-4 text-gray-400 absolute right-3 top-2.5" />
                     </div>
                   </div>
-                  {/* {showChatTest && (
-                    <div className="mt-3 p-3 rounded-md bg-gray-800/50 border border-gray-700">
-                      <div className="text-xs text-gray-300 mb-2">
-                        Start a test DM by ID
-                      </div>
-                      <div className="flex gap-2">
-                        <input
-                          value={chatTestId}
-                          onChange={(e) => setChatTestId(e.target.value)}
-                          placeholder="Enter user id..."
-                          className="flex-1 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none"
-                        />
-                        <button
-                          onClick={async () => {
-                            const id = chatTestId.trim();
-                            if (!id) return;
 
-                            // get current user id from API (requires token)
-                            try {
-                              const token = getStoredToken();
-                              if (!token) throw new Error("Not authenticated");
-                              const me = await apiGetMe(token);
-                              setMyUserId(me.id);
-
-                              // ensure socket connected
-                              if (!socketRef.current) {
-                                const s = io("/", {
-                                  path: "/socket.io",
-                                  transports: ["websocket", "polling"],
-                                  withCredentials: true,
-                                });
-                                socketRef.current = s;
-
-                                s.on("dm_joined", (payload: any) => {
-                                  // payload: { chatId, messages }
-                                  // map chatId to other user id when we join below
-                                  // we'll attach mapping after emit returns
-                                });
-
-                                s.on("new_message", (msg: any) => {
-                                  // append incoming messages to any matching DM
-                                  const other = Object.keys(
-                                    chatIdByOther.current,
-                                  ).find(
-                                    (k) =>
-                                      chatIdByOther.current[k] === msg.chatId,
-                                  );
-                                  if (!other) return;
-                                  setMessagesByDM((prev) => ({
-                                    ...prev,
-                                    [other]: [
-                                      ...(prev[other] || []),
-                                      {
-                                        id: String(msg.id),
-                                        author: msg.sender?.username || "",
-                                        text: msg.content,
-                                        ts: Date.now(),
-                                      },
-                                    ],
-                                  }));
-                                });
-                              }
-
-                              // emit join_dm (backend will create/return chat)
-                              socketRef.current!.emit("join_dm", {
-                                myId: me.id,
-                                otherUserId: Number(id),
-                              });
-
-                              // wait for dm_joined once
-                              const handler = (payload: any) => {
-                                const chatId = payload.chatId as number;
-                                chatIdByOther.current[id] = chatId;
-                                const msgs = (payload.messages || []).map(
-                                  (m: any) => ({
-                                    id: String(m.id),
-                                    author: m.sender?.username || "",
-                                    text: m.content,
-                                    ts: Date.now(),
-                                  }),
-                                );
-                                setMessagesByDM((prev) => ({
-                                  ...prev,
-                                  [id]: msgs,
-                                }));
-
-                                // derive display name: prefer any non-me message sender, else fallback to generic label
-                                let otherName = undefined as string | undefined;
-                                if (msgs.length > 0) {
-                                  const otherMsg = msgs.find(
-                                    (mm) =>
-                                      mm.author &&
-                                      mm.author !==
-                                        (me.username ?? String(me.id)),
-                                  );
-                                  otherName =
-                                    otherMsg?.author ?? msgs[0].author;
-                                }
-                                setDisplayNameById((prev) => ({
-                                  ...prev,
-                                  [id]: otherName ?? `User-${id}`,
-                                }));
-
-                                setSelectedFriendId(id);
-                                setChatMode("dm");
-                                setUnreadByDM((prev) => ({ ...prev, [id]: 0 }));
-                                setShowChatTest(false);
-                                setChatTestId("");
-                                socketRef.current?.off("dm_joined", handler);
-                              };
-
-                              socketRef.current!.on("dm_joined", handler);
-                            } catch (e) {
-                              console.error("Failed to start DM test:", e);
-                            }
-                          }}
-                          className="px-3 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white"
-                        >
-                          Start
-                        </button>
-                      </div>
-                    </div>
-                  )} */}
                   <ul className="mt-3 space-y-2">
                     {friends
                       .filter((f) =>
@@ -955,15 +835,28 @@ const handleStartDirectMessage = (friendId: string) => {
                       0,
                       Math.floor((Date.now() - m.ts) / 60000),
                     );
+const isMe = m.senderId === myUserId;
+                    
                     return (
-                      <div key={m.id} className="max-w-xl">
+                      <div
+                        key={m.id}
+                        className={`max-w-[80%] mb-4 flex flex-col ${
+                          isMe ? "ml-auto items-end" : "mr-auto items-start"
+                        }`}
+                      >
                         <div className="text-xs text-gray-400 mb-1">
                           <span className="text-gray-200 font-semibold">
-                            {m.author}
+                            {isMe ? "You" : m.author}
                           </span>{" "}
                           {mins}m
                         </div>
-                        <div className="px-3 py-2 rounded-lg bg-gray-700/70 text-gray-100">
+                        <div
+                          className={`px-4 py-2 rounded-2xl text-white ${
+                            isMe
+                              ? "bg-purple-600 rounded-tr-none"
+                              : "bg-gray-700 rounded-tl-none"
+                          }`}
+                        >
                           {m.text}
                         </div>
                       </div>
