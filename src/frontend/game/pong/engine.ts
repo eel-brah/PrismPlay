@@ -113,14 +113,14 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
     INITIAL_Y,
     PADDLE_WIDTH,
     currentConfig.paddleHeight,
-    currentConfig.paddleSpeed
+    currentConfig.paddleSpeed,
   );
   const rightPaddle = createPaddle(
     RIGHT_X,
     INITIAL_Y,
     PADDLE_WIDTH,
     currentConfig.paddleHeight,
-    currentConfig.paddleSpeed
+    currentConfig.paddleSpeed,
   );
   let ball: Ball = createBall(canvas, currentConfig.ballSpeed);
 
@@ -151,16 +151,16 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
     };
   }
 
-  function createParticles(x: number, y: number, count: number, color: string) {
-    for (let i = 0; i < count; i++) particles.push(new Particle(x, y, color));
-  }
+  // function createParticles(x: number, y: number, count: number, color: string) {
+  //   for (let i = 0; i < count; i++) particles.push(new Particle(x, y, color));
+  // }
 
   function createPaddle(
     x: number,
     y: number,
     width: number,
     height: number,
-    speed: number
+    speed: number,
   ): Paddle {
     return { x, y, width, height, speed, score: 0 };
   }
@@ -189,7 +189,7 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
     vx: number,
     vy: number,
     r: number,
-    p: Paddle
+    p: Paddle,
   ): number | null {
     const x0 = bx,
       y0 = by,
@@ -304,8 +304,8 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
       if (aiKeys.up) dyL -= leftPaddle.speed * dt;
       if (aiKeys.down) dyL += leftPaddle.speed * dt;
     } else {
-      if (keys["w"]) dyL -= leftPaddle.speed * dt;
-      if (keys["s"]) dyL += leftPaddle.speed * dt;
+      if (keys["w"] || keys["W"]) dyL -= leftPaddle.speed * dt;
+      if (keys["s"] || keys["S"]) dyL += leftPaddle.speed * dt;
     }
 
     if (aiConfig.enabled && ais.rightAI) {
@@ -322,11 +322,11 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
 
     leftPaddle.y = Math.max(
       0,
-      Math.min(canvas.height - leftPaddle.height, leftPaddle.y)
+      Math.min(canvas.height - leftPaddle.height, leftPaddle.y),
     );
     rightPaddle.y = Math.max(
       0,
-      Math.min(canvas.height - rightPaddle.height, rightPaddle.y)
+      Math.min(canvas.height - rightPaddle.height, rightPaddle.y),
     );
 
     const vx = ball.speedX * dt;
@@ -341,7 +341,7 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
       vx,
       vy,
       ball.radius,
-      rightPaddle
+      rightPaddle,
     );
     if (tRight !== null && (tHit === null || tRight < tHit)) {
       tHit = tRight;
@@ -354,7 +354,7 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
 
       handlePaddleCollision(
         hitSide === "left" ? leftPaddle : rightPaddle,
-        hitSide === "left"
+        hitSide === "left",
       );
 
       const remain = 1 - tHit;
@@ -384,7 +384,7 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
         soundOnRef.current,
         rightPaddle.score >= WIN_SCORE ? 659 : 523,
         0.12,
-        0.3
+        0.3,
       );
       if (rightPaddle.score >= WIN_SCORE) {
         winner = "right";
@@ -399,7 +399,7 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
         soundOnRef.current,
         leftPaddle.score >= WIN_SCORE ? 659 : 523,
         0.12,
-        0.3
+        0.3,
       );
       if (leftPaddle.score >= WIN_SCORE) {
         winner = "left";
@@ -428,7 +428,7 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
         canvas.width / 2 - 2,
         0,
         canvas.width / 2 + 2,
-        0
+        0,
       );
       gradient.addColorStop(0, "transparent");
       gradient.addColorStop(0.5, color);
@@ -532,7 +532,7 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
       leftPaddle.x,
       leftPaddle.y,
       leftPaddle.width,
-      leftPaddle.height
+      leftPaddle.height,
     );
 
     if (currentTheme.glowEnabled) {
@@ -543,7 +543,7 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
       rightPaddle.x,
       rightPaddle.y,
       rightPaddle.width,
-      rightPaddle.height
+      rightPaddle.height,
     );
     ctx.shadowBlur = 0;
 
@@ -630,8 +630,8 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
   animationId = requestAnimationFrame(gameLoop);
 
   return () => {
-    document.removeEventListener("keydown", handleKeyDown as any);
-    document.removeEventListener("keyup", handleKeyUp as any);
+    document.removeEventListener("keydown", handleKeyDown);
+    document.removeEventListener("keyup", handleKeyUp);
     if (animationId) cancelAnimationFrame(animationId);
   };
 }
