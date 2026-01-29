@@ -140,7 +140,7 @@ export default function SocialHub() {
                   id: String(m.id),
                   author: m.sender?.username || "Unknown",
                   text: m.content,
-                  ts: Date.now(), // LATER
+                  ts: new Date(m.createdAt).getTime, // LATER
                   senderId: m.senderId,
                 }));
                 setMessagesByDM((prev) => ({ ...prev, [friendId]: msgs }));
@@ -161,7 +161,7 @@ export default function SocialHub() {
                      id: String(msg.id),
                      author: msg.sender?.username || "",
                      text: msg.content,
-                     ts: Date.now(),
+                     ts: new Date(msg.createdAt).getTime(), // LATER
                      senderId: msg.senderId,
                    },
                  ],
@@ -390,7 +390,7 @@ const handleStartDirectMessage = (friendId: string) => {
               id: String(m.id),
               author: m.sender?.username || "Unknown",
               text: m.content,
-              ts: Date.now(), // mock timestamp for now 
+              ts: new Date(m.createdAt).getTime(), 
               senderId: m.senderId,
            }));
 
@@ -831,39 +831,47 @@ const handleStartDirectMessage = (friendId: string) => {
                       ? messagesByDM[selectedFriendId] || []
                       : ([] as Message[])
                   ).map((m) => {
-                    const mins = Math.max(
-                      0,
-                      Math.floor((Date.now() - m.ts) / 60000),
-                    );
-const isMe = m.senderId === myUserId;
-                    
-                    return (
-                      <div
-                        key={m.id}
-                        className={`max-w-[80%] mb-4 flex flex-col ${
-                          isMe ? "ml-auto items-end" : "mr-auto items-start"
-                        }`}
-                      >
-                        <div className="text-xs text-gray-400 mb-1">
-                          <span className="text-gray-200 font-semibold">
-                            {isMe ? "You" : m.author}
-                          </span>{" "}
-                          {mins}m
-                        </div>
-                        <div
-                          className={`px-4 py-2 rounded-2xl text-white ${
-                            isMe
-                              ? "bg-purple-600 rounded-tr-none"
-                              : "bg-gray-700 rounded-tl-none"
-                          }`}
-                        >
-                          {m.text}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="mt-4 flex items-center gap-2">
+    // 1. Calculate the nice time string
+    const date = new Date(m.ts);
+    const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const isToday = new Date().toDateString() === date.toDateString();
+    
+    // Shows "10:30 AM" if today, otherwise "1/29/2026"
+    const displayTime = isToday ? timeString : date.toLocaleDateString();
+    
+    const isMe = m.senderId === myUserId;
+
+    return (
+      <div
+        key={m.id}
+        className={`max-w-[80%] mb-4 flex flex-col ${
+          isMe ? "ml-auto items-end" : "mr-auto items-start"
+        }`}
+      >
+        <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
+          <span className="text-gray-200 font-semibold">
+            {isMe ? "You" : m.author}
+          </span>
+          {/* 2. USE THE NEW TIME HERE */}
+          <span className="text-[10px] opacity-70">
+            {displayTime}
+          </span>
+        </div>
+        
+        <div
+          className={`px-4 py-2 rounded-2xl text-white ${
+            isMe
+              ? "bg-purple-600 rounded-tr-none"
+              : "bg-gray-700 rounded-tl-none"
+          }`}
+        >
+          {m.text}
+        </div>
+      </div>
+    );
+  })}
+  </div>
+  <div className="mt-4 flex items-center gap-2">
                   <input
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
