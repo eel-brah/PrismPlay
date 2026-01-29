@@ -93,7 +93,7 @@ export default function SocialHub() {
 
     setRequests(
       incomingRequest.map((r) => ({
-        id: String(r.id), // request id (good)
+        id: String(r.id),
         name: r.fromUser.username,
         avatarUrl: r.fromUser.avatarUrl ?? undefined,
       })),
@@ -103,36 +103,7 @@ export default function SocialHub() {
   useEffect(() => {
     reload().catch(console.error);
   }, []);
-  // const [friends, setFriends] = useState<
-  //   {
-  //     id: string;
-  //     name: string;
-  //     status: "online" | "offline" | "busy" | "away" | "in_game";
-  //     lastSeen: string;
-  //     gamesPlayed: number;
-  //     winRate: number;
-  //     mutualFriends: number;
-  //     avatarUrl?: string;
-  //   }[]
-  // >([
-  //   { id: "1", name: "Alice", status: "online", lastSeen: "Online now", gamesPlayed: 45, winRate: 78, mutualFriends: 3 },
-  //   { id: "2", name: "Bob", status: "in_game", lastSeen: "Playing now", gamesPlayed: 67, winRate: 65, mutualFriends: 5 },
-  //   { id: "3", name: "Charlie", status: "away", lastSeen: "2 hours ago", gamesPlayed: 23, winRate: 52, mutualFriends: 1 },
-  //   { id: "4", name: "Diana", status: "offline", lastSeen: "1 day ago", gamesPlayed: 89, winRate: 82, mutualFriends: 7 },
-  // ]);
-  // const [requests, setRequests] = useState<
-  //   { id: string; name: string; avatarUrl?: string; mutualFriends?: number }[]
-  // >([
-  //   { id: "r1", name: "Ethan", mutualFriends: 2 },
-  //   { id: "r2", name: "Mia", mutualFriends: 1 },
-  // ]);
-  // const [suggestions, setSuggestions] = useState<
-  //   { id: string; name: string; avatarUrl?: string; mutualFriends?: number }[]
-  // >([
-  //   { id: "s1", name: "Noah", mutualFriends: 4 },
-  //   { id: "s2", name: "Ava", mutualFriends: 3 },
-  //   { id: "s3", name: "Liam", mutualFriends: 2 },
-  // ]);
+
   const [friendSearch, setFriendSearch] = useState("");
   const [friendsSubTab, setFriendsSubTab] = useState<
     "friends" | "requests" | "add"
@@ -242,16 +213,6 @@ export default function SocialHub() {
     }
   };
 
-  const addFriend = async (id: string) => {
-    try {
-      const token = getStoredToken();
-      if (!token) return;
-      await apiAcceptFriend(token, id);
-      await reload();
-    } catch (e) {
-      console.log(e);
-    }
-  };
 
   const declineFriend = async (id: string) => {
     try {
