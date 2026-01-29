@@ -30,10 +30,11 @@ export default function SocialHub() {
     if (!token) return;
     const username = addUsername.trim();
     if (!username) return;
-    if (username.toLowerCase() === user.username.toLowerCase()) {
-      setAddErr("You can't add yourself");
-      return;
-    }
+    // need to check 
+    // if (username.toLowerCase() === user.username.toLowerCase()) {
+    //   setAddErr("You can't add yourself");
+    //   return;
+    // }
     if (
       friends.some((f) => f.name.toLowerCase() == username.toLocaleLowerCase())
     ) {
