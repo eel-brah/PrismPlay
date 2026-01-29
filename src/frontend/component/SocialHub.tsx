@@ -31,6 +31,7 @@ export default function SocialHub() {
   const [addMsg, setAddMsg] = useState<string | null>(null);
   const [addErr, setAddErr] = useState<string | null>(null);
   const [addLoading, setAddLoading] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
 
   const [activeTab, setActiveTab] = useState<TabKey>("friends");
   const [friends, setFriends] = useState<
@@ -73,8 +74,76 @@ export default function SocialHub() {
     );
   };
 
+// 1. Init: Load data & Connect Socket
   useEffect(() => {
-    reload().catch(console.error);
+    const init = async () => {
+      const token = getStoredToken();
+      if (!token) return;
+
+      try {
+        // Fetch 'me' to get myUserId needed for socket
+        const me = await apiGetMe(token);
+        setMyUserId(me.id);
+        
+        // Run the existing reload for friends
+        await reload();
+
+        // Connect Socket if not already connected
+        if (!socketRef.current) {
+          const s = io("/", {
+            path: "/socket.io",
+            transports: ["websocket", "polling"],
+            withCredentials: true,
+            query: { userId: me.id },
+          });
+          socketRef.current = s;
+
+          // GLOBAL LISTENER: When joining a DM, update messages
+          s.on("dm_joined", (payload: any) => {
+             // payload: { chatId, messages }
+             // We need to find which friend belongs to this chatId
+             // We check our reference map
+             const friendId = Object.keys(chatIdByOther.current).find(
+               (k) => chatIdByOther.current[k] === payload.chatId
+             );
+
+             if (friendId) {
+                const msgs = (payload.messages || []).map((m: any) => ({
+                  id: String(m.id),
+                  author: m.sender?.username || "Unknown",
+                  text: m.content,
+                  ts: Date.now(), // or parse m.createdAt if available
+                }));
+                setMessagesByDM((prev) => ({ ...prev, [friendId]: msgs }));
+             }
+          });
+
+          // GLOBAL LISTENER: Incoming messages
+          s.on("new_message", (msg: any) => {
+             const friendId = Object.keys(chatIdByOther.current).find(
+               (k) => chatIdByOther.current[k] === msg.chatId
+             );
+             if (friendId) {
+               setMessagesByDM((prev) => ({
+                 ...prev,
+                 [friendId]: [
+                   ...(prev[friendId] || []),
+                   {
+                     id: String(msg.id),
+                     author: msg.sender?.username || "",
+                     text: msg.content,
+                     ts: Date.now(),
+                   },
+                 ],
+               }));
+             }
+          });
+        }
+      } catch (e) {
+        console.error("Init failed", e);
+      }
+    };
+    init();
   }, []);
   // const [friends, setFriends] = useState<
   //   {
@@ -248,9 +317,10 @@ export default function SocialHub() {
     }
   };
 
-  const sendMessage = () => {
+const sendMessage = () => {
     const text = chatInput.trim();
     if (!text) return;
+
     if (chatMode === "channel") {
       setMessagesByChannel((prev) => ({
         ...prev,
@@ -265,15 +335,16 @@ export default function SocialHub() {
         ],
       }));
     } else if (chatMode === "dm" && selectedFriendId) {
+      // SEND VIA SOCKET
       const chatId = chatIdByOther.current[selectedFriendId];
-      const s = socketRef.current;
-
-      // If we have a connected socket and a chat ID, send via socket and rely on server broadcast
-      // (prevents duplicate display of the same message locally)
-      if (s && chatId && myUserId) {
-        s.emit("send_message", { chatId, senderId: myUserId, content: text });
+      if (socketRef.current && chatId && myUserId) {
+        socketRef.current.emit("send_message", { 
+          chatId, 
+          senderId: myUserId, 
+          content: text 
+        });
       } else {
-        // fallback: optimistic UI update when socket/chat isn't ready
+        // Fallback if socket fails (optimistic UI)
         setMessagesByDM((prev) => ({
           ...prev,
           [selectedFriendId]: [
@@ -315,6 +386,42 @@ export default function SocialHub() {
     }));
     setSelectedGroupId(id);
     setNewGroupName("");
+  };
+
+const handleStartDirectMessage = (friendId: string) => {
+    setSelectedFriendId(friendId);
+    setChatMode("dm");
+    setActiveTab("chat");
+    setUnreadByDM((prev) => ({ ...prev, [friendId]: 0 }));
+
+    if (socketRef.current && myUserId) {
+      const onJoinHandler = (payload: any) => {
+        if (payload.chatId) {
+           chatIdByOther.current[friendId] = payload.chatId;
+           const msgs = (payload.messages || []).map((m: any) => ({
+              id: String(m.id),
+              author: m.sender?.username || "Unknown",
+              text: m.content,
+              ts: Date.now(), // mock timestamp for now 
+           }));
+
+           setMessagesByDM((prev) => ({
+               ...prev,
+               [friendId]: msgs
+           }));
+
+           
+           socketRef.current?.off("dm_joined", onJoinHandler);
+        }
+      };
+
+      socketRef.current.on("dm_joined", onJoinHandler);
+
+      socketRef.current.emit("join_dm", {
+        myId: myUserId,
+        otherUserId: Number(friendId),
+      });
+    }
   };
 
   return (
@@ -440,11 +547,7 @@ export default function SocialHub() {
                         </div> */}
                         <div className="mt-5 flex items-center gap-3">
                           <button
-                            onClick={() => {
-                              setSelectedFriendId(f.id);
-                              setChatMode("dm");
-                              setActiveTab("chat");
-                            }}
+                            onClick={() => handleStartDirectMessage(f.id)}
                             className="px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white"
                           >
                             Chat
@@ -741,14 +844,7 @@ export default function SocialHub() {
                         return (
                           <li key={f.id}>
                             <button
-                              onClick={() => {
-                                setSelectedFriendId(f.id);
-                                setChatMode("dm");
-                                setUnreadByDM((prev) => ({
-                                  ...prev,
-                                  [f.id]: 0,
-                                }));
-                              }}
+                            onClick={() => handleStartDirectMessage(f.id)}
                               className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center gap-3 ${
                                 chatMode === "dm" && selectedFriendId === f.id
                                   ? "bg-blue-600/20"
