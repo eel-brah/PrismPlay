@@ -156,6 +156,32 @@ export function apiIncomingRequests(token: string) {
     },
   });
 }
+export function apiAcceptFriend(token: string, id: string){
+  return requestJson<FriendRequest[]>(`/api/friend/requests/${id}/accept`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export function apiDeclineFriend(token: string, id: string){
+  return requestJson<FriendRequest[]>(`/api/friend/requests/${id}/decline`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export function apiRemoveFriend(token: string, id: string){
+  return requestJson<FriendRequest[]>(`/api/friend/${id}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
 
 export function apiUploadAvatar(token: string, file: File) {
   const form = new FormData();

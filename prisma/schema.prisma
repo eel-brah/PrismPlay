@@ -19,7 +19,7 @@ model User {
   username               String          @unique
   email                  String          @unique
   passwordHash           String
-  avatarUrl              String?
+  avatarUrl              String?         @default("/uploads/avatars/dz.jpg")
   createdAt              DateTime        @default(now())
   lastLogin              DateTime?
   sentFriendRequests     FriendRequest[] @relation("sentFriendRequests")

@@ -15,11 +15,23 @@ import {
   getStoredToken,
   apiListFriends,
   apiIncomingRequests,
+  apiAcceptFriend,
+  apiDeclineFriend,
+  apiRemoveFriend,
 } from "../api";
 
 type TabKey = "friends" | "chat" | "groups";
 
 export default function SocialHub() {
+  const sendFriendRequestByUsername = async () => {
+    setAddErr(null);
+    setAddMsg("Friend request sent Success");
+  };
+  const [addUsername, setAddUsername] = useState("");
+  const [addMsg, setAddMsg] = useState<string | null>(null);
+  const [addErr, setAddErr] = useState<string | null>(null);
+  const [addLoading, setAddLoading] = useState(false);
+
   const [activeTab, setActiveTab] = useState<TabKey>("friends");
   const [friends, setFriends] = useState<
     {
@@ -33,31 +45,36 @@ export default function SocialHub() {
   const [requests, setRequests] = useState<
     { id: string; name: string; avatarUrl?: string }[]
   >([]);
-  useEffect(() => {
+  const reload = async () => {
     const token = getStoredToken();
     if (!token) return;
-    (async () => {
-      const firendList = await apiListFriends(token);
-      const incomingRequest = await apiIncomingRequests(token);
-      setFriends(
-        firendList.map((r) => ({
-          id: String(r.friend.id),
-          name: r.friend.username,
-          lastLogin: r.friend.lastLogin,
-          createdAt: r.friend.createdAt,
-          avatarUrl: r.friend.avatarUrl ?? undefined,
-        })),
-      );
-      setRequests(
-        incomingRequest.map((r) => ({
-          id: String(r.fromUser.id),
-          name: r.fromUser.username,
-          avatarUrl: r.fromUser.avatarUrl ?? undefined,
-        })),
-      );
-    })().catch((e) => {
-      console.error(e);
-    });
+
+    const [friendList, incomingRequest] = await Promise.all([
+      apiListFriends(token),
+      apiIncomingRequests(token),
+    ]);
+
+    setFriends(
+      friendList.map((r) => ({
+        id: String(r.friend.id),
+        name: r.friend.username,
+        lastLogin: r.friend.lastLogin,
+        createdAt: r.friend.createdAt,
+        avatarUrl: r.friend.avatarUrl ?? undefined,
+      })),
+    );
+
+    setRequests(
+      incomingRequest.map((r) => ({
+        id: String(r.id), // request id (good)
+        name: r.fromUser.username,
+        avatarUrl: r.fromUser.avatarUrl ?? undefined,
+      })),
+    );
+  };
+
+  useEffect(() => {
+    reload().catch(console.error);
   }, []);
   // const [friends, setFriends] = useState<
   //   {
@@ -91,7 +108,7 @@ export default function SocialHub() {
   ]);
   const [friendSearch, setFriendSearch] = useState("");
   const [friendsSubTab, setFriendsSubTab] = useState<
-    "friends" | "requests" | "suggestions"
+    "friends" | "requests" | "add"
   >("friends");
 
   // Chat state (frontend-only mock)
@@ -187,28 +204,47 @@ export default function SocialHub() {
   const [groupChatInput, setGroupChatInput] = useState("");
   const [groupSearch, setGroupSearch] = useState("");
 
-  const addFriend = (name: string) => {
-    // const n = name.trim();
-    // if (!n) return;
-    // setFriends((prev) => [
-    //   ...prev,
-    //   {
-    //     id: Math.random().toString(36).slice(2),
-    //     name: n,
-    //     status: "offline",
-    //     lastSeen: "Just now",
-    //     gamesPlayed: 0,
-    //     winRate: 0,
-    //     mutualFriends: 0,
-    //   },
-    // ]);
+  const acceptFriend = async (id: string) => {
+    try {
+      const token = getStoredToken();
+      if (!token) return;
+      await apiAcceptFriend(token, id);
+      await reload();
+    } catch (e) {
+      console.log(e);
+    }
   };
 
-  const removeFriend = (id: string) => {
-    setFriends((prev) => prev.filter((f) => f.id !== id));
-    if (selectedFriendId === id && chatMode === "dm") {
-      setSelectedFriendId(null);
-      setChatMode("channel");
+  const addFriend = async (id: string) => {
+    try {
+      const token = getStoredToken();
+      if (!token) return;
+      await apiAcceptFriend(token, id);
+      await reload();
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  const declineFriend = async (id: string) => {
+    try {
+      const token = getStoredToken();
+      if (!token) return;
+      await apiDeclineFriend(token, id);
+      await reload();
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  const removeFriend = async (id: string) => {
+    try {
+      const token = getStoredToken();
+      if (!token) return;
+      await apiRemoveFriend(token, id);
+      await reload();
+    } catch (e) {
+      console.log(e);
     }
   };
 
@@ -327,7 +363,7 @@ export default function SocialHub() {
             </div>
             <div className="flex items-center justify-center">
               <div className="inline-flex rounded-full bg-gray-800/60 p-1">
-                {(["friends", "requests", "suggestions"] as const).map((t) => (
+                {(["friends", "requests", "add"] as const).map((t) => (
                   <button
                     key={t}
                     onClick={() => setFriendsSubTab(t)}
@@ -339,8 +375,7 @@ export default function SocialHub() {
                   >
                     {t === "friends" && `Friends (${friends.length})`}
                     {t === "requests" && `Requests (${requests.length})`}
-                    {t === "suggestions" &&
-                      `Suggestions (${suggestions.length})`}
+                    {t === "add" && `New friend`}
                   </button>
                 ))}
               </div>
@@ -466,7 +501,7 @@ export default function SocialHub() {
                       <div className="mt-4 flex gap-3">
                         <button
                           onClick={() => {
-                            addFriend(r.name);
+                            acceptFriend(r.id);
                             setRequests((prev) =>
                               prev.filter((x) => x.id !== r.id),
                             );
@@ -476,11 +511,12 @@ export default function SocialHub() {
                           Accept
                         </button>
                         <button
-                          onClick={() =>
+                          onClick={() => {
+                            declineFriend(r.id);
                             setRequests((prev) =>
                               prev.filter((x) => x.id !== r.id),
-                            )
-                          }
+                            );
+                          }}
                           className="px-4 py-2 rounded-md bg-gray-800/80 hover:bg-gray-800 text-gray-200"
                         >
                           Decline
@@ -490,52 +526,39 @@ export default function SocialHub() {
                   ))}
               </div>
             )}
-            {friendsSubTab === "suggestions" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl-grid-cols-3 xl:grid-cols-3 gap-6">
-                {suggestions
-                  .filter((s) =>
-                    s.name.toLowerCase().includes(friendSearch.toLowerCase()),
-                  )
-                  .map((s) => (
-                    <div
-                      key={s.id}
-                      className="rounded-2xl border border-white/10 bg-gray-900/60 shadow-xl p-5"
+            {friendsSubTab === "add" && (
+              <div className="max-w-3xl mx-auto space-y-4">
+                {/* Add by username */}
+                <div className="rounded-2xl border border-white/10 bg-gray-900/60 p-5">
+                  <div className="text-sm font-semibold text-gray-200">
+                    Add by username
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <input
+                      value={addUsername}
+                      onChange={(e) => setAddUsername(e.target.value)}
+                      placeholder="Enter username (exact)..."
+                      className="flex-1 min-w-0 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") sendFriendRequestByUsername();
+                      }}
+                    />
+                    <button
+                      onClick={sendFriendRequestByUsername}
+                      disabled={addLoading || !addUsername.trim()}
+                      className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 disabled:bg-green-600/40 text-white shrink-0"
                     >
-                      <div className="flex items-center gap-3">
-                        {s.avatarUrl ? (
-                          <img
-                            src={s.avatarUrl}
-                            alt={s.name}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
-                        )}
-                        <div>
-                          <div className="font-semibold text-gray-100">
-                            {s.name}
-                          </div>
-                          <div className="text-xs text-gray-400">
-                            {s.mutualFriends || 0} mutual friends
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mt-4 flex gap-3">
-                        <button
-                          onClick={() => {
-                            addFriend(s.name);
-                            setSuggestions((prev) =>
-                              prev.filter((x) => x.id !== s.id),
-                            );
-                          }}
-                          className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
-                        >
-                          <UserPlus className="w-4 h-4" />
-                          <span>Add</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                      {addLoading ? "Sending..." : "Send"}
+                    </button>
+                  </div>
+
+                  {addMsg && (
+                    <div className="mt-2 text-m text-green-400">{addMsg}</div>
+                  )}
+                  {addErr && (
+                    <div className="mt-2 text-m text-red-400">{addErr}</div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -565,7 +588,7 @@ export default function SocialHub() {
                       <button
                         onClick={() => {
                           setActiveTab("friends");
-                          setFriendsSubTab("suggestions");
+                          setFriendsSubTab("add");
                         }}
                         className="p-2 rounded-md bg-gray-800/60 hover:bg-gray-800"
                       >

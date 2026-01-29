@@ -3,3 +3,4 @@ dist
 mytodo.txt
 prisma/dev.db
 uploads
+.vscode
