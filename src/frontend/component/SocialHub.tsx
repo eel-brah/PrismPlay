@@ -223,8 +223,6 @@ export default function SocialHub() {
     "3": 1,
   });
   const [dmSearch, setDmSearch] = useState("");
-  const [showChatTest, setShowChatTest] = useState(false);
-  const [chatTestId, setChatTestId] = useState("");
   const socketRef = useRef<Socket | null>(null);
   const [myUserId, setMyUserId] = useState<number | null>(null);
   const chatIdByOther = useRef<Record<string, number>>({});
@@ -681,14 +679,6 @@ const handleStartDirectMessage = (friendId: string) => {
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => setShowChatTest((s) => !s)}
-                        className="px-3 py-1 rounded-md bg-gray-800/60 hover:bg-gray-800 text-sm"
-                        title="Open test DM input"
-                      >
-                        <MessageSquarePlus className="w-4 h-4 inline-block mr-2" />
-                        Chat Test
-                      </button>
-                      <button
                         onClick={() => {
                           setActiveTab("friends");
                           setFriendsSubTab("add");
@@ -710,7 +700,7 @@ const handleStartDirectMessage = (friendId: string) => {
                       <Search className="w-4 h-4 text-gray-400 absolute right-3 top-2.5" />
                     </div>
                   </div>
-                  {showChatTest && (
+                  {/* {showChatTest && (
                     <div className="mt-3 p-3 rounded-md bg-gray-800/50 border border-gray-700">
                       <div className="text-xs text-gray-300 mb-2">
                         Start a test DM by ID
@@ -832,7 +822,7 @@ const handleStartDirectMessage = (friendId: string) => {
                         </button>
                       </div>
                     </div>
-                  )}
+                  )} */}
                   <ul className="mt-3 space-y-2">
                     {friends
                       .filter((f) =>
