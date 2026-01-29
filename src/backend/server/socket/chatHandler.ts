@@ -1,8 +1,5 @@
 import { Socket, Server } from "socket.io";
-// import prisma from "src/backend/utils/prisma"; 
-
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import prisma from "src/backend/utils/prisma"; 
 
 interface DMPayload
 {
