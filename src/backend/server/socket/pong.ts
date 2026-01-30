@@ -322,53 +322,6 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     );
   }
 
-  // function handleReconnect(socket: PongSocket, match: Match, playerId: number) {
-  //   const side = match.leftProfile.id === playerId ? "left" : "right";
-  //   const opponentProfile =
-  //     side === "left" ? match.rightProfile : match.leftProfile;
-
-  //   fastify.log.info(
-  //     { matchId: match.id, PlayerId: playerId, side },
-  //     "[pong] Player reconnected",
-  //   );
-
-  //   // Clear reconnect timeout
-  //   if (match.reconnectTimeout) {
-  //     clearTimeout(match.reconnectTimeout);
-  //     match.reconnectTimeout = null;
-  //   }
-
-  //   // Restore socket reference and clear disconnect timestamp
-  //   if (side === "left") {
-  //     match.left = socket;
-  //     match.leftDisconnectedAt = null;
-  //   } else {
-  //     match.right = socket;
-  //     match.rightDisconnectedAt = null;
-  //   }
-
-  //   socket.data.matchId = match.id;
-  //   socket.data.side = side;
-
-  //   const bothConnected = match.leftDisconnectedAt === null && match.rightDisconnectedAt === null;
-  //   if (bothConnected) {
-  //     match.isPaused = false;
-  //   }
-
-  //   const opponent = side === "left" ? match.right : match.left;
-
-  //   socket.emit("match.reconnected", {
-  //     matchId: match.id,
-  //     side,
-  //     snapshot: toSnapshot(match.state),
-  //     opponent: opponentProfile,
-  //   });
-
-  //   if (opponent) {
-  //     opponent.emit("opponent.reconnected");
-  //   }
-  // }
-
   async function handleReconnect(
     socket: PongSocket,
     match: Match,
@@ -412,13 +365,11 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
 
     const opponent = side === "left" ? match.right : match.left;
 
-    // ✅ Fetch stats (DB) before emitting reconnect payload
     const [playerStats, opponentStats] = await Promise.all([
       getPlayerStats(playerProfile.id),
       getPlayerStats(opponentProfile.id),
     ]);
 
-    // ✅ Emit full payload so client can restore HUD completely
     socket.emit("match.reconnected", {
       matchId: match.id,
       side,
@@ -536,32 +487,6 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
 
     cleanupMatch(match);
   }
-
-  // function handleLeave(socket: PongSocket) {
-  //   const matchId = socket.data.matchId;
-  //   if (!matchId) return;
-
-  //   const match = matches.get(matchId);
-  //   if (!match) return;
-
-  //   if (match.state.phase === "countdown") {
-  //     const isLeft = socket.data.side === "left";
-  //     const opponent = isLeft ? match.right : match.left;
-
-  //     if (opponent) {
-  //       opponent.emit("opponent.left");
-  //       opponent.emit("match.cancelled");
-  //     }
-
-  //     cancelMatch(match);
-  //     return;
-  //   }
-
-  //   // During game, treat as surrender
-  //   const side = socket.data.side!;
-  //   const winnerSide: Side = side === "left" ? "right" : "left";
-  //   endMatch(match, winnerSide, "surrender", { surrenderingSide: side });
-  // }
 
   function handleLeave(socket: PongSocket) {
     const matchId = socket.data.matchId;
