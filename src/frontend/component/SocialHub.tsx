@@ -708,6 +708,20 @@ const handleStartDirectMessage = (friendId: string) => {
                       .filter((f) =>
                         f.name.toLowerCase().includes(dmSearch.toLowerCase()),
                       )
+                      .sort((a, b) => {
+                        // 1. Find the last message for Friend A and Friend B
+                        const msgsA = messagesByDM[a.id] || [];
+                        const msgsB = messagesByDM[b.id] || [];
+                        const lastA = msgsA[msgsA.length - 1];
+                        const lastB = msgsB[msgsB.length - 1];
+
+                        // 2. Get timestamps (default to 0 if no chat exists)
+                        const timeA = lastA ? lastA.ts : 0;
+                        const timeB = lastB ? lastB.ts : 0;
+
+                        // 3. Sort descending (Newest time (B) - Oldest time (A))
+                        return timeB - timeA;
+                      })
                       .map((f) => {
                         const last = (messagesByDM[f.id] || []).slice(-1)[0];
                         const unread = unreadByDM[f.id] || 0;
@@ -879,13 +893,19 @@ const handleStartDirectMessage = (friendId: string) => {
   })}
   </div>
   <div className="mt-4 flex items-center gap-2">
-                  <input
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Type your message..."
-                    className="flex-1 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none"
-                    disabled={chatMode === "dm" && !selectedFriendId}
-                  />
+    <input
+    value={chatInput}
+    onChange={(e) => setChatInput(e.target.value)}
+    onKeyDown={(e) => {
+        if (e.key === "Enter")
+          {
+            sendMessage();
+          }
+        }}
+    placeholder="Type your message..."
+    className="flex-1 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none"
+    disabled={chatMode === "dm" && !selectedFriendId}
+/>
                   <button
                     onClick={sendMessage}
                     className="p-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
