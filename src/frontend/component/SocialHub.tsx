@@ -112,7 +112,7 @@ export default function SocialHub() {
                   id: String(m.id),
                   author: m.sender?.username || "Unknown",
                   text: m.content,
-                  ts: new Date(m.createdAt).getTime, // LATER
+                  ts: new Date(m.createdAt).getTime(), // LATER
                   senderId: m.senderId,
                 }));
                 setMessagesByDM((prev) => ({ ...prev, [friendId]: msgs }));
@@ -120,6 +120,27 @@ export default function SocialHub() {
           });
 
           // GLOBAL LISTENER: Incoming messages
+          // s.on("new_message", (msg: any) => {
+          //    const friendId = Object.keys(chatIdByOther.current).find(
+          //      (k) => chatIdByOther.current[k] === msg.chatId
+          //    );
+          //    if (friendId) {
+          //      setMessagesByDM((prev) => ({
+          //        ...prev,
+          //        [friendId]: [
+          //          ...(prev[friendId] || []),
+          //          {
+          //            id: String(msg.id),
+          //            author: msg.sender?.username || "",
+          //            text: msg.content,
+          //            ts: new Date(msg.createdAt).getTime(), // LATER
+          //            senderId: msg.senderId,
+          //          },
+          //        ],
+          //      }));
+          //    }
+          // });
+          // 1. New Message Listener (Fixed Date + Added readAt)
           s.on("new_message", (msg: any) => {
              const friendId = Object.keys(chatIdByOther.current).find(
                (k) => chatIdByOther.current[k] === msg.chatId
@@ -133,13 +154,42 @@ export default function SocialHub() {
                      id: String(msg.id),
                      author: msg.sender?.username || "",
                      text: msg.content,
-                     ts: new Date(msg.createdAt).getTime(), // LATER
+                     ts: new Date(msg.createdAt).getTime(), // FIXED: Added ()
                      senderId: msg.senderId,
+                     readAt: msg.readAt
                    },
                  ],
                }));
              }
           });
+
+          // 2. Typing Listener
+          s.on("user_typing", (data: any) => {
+             const friendId = Object.keys(chatIdByOther.current).find(
+               (k) => chatIdByOther.current[k] === data.chatId
+             );
+             if (friendId) {
+               setTypingStatus(prev => ({ ...prev, [friendId]: data.isTyping }));
+             }
+          });
+
+          // 3. Seen Receipt Listener
+          s.on("messages_seen", (data: any) => {
+             const friendId = Object.keys(chatIdByOther.current).find(
+               (k) => chatIdByOther.current[k] === data.chatId
+             );
+             if (friendId && data.seenByUserId !== me.id) {
+                setMessagesByDM((prev) => {
+                  const currentMsgs = prev[friendId] || [];
+                  return {
+                    ...prev,
+                    [friendId]: currentMsgs.map(m => ({ ...m, readAt: new Date().toISOString() }))
+                  };
+                });
+             }
+          });
+
+
         }
       } catch (e) {
         console.error("Init failed", e);
@@ -182,7 +232,7 @@ export default function SocialHub() {
     "friends" | "requests" | "add"
   >("friends");
 
-  type Message = { id: string; author: string; text: string; ts: number; senderId?: number }; //TODO CHECK
+  type Message = { id: string; author: string; text: string; ts: number; senderId?: number; readAt?: string | null }; //TODO CHECK
   const channels = useMemo(() => ["general", "lobby", "support"], []);
   const [selectedChannel, setSelectedChannel] = useState<string>(channels[0]);
   const [chatMode, setChatMode] = useState<"channel" | "dm">("channel");
@@ -219,6 +269,8 @@ export default function SocialHub() {
     {},
   );
   const [chatInput, setChatInput] = useState("");
+  const [typingStatus, setTypingStatus] = useState<Record<string, boolean>>({});
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [unreadByDM, setUnreadByDM] = useState<Record<string, number>>({
     "2": 2,
     "3": 1,
@@ -386,6 +438,56 @@ const sendMessage = () => {
     setSelectedGroupId(id);
     setNewGroupName("");
   };
+const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setChatInput(e.target.value);
+    if (chatMode === "dm" && selectedFriendId && socketRef.current) {
+      const chatId = chatIdByOther.current[selectedFriendId];
+      if (!chatId) return;
+
+      socketRef.current.emit("typing_start", { chatId, userId: myUserId });
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      
+      typingTimeoutRef.current = setTimeout(() => {
+        socketRef.current?.emit("typing_stop", { chatId, userId: myUserId });
+      }, 2000);
+    }
+  };
+// const handleStartDirectMessage = (friendId: string) => {
+//     setSelectedFriendId(friendId);
+//     setChatMode("dm");
+//     setActiveTab("chat");
+//     setUnreadByDM((prev) => ({ ...prev, [friendId]: 0 }));
+
+//     if (socketRef.current && myUserId) {
+//       const onJoinHandler = (payload: any) => {
+//         if (payload.chatId) {
+//            chatIdByOther.current[friendId] = payload.chatId;
+//            const msgs = (payload.messages || []).map((m: any) => ({
+//               id: String(m.id),
+//               author: m.sender?.username || "Unknown",
+//               text: m.content,
+//               ts: new Date(m.createdAt).getTime(), 
+//               senderId: m.senderId,
+//            }));
+
+//            setMessagesByDM((prev) => ({
+//                ...prev,
+//                [friendId]: msgs
+//            }));
+
+           
+//            socketRef.current?.off("dm_joined", onJoinHandler);
+//         }
+//       };
+
+//       socketRef.current.on("dm_joined", onJoinHandler);
+
+//       socketRef.current.emit("join_dm", {
+//         myId: myUserId,
+//         otherUserId: Number(friendId),
+//       });
+//     }
+//   };
 
 const handleStartDirectMessage = (friendId: string) => {
     setSelectedFriendId(friendId);
@@ -397,26 +499,29 @@ const handleStartDirectMessage = (friendId: string) => {
       const onJoinHandler = (payload: any) => {
         if (payload.chatId) {
            chatIdByOther.current[friendId] = payload.chatId;
+           
            const msgs = (payload.messages || []).map((m: any) => ({
               id: String(m.id),
               author: m.sender?.username || "Unknown",
               text: m.content,
-              ts: new Date(m.createdAt).getTime(), 
+              ts: new Date(m.createdAt).getTime(), // FIXED: Added ()
               senderId: m.senderId,
+              readAt: m.readAt // Capture read status
            }));
 
-           setMessagesByDM((prev) => ({
-               ...prev,
-               [friendId]: msgs
-           }));
+           setMessagesByDM((prev) => ({ ...prev, [friendId]: msgs }));
 
+           // Emit SEEN immediately
+           socketRef.current?.emit("mark_seen", { 
+             chatId: payload.chatId, 
+             userId: myUserId 
+           });
            
            socketRef.current?.off("dm_joined", onJoinHandler);
         }
       };
 
       socketRef.current.on("dm_joined", onJoinHandler);
-
       socketRef.current.emit("join_dm", {
         myId: myUserId,
         otherUserId: Number(friendId),
@@ -846,56 +951,62 @@ const handleStartDirectMessage = (friendId: string) => {
                   </div>
                 </div>
                 <div className="flex-1 mt-3 space-y-3 overflow-y-auto">
+                  {chatMode === "dm" && selectedFriendId && typingStatus[selectedFriendId] && (                ////////////////////////////!CHECk
+                     <div className="text-xs text-purple-400 animate-pulse ml-4 mb-2 font-semibold">
+                        {friends.find(f => f.id === selectedFriendId)?.name} is typing...
+                     </div>
+                  )}
                   {(chatMode === "channel"
                     ? messagesByChannel[selectedChannel] || []
                     : selectedFriendId
                       ? messagesByDM[selectedFriendId] || []
                       : ([] as Message[])
-                  ).map((m) => {
-    // 1. Calculate the nice time string
-    const date = new Date(m.ts);
-    const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const isToday = new Date().toDateString() === date.toDateString();
-    
-    // Shows "10:30 AM" if today, otherwise "1/29/2026"
-    const displayTime = isToday ? timeString : date.toLocaleDateString();
-    
-    const isMe = m.senderId === myUserId;
+                      ).map((m) => {
+                    const date = new Date(m.ts);
+                    const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const isToday = new Date().toDateString() === date.toDateString();
+                    const displayTime = isToday ? timeString : date.toLocaleDateString();
+                    const isMe = m.senderId === myUserId;
 
-    return (
-      <div
-        key={m.id}
-        className={`max-w-[80%] mb-4 flex flex-col ${
-          isMe ? "ml-auto items-end" : "mr-auto items-start"
-        }`}
-      >
-        <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
-          <span className="text-gray-200 font-semibold">
-            {isMe ? "You" : m.author}
-          </span>
-          {/* 2. USE THE NEW TIME HERE */}
-          <span className="text-[10px] opacity-70">
-            {displayTime}
-          </span>
-        </div>
-        
-        <div
-          className={`px-4 py-2 rounded-2xl text-white ${
-            isMe
-              ? "bg-purple-600 rounded-tr-none"
-              : "bg-gray-700 rounded-tl-none"
-          }`}
-        >
-          {m.text}
-        </div>
-      </div>
-    );
-  })}
+                    return (
+                      <div
+                        key={m.id}
+                        className={`max-w-[80%] mb-4 flex flex-col ${
+                          isMe ? "ml-auto items-end" : "mr-auto items-start"
+                        }`}
+                      >
+                        <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
+                          <span className="text-gray-200 font-semibold">
+                            {isMe ? "You" : m.author}
+                          </span>
+                          <span className="text-[10px] opacity-70">
+                            {displayTime}
+                          </span>
+                        </div>
+                        
+                        <div
+                          className={`px-4 py-2 rounded-2xl text-white relative ${
+                            isMe
+                              ? "bg-purple-600 rounded-tr-none"
+                              : "bg-gray-700 rounded-tl-none"
+                          }`}
+                        >
+                          {m.text}
+                          {isMe && chatMode === "dm" && (
+                            <span className="ml-2 inline-block text-[10px] text-white/70">
+                              {m.readAt ? "✓✓" : "✓"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
   </div>
   <div className="mt-4 flex items-center gap-2">
     <input
     value={chatInput}
-    onChange={(e) => setChatInput(e.target.value)}
+    // onChange={(e) => setChatInput(e.target.value)}
+    onChange={handleTyping}
     onKeyDown={(e) => {
         if (e.key === "Enter")
           {

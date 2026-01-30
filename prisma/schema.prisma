@@ -171,6 +171,7 @@ model Message {
   senderId  Int
   content   String
   createdAt DateTime @default(now())
+  readAt    DateTime?
 
   chat   Chat @relation(fields: [chatId], references: [id])
   sender User @relation("messagesSent", fields: [senderId], references: [id])
