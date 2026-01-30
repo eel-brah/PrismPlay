@@ -183,6 +183,18 @@ export function apiRemoveFriend(token: string, id: string){
   });
 }
 
+export function apiAddFriend(token: string, username: string){
+  // const obj = {username : user};
+  return requestJson<FriendRequest[]>(`/api/friend/requests`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({username})
+  });
+}
+
 export function apiUploadAvatar(token: string, file: File) {
   const form = new FormData();
   form.append("avatar", file);
