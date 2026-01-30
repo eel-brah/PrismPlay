@@ -146,28 +146,7 @@ export default function SocialHub() {
              }
           });
 
-          // GLOBAL LISTENER: Incoming messages
-          // s.on("new_message", (msg: any) => {
-          //    const friendId = Object.keys(chatIdByOther.current).find(
-          //      (k) => chatIdByOther.current[k] === msg.chatId
-          //    );
-          //    if (friendId) {
-          //      setMessagesByDM((prev) => ({
-          //        ...prev,
-          //        [friendId]: [
-          //          ...(prev[friendId] || []),
-          //          {
-          //            id: String(msg.id),
-          //            author: msg.sender?.username || "",
-          //            text: msg.content,
-          //            ts: new Date(msg.createdAt).getTime(), // LATER
-          //            senderId: msg.senderId,
-          //          },
-          //        ],
-          //      }));
-          //    }
-          // });
-          // 1. New Message Listener (Fixed Date + Added readAt)
+
           s.on("new_message", (msg: any) => {
              const friendId = Object.keys(chatIdByOther.current).find(
                (k) => chatIdByOther.current[k] === msg.chatId
@@ -190,7 +169,6 @@ export default function SocialHub() {
              }
           });
 
-          // 2. Typing Listener
           s.on("user_typing", (data: any) => {
              const friendId = Object.keys(chatIdByOther.current).find(
                (k) => chatIdByOther.current[k] === data.chatId
@@ -200,7 +178,6 @@ export default function SocialHub() {
              }
           });
 
-          // 3. Seen Receipt Listener
           s.on("messages_seen", (data: any) => {
              const friendId = Object.keys(chatIdByOther.current).find(
                (k) => chatIdByOther.current[k] === data.chatId
@@ -224,29 +201,7 @@ export default function SocialHub() {
     };
     init();
   }, []);
-  // const [friends, setFriends] = useState<
-  //   {
-  //     id: string;
-  //     name: string;
-  //     status: "online" | "offline" | "busy" | "away" | "in_game";
-  //     lastSeen: string;
-  //     gamesPlayed: number;
-  //     winRate: number;
-  //     mutualFriends: number;
-  //     avatarUrl?: string;
-  //   }[]
-  // >([
-  //   { id: "1", name: "Alice", status: "online", lastSeen: "Online now", gamesPlayed: 45, winRate: 78, mutualFriends: 3 },
-  //   { id: "2", name: "Bob", status: "in_game", lastSeen: "Playing now", gamesPlayed: 67, winRate: 65, mutualFriends: 5 },
-  //   { id: "3", name: "Charlie", status: "away", lastSeen: "2 hours ago", gamesPlayed: 23, winRate: 52, mutualFriends: 1 },
-  //   { id: "4", name: "Diana", status: "offline", lastSeen: "1 day ago", gamesPlayed: 89, winRate: 82, mutualFriends: 7 },
-  // ]);
-  // const [requests, setRequests] = useState<
-  //   { id: string; name: string; avatarUrl?: string; mutualFriends?: number }[]
-  // >([
-  //   { id: "r1", name: "Ethan", mutualFriends: 2 },
-  //   { id: "r2", name: "Mia", mutualFriends: 1 },
-  // ]);
+  
   const [suggestions, setSuggestions] = useState<
     { id: string; name: string; avatarUrl?: string; mutualFriends?: number }[]
   >([
@@ -465,6 +420,17 @@ const sendMessage = () => {
     setSelectedGroupId(id);
     setNewGroupName("");
   };
+ 
+  useEffect(() => {
+    if (chatMode === "dm" && selectedFriendId && socketRef.current && myUserId) {
+      const chatId = chatIdByOther.current[selectedFriendId];
+      if (chatId) {
+        socketRef.current.emit("mark_seen", { chatId, userId: myUserId });
+        // Also clear the unread badge locally
+        setUnreadByDM(prev => ({...prev, [selectedFriendId]: 0}));
+      }
+    }
+  }, [messagesByDM, selectedFriendId, chatMode, myUserId]);
 const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
     setChatInput(e.target.value);
     if (chatMode === "dm" && selectedFriendId && socketRef.current) {
@@ -479,42 +445,6 @@ const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
       }, 2000);
     }
   };
-// const handleStartDirectMessage = (friendId: string) => {
-//     setSelectedFriendId(friendId);
-//     setChatMode("dm");
-//     setActiveTab("chat");
-//     setUnreadByDM((prev) => ({ ...prev, [friendId]: 0 }));
-
-//     if (socketRef.current && myUserId) {
-//       const onJoinHandler = (payload: any) => {
-//         if (payload.chatId) {
-//            chatIdByOther.current[friendId] = payload.chatId;
-//            const msgs = (payload.messages || []).map((m: any) => ({
-//               id: String(m.id),
-//               author: m.sender?.username || "Unknown",
-//               text: m.content,
-//               ts: new Date(m.createdAt).getTime(), 
-//               senderId: m.senderId,
-//            }));
-
-//            setMessagesByDM((prev) => ({
-//                ...prev,
-//                [friendId]: msgs
-//            }));
-
-           
-//            socketRef.current?.off("dm_joined", onJoinHandler);
-//         }
-//       };
-
-//       socketRef.current.on("dm_joined", onJoinHandler);
-
-//       socketRef.current.emit("join_dm", {
-//         myId: myUserId,
-//         otherUserId: Number(friendId),
-//       });
-//     }
-//   };
 
 const handleStartDirectMessage = (friendId: string) => {
     setSelectedFriendId(friendId);
@@ -531,9 +461,9 @@ const handleStartDirectMessage = (friendId: string) => {
               id: String(m.id),
               author: m.sender?.username || "Unknown",
               text: m.content,
-              ts: new Date(m.createdAt).getTime(), // FIXED: Added ()
+              ts: new Date(m.createdAt).getTime(),
               senderId: m.senderId,
-              readAt: m.readAt // Capture read status
+              readAt: m.readAt 
            }));
 
            setMessagesByDM((prev) => ({ ...prev, [friendId]: msgs }));
@@ -669,14 +599,7 @@ const handleStartDirectMessage = (friendId: string) => {
                             {pill.text}
                           </span>
                         </div>
-                        {/* <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                          <div className="text-gray-300">Games played</div>
-                          <div className="text-right text-gray-100">{f.gamesPlayed}</div>
-                          <div className="text-gray-300">Win rate</div>
-                          <div className="text-right text-gray-100">{f.winRate}%</div>
-                          <div className="text-gray-300">Mutual friends</div>
-                          <div className="text-right text-gray-100">{f.mutualFriends}</div>
-                        </div> */}
+        
                         <div className="mt-5 flex items-center gap-3">
                           <button
                             onClick={() => handleStartDirectMessage(f.id)}
@@ -978,22 +901,21 @@ const handleStartDirectMessage = (friendId: string) => {
                   </div>
                 </div>
                 <div className="flex-1 mt-3 space-y-3 overflow-y-auto">
-                  {chatMode === "dm" && selectedFriendId && typingStatus[selectedFriendId] && (                ////////////////////////////!CHECk
-                     <div className="text-xs text-purple-400 animate-pulse ml-4 mb-2 font-semibold">
-                        {friends.find(f => f.id === selectedFriendId)?.name} is typing...
-                     </div>
-                  )}
+
                   {(chatMode === "channel"
                     ? messagesByChannel[selectedChannel] || []
                     : selectedFriendId
                       ? messagesByDM[selectedFriendId] || []
                       : ([] as Message[])
-                      ).map((m) => {
+                  ).map((m, i, arr) => {
                     const date = new Date(m.ts);
                     const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     const isToday = new Date().toDateString() === date.toDateString();
                     const displayTime = isToday ? timeString : date.toLocaleDateString();
                     const isMe = m.senderId === myUserId;
+                    
+                    // Logic: Only show "Seen" on the very last message sent by YOU
+                    const isMyLastMessage = isMe && !arr.slice(i + 1).some(next => next.senderId === myUserId);
 
                     return (
                       <div
@@ -1012,27 +934,41 @@ const handleStartDirectMessage = (friendId: string) => {
                         </div>
                         
                         <div
-                          className={`px-4 py-2 rounded-2xl text-white relative ${
+                          className={`px-4 py-2 rounded-2xl text-white ${
                             isMe
                               ? "bg-purple-600 rounded-tr-none"
                               : "bg-gray-700 rounded-tl-none"
                           }`}
                         >
                           {m.text}
-                          {isMe && chatMode === "dm" && (
-                            <span className="ml-2 inline-block text-[10px] text-white/70">
-                              {m.readAt ? "✓✓" : "✓"}
-                            </span>
-                          )}
                         </div>
+
+                        {/* Footer: Seen Status (Only on the last message) */}
+                        {isMyLastMessage && chatMode === "dm" && m.readAt && (
+                           <span className="text-[10px] text-gray-500 mt-1 mr-1 font-medium select-none">
+                             Seen
+                           </span>
+                        )}
                       </div>
                     );
                   })}
+
+                  {chatMode === "dm" && selectedFriendId && typingStatus[selectedFriendId] && (
+                     <div className="mr-auto items-start max-w-[80%] mb-4 flex flex-col animate-pulse">
+                        <div className="text-xs text-gray-400 mb-1 ml-1">
+                           {friends.find(f => f.id === selectedFriendId)?.name} is typing...
+                        </div>
+                        <div className="px-4 py-2 rounded-2xl bg-gray-700/50 rounded-tl-none text-gray-400 italic text-sm">
+                           ...
+                        </div>
+                     </div>
+                  )}
+
+
   </div>
   <div className="mt-4 flex items-center gap-2">
     <input
     value={chatInput}
-    // onChange={(e) => setChatInput(e.target.value)}
     onChange={handleTyping}
     onKeyDown={(e) => {
         if (e.key === "Enter")
