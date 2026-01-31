@@ -11,6 +11,14 @@ export type User = {
   avatarUrl: string | null;
 };
 
+export type PublicUser = {
+  id: number;
+  username: string;
+  createdAt: string;
+  lastLogin: string | null;
+  avatarUrl: string | null;
+};
+
 export type FriendRow = {
   createdAt: string;
   friend: User;
@@ -45,6 +53,78 @@ export type PlayerStats = {
   losses: number;
   totalGames: number;
   winrate: number;
+};
+
+export type Achievement = {
+  id: string;
+  name: string;
+  unlocked: boolean;
+};
+
+export type AchievementsResponse = {
+  achievements: Achievement[];
+};
+
+export type AgarioPlayerHistoryRecord = {
+  id: number;
+  roomId: number;
+  userId: number | null;
+  guestId: string | null;
+  name: string;
+  durationMs: number;
+  maxMass: number;
+  kills: number;
+  rank: number | null;
+  isWinner: boolean;
+  createdAt: string;
+  room: {
+    id: number;
+    name: string;
+    startedAt: string;
+    endedAt: string | null;
+    visibility: string;
+    isDefault: boolean;
+  };
+};
+
+export type AgarioRoomHistoryLeaderboardEntry = {
+  id: string | number;
+  type: "user" | "guest";
+  trueName: string | null;
+  name: string;
+  kills: number;
+  maxMass: number;
+  durationMs: number;
+  rank: number;
+  isWinner: boolean;
+};
+
+export type AgarioRoomHistory = {
+  id: number;
+  name: string;
+  visibility: string;
+  isDefault: boolean;
+  startedAt: string;
+  endedAt: string | null;
+  createdBy?: {
+    id: number;
+    username: string;
+    avatarUrl: string | null;
+  } | null;
+  leaderboard: AgarioRoomHistoryLeaderboardEntry[];
+};
+
+export type AgarioRoomLeaderboardEntry = {
+  id: string;
+  name: string;
+  rank: number;
+  kills: number;
+  maxMass: number;
+};
+
+export type AgarioRoomLeaderboardResponse = {
+  room: AgarioRoomHistory;
+  leaderboard: AgarioRoomLeaderboardEntry[];
 };
 
 export function getStoredToken(): string | null {
@@ -103,6 +183,23 @@ export function apiGetMe(token: string) {
   });
 }
 
+export function apiGetUserById(token: string, userId: string | number) {
+  return requestJson<PublicUser>(`/api/users/${userId}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export function apiGetUserByUsername(token: string, username: string) {
+  return requestJson<PublicUser>(
+    `/api/users/username/${encodeURIComponent(username)}`,
+    {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+}
+
 export function apiUpdateMe(
   token: string,
   body: { username?: string; email?: string; password?: string },
@@ -139,6 +236,54 @@ export function apiGetPlayerStats(token: string, playerId: number) {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
   });
+}
+
+export function apiGetAchievements(token: string, playerId: number) {
+  return requestJson<AchievementsResponse>(
+    `/api/users/${playerId}/achievements`,
+    {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+}
+
+export function apiGetAgarioPlayerHistory(
+  token: string,
+  userId: number,
+  take?: number,
+  skip?: number,
+) {
+  const params = new URLSearchParams({ userId: String(userId) });
+  if (typeof take === "number") params.set("take", String(take));
+  if (typeof skip === "number") params.set("skip", String(skip));
+  return requestJson<AgarioPlayerHistoryRecord[]>(
+    `/api/agario/history/players?${params.toString()}`,
+    {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+}
+
+export function apiGetAgarioRoomHistory(token: string, roomId: number) {
+  return requestJson<AgarioRoomHistory>(
+    `/api/agario/history/rooms/${roomId}`,
+    {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+}
+
+export function apiGetAgarioRoomLeaderboard(token: string, roomId: number) {
+  return requestJson<AgarioRoomLeaderboardResponse>(
+    `/api/agario/history/rooms/${roomId}/leaderboard`,
+    {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
 }
 
 export function apiListFriends(token: string) {
