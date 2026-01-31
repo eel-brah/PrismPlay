@@ -55,6 +55,16 @@ export type PlayerStats = {
   winrate: number;
 };
 
+export type Achievement = {
+  id: string;
+  name: string;
+  unlocked: boolean;
+};
+
+export type AchievementsResponse = {
+  achievements: Achievement[];
+};
+
 export function getStoredToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -164,6 +174,16 @@ export function apiGetPlayerStats(token: string, playerId: number) {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
   });
+}
+
+export function apiGetAchievements(token: string, playerId: number) {
+  return requestJson<AchievementsResponse>(
+    `/api/users/${playerId}/achievements`,
+    {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
 }
 
 export function apiListFriends(token: string) {

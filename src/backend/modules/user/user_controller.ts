@@ -7,6 +7,7 @@ import {
   findUserById,
   findUserPublicById,
   findUserPublicByUsername,
+  getUserAchievements,
   updateUserById,
 } from "./user_service.ts";
 import type {
@@ -132,6 +133,21 @@ export async function getUserByUsernameHandler(
   if (!user) return rep.code(404).send({ message: "User not found" });
 
   return rep.send(user);
+}
+
+export async function getUserAchievementsHandler(
+  req: FastifyRequest<{ Params: { id: string } }>,
+  rep: FastifyReply,
+) {
+  const userId = Number(req.params.id);
+  if (!Number.isFinite(userId)) {
+    return rep.code(400).send({ message: "Invalid user id" });
+  }
+
+  const achievements = await getUserAchievements(userId);
+  if (!achievements) return rep.code(404).send({ message: "User not found" });
+
+  return rep.send({ achievements });
 }
 
 export async function updateMeHandler(

@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Trophy, Gamepad2, BarChart3 } from "lucide-react";
 import {
+  apiGetAchievements,
   apiGetMatchHistory,
   apiGetMe,
   apiGetPlayerStats,
@@ -10,6 +11,7 @@ import {
   getStoredToken,
   apiUpdateMe,
   apiUploadAvatar,
+  type Achievement,
   type MatchHistoryItem,
   type PlayerStats,
   type PublicUser,
@@ -233,6 +235,8 @@ export default function PlayerProfile() {
   const [historyMode, setHistoryMode] = useState<"pong" | "agario">("pong");
   const [stats, setStats] = useState<PlayerStats | null>(null);
   const [statsError, setStatsError] = useState("");
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [achievementsError, setAchievementsError] = useState("");
   const [selectedAgarPlayerId, setSelectedAgarPlayerId] = useState<
     number | null
   >(null);
@@ -418,6 +422,33 @@ export default function PlayerProfile() {
       cancelled = true;
     };
   }, [user]);
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+
+    const loadAchievements = async () => {
+      setAchievementsError("");
+      setAchievements([]);
+      try {
+        const token = getStoredToken();
+        if (!token) throw new Error("Not authenticated");
+
+        const data = await apiGetAchievements(token, user.id);
+        if (!cancelled) setAchievements(data.achievements ?? []);
+      } catch (e) {
+        if (!cancelled) {
+          setAchievementsError(
+            e instanceof Error ? e.message : "Failed to load achievements",
+          );
+        }
+      }
+    };
+
+    void loadAchievements();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
   if (meLoading) return <div>Loading...</div>;
   if (meError) return <div>{meError}</div>;
   if (!user) return null;
@@ -531,28 +562,29 @@ export default function PlayerProfile() {
                   <Trophy className="w-5 h-5" />
                   <span className="text-sm font-semibold">Achievements</span>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[
-                    { name: "First Win", unlocked: true },
-                    { name: "Hot Streak", unlocked: false },
-                    { name: "Precision", unlocked: false },
-                    { name: "Veteran", unlocked: false },
-                  ].map((a, i) => (
-                    <div
-                      key={i}
-                      className={`rounded-lg p-4 border ${a.unlocked ? "border-blue-500/40 bg-blue-900/20" : "border-gray-700 bg-gray-800/40"}`}
-                    >
+                {achievements.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {achievements.map((achievement) => (
                       <div
-                        className={`text-sm ${a.unlocked ? "text-blue-300" : "text-gray-300"}`}
+                        key={achievement.id}
+                        className={`rounded-lg p-4 border ${achievement.unlocked ? "border-blue-500/40 bg-blue-900/20" : "border-gray-700 bg-gray-800/40"}`}
                       >
-                        {a.name}
+                        <div
+                          className={`text-sm ${achievement.unlocked ? "text-blue-300" : "text-gray-300"}`}
+                        >
+                          {achievement.name}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">
+                          {achievement.unlocked ? "Unlocked" : "Locked"}
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        {a.unlocked ? "Unlocked" : "Locked"}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-400">
+                    {achievementsError || "No achievements to show yet"}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -985,6 +1017,8 @@ export function PublicPlayerProfile() {
   const [error, setError] = useState("");
   const [stats, setStats] = useState<PlayerStats | null>(null);
   const [statsError, setStatsError] = useState("");
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [achievementsError, setAchievementsError] = useState("");
   const [history, setHistory] = useState<MatchHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
@@ -1015,6 +1049,8 @@ export function PublicPlayerProfile() {
       setError("");
       setStatsError("");
       setStats(null);
+      setAchievementsError("");
+      setAchievements([]);
 
       const token = getStoredToken();
       if (!token) {
@@ -1043,6 +1079,17 @@ export function PublicPlayerProfile() {
           if (!cancelled) {
             setStatsError(
               e instanceof Error ? e.message : "Failed to load stats",
+            );
+          }
+        }
+        try {
+          const nextAchievements = await apiGetAchievements(token, profile.id);
+          if (!cancelled)
+            setAchievements(nextAchievements.achievements ?? []);
+        } catch (e) {
+          if (!cancelled) {
+            setAchievementsError(
+              e instanceof Error ? e.message : "Failed to load achievements",
             );
           }
         }
@@ -1219,9 +1266,29 @@ export function PublicPlayerProfile() {
                   <Trophy className="w-5 h-5" />
                   <span className="text-sm font-semibold">Achievements</span>
                 </div>
-                <div className="text-sm text-gray-400">
-                  No achievements to show yet
-                </div>
+                {achievements.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {achievements.map((achievement) => (
+                      <div
+                        key={achievement.id}
+                        className={`rounded-lg p-4 border ${achievement.unlocked ? "border-blue-500/40 bg-blue-900/20" : "border-gray-700 bg-gray-800/40"}`}
+                      >
+                        <div
+                          className={`text-sm ${achievement.unlocked ? "text-blue-300" : "text-gray-300"}`}
+                        >
+                          {achievement.name}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">
+                          {achievement.unlocked ? "Unlocked" : "Locked"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-400">
+                    {achievementsError || "No achievements to show yet"}
+                  </div>
+                )}
               </div>
             </div>
           </div>

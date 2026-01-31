@@ -6,10 +6,12 @@ import {
   getMeHandler,
   getUserByIdHandler,
   getUserByUsernameHandler,
+  getUserAchievementsHandler,
   updateMeHandler,
   uploadAvatar,
 } from "./user_controller.ts";
 import {
+  achievementsResponseSchema,
   createResponseSchema,
   createUserSchema,
   loginResponseSchema,
@@ -73,6 +75,17 @@ export async function userRoutes(server: FastifyInstance) {
       },
     },
     handler: getUserByIdHandler,
+  });
+  server.get("/:id/achievements", {
+    preHandler: [server.auth],
+    schema: {
+      response: {
+        200: achievementsResponseSchema,
+        400: messageResponseSchema,
+        404: messageResponseSchema,
+      },
+    },
+    handler: getUserAchievementsHandler,
   });
 
   server.patch("/me", {
