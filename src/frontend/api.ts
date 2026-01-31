@@ -11,6 +11,14 @@ export type User = {
   avatarUrl: string | null;
 };
 
+export type PublicUser = {
+  id: number;
+  username: string;
+  createdAt: string;
+  lastLogin: string | null;
+  avatarUrl: string | null;
+};
+
 export type FriendRow = {
   createdAt: string;
   friend: User;
@@ -101,6 +109,23 @@ export function apiGetMe(token: string) {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
   });
+}
+
+export function apiGetUserById(token: string, userId: string | number) {
+  return requestJson<PublicUser>(`/api/users/${userId}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export function apiGetUserByUsername(token: string, username: string) {
+  return requestJson<PublicUser>(
+    `/api/users/username/${encodeURIComponent(username)}`,
+    {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
 }
 
 export function apiUpdateMe(

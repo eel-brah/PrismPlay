@@ -5,6 +5,8 @@ import {
   createUser,
   findUserByEmail,
   findUserById,
+  findUserPublicById,
+  findUserPublicByUsername,
   updateUserById,
 } from "./user_service.ts";
 import type {
@@ -97,6 +99,36 @@ export async function getMeHandler(req: FastifyRequest, rep: FastifyReply) {
   const userId = req.user.id;
   const user = await findUserById(userId);
   console.log(Object.keys(user ?? {}), user);
+  if (!user) return rep.code(404).send({ message: "User not found" });
+
+  return rep.send(user);
+}
+
+export async function getUserByIdHandler(
+  req: FastifyRequest<{ Params: { id: string } }>,
+  rep: FastifyReply,
+) {
+  const userId = Number(req.params.id);
+  if (!Number.isFinite(userId)) {
+    return rep.code(400).send({ message: "Invalid user id" });
+  }
+
+  const user = await findUserPublicById(userId);
+  if (!user) return rep.code(404).send({ message: "User not found" });
+
+  return rep.send(user);
+}
+
+export async function getUserByUsernameHandler(
+  req: FastifyRequest<{ Params: { username: string } }>,
+  rep: FastifyReply,
+) {
+  const username = req.params.username?.trim();
+  if (!username) {
+    return rep.code(400).send({ message: "Invalid username" });
+  }
+
+  const user = await findUserPublicByUsername(username);
   if (!user) return rep.code(404).send({ message: "User not found" });
 
   return rep.send(user);

@@ -12,6 +12,14 @@ const safeSelect = {
   lastLogin: true,
 } as const;
 
+const publicSelect = {
+  id: true,
+  username: true,
+  createdAt: true,
+  avatarUrl: true,
+  lastLogin: true,
+} as const;
+
 export async function createUser(input: CreateUserInput) {
   const { password, ...rest } = input;
   const passwordHash = await hashPassword(password);
@@ -30,6 +38,20 @@ export async function findUserById(id: number) {
   return prisma.user.findUnique({
     where: { id },
     select: safeSelect,
+  });
+}
+
+export async function findUserPublicById(id: number) {
+  return prisma.user.findUnique({
+    where: { id },
+    select: publicSelect,
+  });
+}
+
+export async function findUserPublicByUsername(username: string) {
+  return prisma.user.findUnique({
+    where: { username },
+    select: publicSelect,
   });
 }
 

@@ -7,7 +7,7 @@ import LoginForm from "./component/LoginForm";
 import RegisterForm from "./component/RegisterForm";
 import HomePage from "./component/HomePage";
 import SocialHub from "./component/SocialHub";
-import PlayerProfile from "./component/PlayerProfile";
+import PlayerProfile, { PublicPlayerProfile } from "./component/PlayerProfile";
 import {
   Route,
   Routes,
@@ -455,6 +455,24 @@ export default function App() {
                 className={`relative h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass}`}
               >
                 <PlayerProfile />
+              </div>
+            ) : (
+              <Navigate to="/login/form" replace />
+            )
+          }
+        />
+        <Route
+          path="/profile/:username"
+          element={
+            bootingAuth ? (
+              <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
+                Loading...
+              </div>
+            ) : isAuthed ? (
+              <div
+                className={`relative h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass}`}
+              >
+                <PublicPlayerProfile />
               </div>
             ) : (
               <Navigate to="/login/form" replace />

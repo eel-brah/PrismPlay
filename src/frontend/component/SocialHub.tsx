@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useMemo, useRef, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   MessageCircle,
   Gamepad2,
@@ -25,6 +26,7 @@ import {
 type TabKey = "friends" | "chat" | "groups";
 
 export default function SocialHub() {
+  const navigate = useNavigate();
   const sendFriendRequestByUsername = async () => {
     const token = getStoredToken();
     if (!token) return;
@@ -586,7 +588,13 @@ const handleStartDirectMessage = (friendId: string) => {
                         className="rounded-2xl border border-white/10 bg-gray-900/60 shadow-xl p-5"
                       >
                         <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigate(`/profile/${encodeURIComponent(f.name)}`)
+                            }
+                            className="flex items-center gap-3 text-left"
+                          >
                             {f.avatarUrl ? (
                               <img
                                 src={f.avatarUrl}
@@ -605,7 +613,7 @@ const handleStartDirectMessage = (friendId: string) => {
                                 <span>{f.lastLogin}</span>
                               </div>
                             </div>
-                          </div>
+                          </button>
                           <span
                             className={`text-xs px-2 py-1 rounded-full ${pill.cls}`}
                           >
