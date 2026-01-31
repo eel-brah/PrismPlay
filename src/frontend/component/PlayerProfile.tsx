@@ -11,6 +11,9 @@ import {
   getStoredToken,
   apiUpdateMe,
   apiUploadAvatar,
+  apiListFriends,
+  apiAddFriend,
+  apiRemoveFriend,
   type Achievement,
   type MatchHistoryItem,
   type PlayerStats,
@@ -456,6 +459,17 @@ export default function PlayerProfile() {
   const wins = stats?.wins ?? 0;
   const losses = stats?.losses ?? 0;
   const winRate = stats?.winrate ?? 0;
+  const xpTotal = wins * 3 + losses;
+  const xpMax = 100;
+  const level = Math.max(1, Math.floor(xpTotal / xpMax) + 1);
+  const xpCurrent = xpTotal % xpMax;
+  const xpPercent = Math.min(100, Math.round((xpCurrent / xpMax) * 100));
+  const lastLoginAt = user.lastLogin ? new Date(user.lastLogin).getTime() : null;
+  const isOnline =
+    lastLoginAt !== null && Date.now() - lastLoginAt < 5 * 60 * 1000;
+  const statusPill = isOnline
+    ? { text: "Online", cls: "bg-green-600 text-white" }
+    : { text: "Offline", cls: "bg-gray-600 text-white" };
   return (
     <div className="w-full h-full text-white">
       <div className="max-w-6xl mx-auto px-6 pt-8 pb-4">
@@ -506,6 +520,27 @@ export default function PlayerProfile() {
                 <div className="text-xs text-gray-400 mt-2">
                   Member since: {new Date(user.createdAt).toLocaleDateString()}
                 </div>
+                <div className="mt-2 flex items-center justify-center">
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full ${statusPill.cls}`}
+                  >
+                    {statusPill.text}
+                  </span>
+                </div>
+                <div className="mt-4">
+                  <div className="flex items-center justify-between text-xs text-gray-400">
+                    <span>Level {level}</span>
+                    <span>
+                      {xpCurrent}/{xpMax} XP
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2 w-full rounded-full bg-gray-800/70">
+                    <div
+                      className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"
+                      style={{ width: `${xpPercent}%` }}
+                    />
+                  </div>
+                </div>
                 <button
                   className="mt-4 w-full px-3 py-2 rounded-md bg-blue-600 hover:bg-blue-700"
                   onClick={() => {
@@ -522,38 +557,6 @@ export default function PlayerProfile() {
                 >
                   Edit Profile
                 </button>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-gray-900/50 shadow-xl p-6">
-                <div className="flex items-center gap-2 mb-4 text-gray-200">
-                  <BarChart3 className="w-5 h-5" />
-                  <span className="text-sm font-semibold">Quick Stats</span>
-                </div>
-                {stats ? (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="rounded-md bg-gray-800/40 p-4">
-                      <div className="text-xs text-gray-400">Games Played</div>
-                      <div className="text-lg font-semibold">
-                        {gamesPlayed}
-                      </div>
-                    </div>
-                    <div className="rounded-md bg-gray-800/40 p-4">
-                      <div className="text-xs text-gray-400">Total Wins</div>
-                      <div className="text-lg font-semibold text-green-400">
-                        {wins}
-                      </div>
-                    </div>
-                    <div className="rounded-md bg-gray-800/40 p-4">
-                      <div className="text-xs text-gray-400">Win Rate</div>
-                      <div className="text-lg font-semibold text-blue-400">
-                        {winRate}%
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-sm text-gray-400">
-                    {statsError || "No stats available"}
-                  </div>
-                )}
               </div>
             </div>
             <div className="lg:col-span-2 space-y-6">
@@ -583,6 +586,54 @@ export default function PlayerProfile() {
                 ) : (
                   <div className="text-sm text-gray-400">
                     {achievementsError || "No achievements to show yet"}
+                  </div>
+                )}
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-gray-900/50 shadow-xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2 text-gray-200">
+                    <BarChart3 className="w-5 h-5" />
+                    <span className="text-sm font-semibold">Quick Stats</span>
+                  </div>
+                </div>
+                {stats ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="rounded-xl border border-white/5 bg-gray-900/40 px-4 py-3 text-center">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-400">
+                        Games
+                      </div>
+                      <div className="text-lg font-semibold text-gray-100">
+                        {gamesPlayed}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-white/5 bg-gray-900/40 px-4 py-3 text-center">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-400">
+                        Wins
+                      </div>
+                      <div className="text-lg font-semibold text-green-400">
+                        {wins}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-white/5 bg-gray-900/40 px-4 py-3 text-center">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-400">
+                        Losses
+                      </div>
+                      <div className="text-lg font-semibold text-red-400">
+                        {losses}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-white/5 bg-gray-900/40 px-4 py-3 text-center">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-400">
+                        Win Rate
+                      </div>
+                      <div className="text-lg font-semibold text-blue-400">
+                        {winRate}%
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-400">
+                    {statsError || "No stats available"}
                   </div>
                 )}
               </div>
@@ -1028,6 +1079,11 @@ export function PublicPlayerProfile() {
     number | null
   >(null);
   const [showAgarLeaderboard, setShowAgarLeaderboard] = useState(false);
+  const [myUserId, setMyUserId] = useState<number | null>(null);
+  const [isFriend, setIsFriend] = useState(false);
+  const [friendPending, setFriendPending] = useState(false);
+  const [friendLoading, setFriendLoading] = useState(false);
+  const [friendError, setFriendError] = useState("");
 
   const selectedAgarPlayer = useMemo(
     () => initialAgarPlayers.find((p) => p.id === selectedAgarPlayerId) ?? null,
@@ -1159,6 +1215,40 @@ export function PublicPlayerProfile() {
     };
   }, [tab, historyFetched, user]);
 
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const loadFriendStatus = async () => {
+      setFriendLoading(true);
+      setFriendError("");
+      try {
+        const token = getStoredToken();
+        if (!token) throw new Error("Not authenticated");
+        const [me, friends] = await Promise.all([
+          apiGetMe(token),
+          apiListFriends(token),
+        ]);
+        if (cancelled) return;
+        setMyUserId(me.id);
+        const friendIds = new Set(friends.map((f) => f.friend.id));
+        setIsFriend(friendIds.has(user.id));
+        setFriendPending(false);
+      } catch (e) {
+        if (!cancelled) {
+          setFriendError(
+            e instanceof Error ? e.message : "Failed to load friend status",
+          );
+        }
+      } finally {
+        if (!cancelled) setFriendLoading(false);
+      }
+    };
+    void loadFriendStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
   if (!user) return null;
@@ -1167,6 +1257,56 @@ export function PublicPlayerProfile() {
   const wins = stats?.wins ?? 0;
   const losses = stats?.losses ?? 0;
   const winRate = stats?.winrate ?? 0;
+  const xpTotal = wins * 3 + losses;
+  const xpMax = 100;
+  const level = Math.max(1, Math.floor(xpTotal / xpMax) + 1);
+  const xpCurrent = xpTotal % xpMax;
+  const xpPercent = Math.min(100, Math.round((xpCurrent / xpMax) * 100));
+  const lastLoginAt = user.lastLogin ? new Date(user.lastLogin).getTime() : null;
+  const isOnline =
+    lastLoginAt !== null && Date.now() - lastLoginAt < 5 * 60 * 1000;
+  const statusPill = isOnline
+    ? { text: "Online", cls: "bg-green-600 text-white" }
+    : { text: "Offline", cls: "bg-gray-600 text-white" };
+  const showFriendAction = myUserId !== null && user.id !== myUserId;
+  const friendButtonLabel = friendPending
+    ? "Pending..."
+    : isFriend
+      ? "Remove Friend"
+      : "Add Friend";
+  const friendButtonClass = friendPending
+    ? "bg-gray-600 text-white"
+    : isFriend
+      ? "bg-red-600 hover:bg-red-700 text-white"
+      : "bg-blue-600 hover:bg-blue-700 text-white";
+
+  const handleFriendAction = async () => {
+    if (friendLoading || friendPending) return;
+    const token = getStoredToken();
+    if (!token) return;
+    setFriendLoading(true);
+    setFriendError("");
+    try {
+      if (isFriend) {
+        await apiRemoveFriend(token, String(user.id));
+        setIsFriend(false);
+        setFriendPending(false);
+      } else {
+        await apiAddFriend(token, user.username);
+        setFriendPending(true);
+      }
+    } catch (e) {
+      const message =
+        e instanceof Error ? e.message : "Failed to update friend status";
+      if (message.toLowerCase().includes("exist")) {
+        setFriendPending(true);
+        return;
+      }
+      setFriendError(message);
+    } finally {
+      setFriendLoading(false);
+    }
+  };
 
   return (
     <div className="w-full h-full text-white">
@@ -1215,49 +1355,42 @@ export function PublicPlayerProfile() {
                 <div className="text-center text-sm text-gray-400 mb-3">
                   Member since: {new Date(user.createdAt).toLocaleDateString()}
                 </div>
-                <div className="text-xs text-gray-400 text-center">
-                  Last login: {formatDate(user.lastLogin)}
+                <div className="mt-2 flex items-center justify-center">
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full ${statusPill.cls}`}
+                  >
+                    {statusPill.text}
+                  </span>
                 </div>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-gray-900/50 shadow-xl p-6">
-                <div className="flex items-center gap-2 mb-4 text-gray-200">
-                  <BarChart3 className="w-5 h-5" />
-                  <span className="text-sm font-semibold">Quick Stats</span>
-                </div>
-                {stats ? (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="rounded-md bg-gray-800/40 p-4">
-                      <div className="text-xs text-gray-400">
-                        Games Played
-                      </div>
-                      <div className="text-lg font-semibold">
-                        {gamesPlayed}
-                      </div>
-                    </div>
-                    <div className="rounded-md bg-gray-800/40 p-4">
-                      <div className="text-xs text-gray-400">Total Wins</div>
-                      <div className="text-lg font-semibold text-green-400">
-                        {wins}
-                      </div>
-                    </div>
-                    <div className="rounded-md bg-gray-800/40 p-4">
-                      <div className="text-xs text-gray-400">Total Losses</div>
-                      <div className="text-lg font-semibold text-red-400">
-                        {losses}
-                      </div>
-                    </div>
-                    <div className="rounded-md bg-gray-800/40 p-4">
-                      <div className="text-xs text-gray-400">Win Rate</div>
-                      <div className="text-lg font-semibold text-blue-400">
-                        {winRate}%
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-sm text-gray-400">
-                    {statsError || "No stats available"}
+                {showFriendAction && (
+                  <div className="mt-4 flex flex-col items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleFriendAction}
+                      disabled={friendLoading || friendPending}
+                      className={`px-4 py-2 rounded-md ${friendButtonClass} disabled:opacity-60`}
+                    >
+                      {friendLoading ? "Updating..." : friendButtonLabel}
+                    </button>
+                    {friendError && !friendPending && (
+                      <div className="text-xs text-red-300">{friendError}</div>
+                    )}
                   </div>
                 )}
+                <div className="mt-4">
+                  <div className="flex items-center justify-between text-xs text-gray-400">
+                    <span>Level {level}</span>
+                    <span>
+                      {xpCurrent}/{xpMax} XP
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2 w-full rounded-full bg-gray-800/70">
+                    <div
+                      className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"
+                      style={{ width: `${xpPercent}%` }}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
             <div className="lg:col-span-2 space-y-6">
@@ -1287,6 +1420,54 @@ export function PublicPlayerProfile() {
                 ) : (
                   <div className="text-sm text-gray-400">
                     {achievementsError || "No achievements to show yet"}
+                  </div>
+                )}
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-gray-900/50 shadow-xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2 text-gray-200">
+                    <BarChart3 className="w-5 h-5" />
+                    <span className="text-sm font-semibold">Quick Stats</span>
+                  </div>
+                </div>
+                {stats ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="rounded-xl border border-white/5 bg-gray-900/40 px-4 py-3 text-center">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-400">
+                        Games
+                      </div>
+                      <div className="text-lg font-semibold text-gray-100">
+                        {gamesPlayed}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-white/5 bg-gray-900/40 px-4 py-3 text-center">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-400">
+                        Wins
+                      </div>
+                      <div className="text-lg font-semibold text-green-400">
+                        {wins}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-white/5 bg-gray-900/40 px-4 py-3 text-center">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-400">
+                        Losses
+                      </div>
+                      <div className="text-lg font-semibold text-red-400">
+                        {losses}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-white/5 bg-gray-900/40 px-4 py-3 text-center">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-400">
+                        Win Rate
+                      </div>
+                      <div className="text-lg font-semibold text-blue-400">
+                        {winRate}%
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-400">
+                    {statsError || "No stats available"}
                   </div>
                 )}
               </div>

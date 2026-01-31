@@ -157,6 +157,20 @@ export default function App() {
           : location.pathname.startsWith("/profile")
             ? "profile"
             : "none";
+  const isHome = location.pathname === "/home";
+  const returnLabel = isHome ? (isAuthed ? "Log Out" : "Log In") : "Return";
+
+  const handleReturnClick = () => {
+    if (isHome) {
+      if (isAuthed) {
+        void handleLogout();
+      } else {
+        navigate("/login/form");
+      }
+      return;
+    }
+    handleReturn();
+  };
 
   const handleReturn = () => {
     if (globalThis.history.length > 1) {
@@ -232,10 +246,10 @@ export default function App() {
                   )}
                 </div>
                 <button
-                  onClick={handleReturn}
+                  onClick={handleReturnClick}
                   className="px-4 py-2 rounded-md text-sm font-semibold text-gray-200 hover:text-white hover:bg-white/5 transition-colors"
                 >
-                  Return
+                  {returnLabel}
                 </button>
               </div>
             </div>

@@ -38,7 +38,13 @@ export default function LoginForm({ onSubmit, onRegister }: Props) {
         </h2>
         <p className="text-gray-300 text-center mb-6">Enter your credentials to log in</p>
 
-        <div className="space-y-4">
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleLoginClick();
+          }}
+        >
           <div>
             <label className="block text-sm text-gray-300 mb-1">Email</label>
             <input
@@ -66,8 +72,12 @@ export default function LoginForm({ onSubmit, onRegister }: Props) {
           >
             Login
           </button> */}
-          <button  onClick={handleLoginClick} disabled={loading} className="w-full mt-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-2.5 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg">
-              {loading ? "Logging in..." : "Login"}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full mt-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-2.5 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
+          >
+            {loading ? "Logging in..." : "Login"}
           </button>
 
            {error && <div style={{ marginTop: 12, color: "crimson" }}>{error}</div>}
@@ -77,6 +87,7 @@ export default function LoginForm({ onSubmit, onRegister }: Props) {
             <div className="h-px flex-1 bg-gray-700" />
           </div>
           <button
+              type="button"
             onClick={() => onSubmit("google", "oauth")}
             className="w-full bg-white text-gray-900 hover:bg-gray-100 border border-gray-300 py-2.5 rounded-lg font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
           >
@@ -99,7 +110,7 @@ export default function LoginForm({ onSubmit, onRegister }: Props) {
               Register
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
