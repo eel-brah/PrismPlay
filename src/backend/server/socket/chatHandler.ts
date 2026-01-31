@@ -1,4 +1,4 @@
-import { Socket, Server } from "socket.io";
+import { Socket, Namespace } from "socket.io";
 import prisma from "src/backend/utils/prisma"; 
 
 interface DMPayload
@@ -51,7 +51,7 @@ const existingChat = await prisma.chat.findFirst({
   return { ...newChat, messages: [] };
 }
 
-export function registerChatHandlers(io: Server, socket: Socket) {
+export function registerChatHandlers(io: Namespace, socket: Socket) {
   
   // 1. Join Chat Room
   socket.on("join_dm", async (data: DMPayload) => {
@@ -69,8 +69,7 @@ export function registerChatHandlers(io: Server, socket: Socket) {
     }
   });
 
-  // 2. Send Message
-  socket.on("send_message", async (payload: MessagePayload) => {
+socket.on("send_message", async (payload: MessagePayload) => {
     try {
       const savedMessage = await prisma.message.create({
         data: {
@@ -78,11 +77,9 @@ export function registerChatHandlers(io: Server, socket: Socket) {
           senderId: payload.senderId,
           content: payload.content,
         },
-        include: {
-          sender: { select: { username: true } }
-        }
+        include: { sender: { select: { username: true } } }
       });
-      io.to(`chat_${payload.chatId}`).emit("new_message", savedMessage);
+        io.to(`chat_${payload.chatId}`).emit("new_message", savedMessage);
     } catch (error) {
       console.error("Failed to send message", error);
     }
