@@ -89,7 +89,7 @@ export default function SocialHub() {
   const [chatInput, setChatInput] = useState("");
   
   // Holds all messages mapped by Channel Name (e.g., 'general')
-  const channels = useMemo(() => ["general", "lobby", "support"], []);
+  const channels = useMemo(() => ["general"], []);
   const [selectedChannel, setSelectedChannel] = useState<string>(channels[0]);
   const [messagesByChannel, setMessagesByChannel] = useState<Record<string, Message[]>>({
     general: [{ id: "m1", author: "System", text: "Welcome to General!", ts: Date.now() - 60000 }],
@@ -143,7 +143,12 @@ export default function SocialHub() {
   
   // Tracks who we are currently looking at to prevent unread badges from appearing while chatting
   const selectedFriendIdRef = useRef<string | null>(null);
+  const activeTabRef = useRef<TabKey>("friends"); // New
+  const chatModeRef = useRef<string>("channel");  // New
+
   useEffect(() => { selectedFriendIdRef.current = selectedFriendId; }, [selectedFriendId]);
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+  useEffect(() => { chatModeRef.current = chatMode; }, [chatMode]); 
 
   // ============================================================================
   // 7. INITIALIZATION & SOCKET LOGIC
@@ -196,6 +201,48 @@ export default function SocialHub() {
             query: { userId: me.id },
           });
           socketRef.current = s;
+          // Join General Chat immediately
+          s.emit("join_channel", "general");
+          // 1. Request Unread Counts (Fixes missing red badges on reload/return)
+          s.emit("request_unread", me.id);
+
+          // 2. Listener for the response
+          s.on("unread_counts", (counts: Record<string, number>) => {
+             // Convert keys to string just in case
+             const formatted: Record<string, number> = {};
+             Object.keys(counts).forEach(k => {
+                formatted[k] = counts[k as keyof typeof counts];
+             });
+             setUnreadByDM(formatted);
+          });
+          // LISTENER: Load Channel History (Persistence Fix)
+          s.on("channel_history", (data: any) => {
+             if (data.channel && data.messages) {
+               setMessagesByChannel((prev) => ({
+                 ...prev,
+                 [data.channel]: data.messages
+               }));
+             }
+          });
+
+          // LISTENER: General/Channel Messages
+          s.on("channel_message", (msg: any) => {
+             if (msg.channel) {
+               setMessagesByChannel((prev) => ({
+                 ...prev,
+                 [msg.channel]: [
+                   ...(prev[msg.channel] || []),
+                   {
+                     id: String(msg.id),
+                     author: msg.sender?.username || "System",
+                     text: msg.content,
+                     ts: new Date(msg.createdAt).getTime(),
+                     senderId: msg.senderId,
+                   },
+                 ],
+               }));
+             }
+          });
 
           // LISTENER: When joining a DM, load history
           s.on("dm_joined", (payload: any) => {
@@ -247,7 +294,13 @@ export default function SocialHub() {
                }));
 
                // Update Notification Badge (if not currently looking at this chat)
-               if (friendId !== selectedFriendIdRef.current && String(msg.senderId) != String(me.id)) {
+               const isViewing = 
+                 activeTabRef.current === "chat" && 
+                 chatModeRef.current === "dm" && 
+                 selectedFriendIdRef.current === friendId;
+
+               // If NOT viewing (or message is not from me), show red badge
+               if (!isViewing && String(msg.senderId) != String(me.id)) {
                    setUnreadByDM((prev) => ({
                        ...prev,
                        [friendId]: (prev[friendId] || 0) + 1
@@ -411,13 +464,14 @@ export default function SocialHub() {
     if (!text) return;
 
     if (chatMode === "channel") {
-      setMessagesByChannel((prev) => ({
-        ...prev,
-        [selectedChannel]: [
-          ...prev[selectedChannel],
-          { id: Math.random().toString(36).slice(2), author: "You", text, ts: Date.now() },
-        ],
-      }));
+      // Send to General Channel via Socket
+      if (socketRef.current && myUserId) {
+        socketRef.current.emit("send_channel_message", { 
+          channel: selectedChannel, 
+          content: text,
+          senderId: myUserId 
+        });
+      }
     } else if (chatMode === "dm" && selectedFriendId) {
       const chatId = chatIdByOther.current[selectedFriendId];
       if (socketRef.current && chatId && myUserId) {
@@ -480,7 +534,14 @@ export default function SocialHub() {
             {(["friends", "chat", "groups"] as TabKey[]).map((key) => (
               <button
                 key={key}
-                onClick={() => setActiveTab(key)}
+                onClick={() => {
+                  setActiveTab(key);
+                  if (key === "chat") {
+                    setChatMode("channel");
+                    setSelectedChannel("general");
+                    setSelectedFriendId(null);
+                  }
+                }}
                 className={`px-4 py-1 rounded-full text-sm transition-colors ${
                   activeTab === key ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-800"
                 }`}
@@ -640,7 +701,38 @@ export default function SocialHub() {
           <div className="max-w-6xl mx-auto px-6 pb-10">
             <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6">
               {/* Chat Sidebar (List of DMs) */}
+              {/* Sidebar: Chat List */}
               <div className="space-y-6">
+                
+                {/* 1. Global Channels (Always Visible) */}
+                <div className="rounded-2xl border border-white/10 bg-gray-900/60 p-4">
+                  <div className="text-sm font-semibold text-gray-200 mb-2">Channels</div>
+                  <div className="space-y-1">
+                    {channels.map((c) => (
+                      <button
+                        key={c}
+                        onClick={() => {
+                          // Switch to Channel Mode
+                          setChatMode("channel");
+                          setSelectedChannel(c);
+                          setSelectedFriendId(null);
+                          // Join the room to ensure we get messages/history
+                          if (socketRef.current) socketRef.current.emit("join_channel", c);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center gap-3 ${
+                          chatMode === "channel" && selectedChannel === c
+                            ? "bg-blue-600/20 text-blue-100"
+                            : "hover:bg-gray-800/60 text-gray-300"
+                        }`}
+                      >
+                        <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 font-bold">#</div>
+                        <span className="capitalize">{c}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. Private Chats */}
                 <div className="rounded-2xl border border-white/10 bg-gray-900/60 p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-gray-200">
