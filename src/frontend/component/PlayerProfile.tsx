@@ -4,6 +4,9 @@ import { useParams } from "react-router-dom";
 import { Trophy, Gamepad2, BarChart3 } from "lucide-react";
 import {
   apiGetAchievements,
+  apiGetAgarioPlayerHistory,
+  apiGetAgarioRoomHistory,
+  apiGetAgarioRoomLeaderboard,
   apiGetMatchHistory,
   apiGetMe,
   apiGetPlayerStats,
@@ -15,6 +18,9 @@ import {
   apiAddFriend,
   apiRemoveFriend,
   type Achievement,
+  type AgarioPlayerHistoryRecord,
+  type AgarioRoomHistory,
+  type AgarioRoomLeaderboardEntry,
   type MatchHistoryItem,
   type PlayerStats,
   type PublicUser,
@@ -29,7 +35,7 @@ type AgarPlayerHistoryRow = {
   durationMs: number;
   kills: number;
   maxMass: number;
-  rank: number;
+  rank: number | null;
   roomId: number;
   roomName: string;
 };
@@ -39,8 +45,8 @@ type AgarRoomHistorySummary = {
   name: string;
   visibility: "public" | "private";
   isDefault: boolean;
-  maxPlayers: number;
-  maxDurationMin: number;
+  maxPlayers: number | null;
+  maxDurationMin: number | null;
   startedAt: string | null;
   endedAt: string | null;
   playersCount: number;
@@ -77,125 +83,83 @@ function formatDate(value: string | null) {
   return d.toLocaleString();
 }
 
-const initialAgarPlayers: AgarPlayerHistoryRow[] = [
-  {
-    id: 1,
-    name: "Alice",
-    durationMs: 215000,
-    kills: 3,
-    maxMass: 180,
-    rank: 2,
-    roomId: 101,
-    roomName: "ffa",
-  },
-  {
-    id: 2,
-    name: "Bob",
-    durationMs: 412000,
-    kills: 6,
-    maxMass: 320,
-    rank: 1,
-    roomId: 101,
-    roomName: "ffa",
-  },
-  {
-    id: 3,
-    name: "Guest-42",
-    durationMs: 99000,
-    kills: 1,
-    maxMass: 95,
-    rank: 4,
-    roomId: 102,
-    roomName: "room-123",
-  },
-];
+function mapAgarPlayerRows(
+  records: AgarioPlayerHistoryRecord[],
+): AgarPlayerHistoryRow[] {
+  return records.map((row) => ({
+    id: row.id,
+    name: row.name,
+    durationMs: row.durationMs,
+    kills: row.kills,
+    maxMass: row.maxMass,
+    rank: row.rank,
+    roomId: row.roomId,
+    roomName: row.room?.name ?? "—",
+  }));
+}
 
-const initialAgarRooms: AgarRoomHistorySummary[] = [
-  {
-    id: 101,
-    name: "ffa",
-    visibility: "public",
-    isDefault: true,
-    maxPlayers: 30,
-    maxDurationMin: 10,
-    startedAt: new Date().toISOString(),
-    endedAt: new Date(Date.now() + 60000).toISOString(),
-    playersCount: 18,
-    winner: {
-      name: "Bob",
-      kills: 6,
-      maxMass: 320,
-      durationMs: 412000,
-      rank: 1,
-    },
-    leaderboard: [
-      {
-        id: 10,
-        type: "user",
-        trueName: "Bob",
-        name: "Bob",
-        kills: 6,
-        maxMass: 320,
-        durationMs: 412000,
-        rank: 1,
-      },
-      {
-        id: 11,
-        type: "user",
-        trueName: "Alice",
-        name: "Alice",
-        kills: 3,
-        maxMass: 180,
-        durationMs: 215000,
-        rank: 2,
-      },
-      {
-        id: "guest-42",
-        type: "guest",
-        trueName: null,
-        name: "Guest-42",
-        kills: 1,
-        maxMass: 95,
-        durationMs: 99000,
-        rank: 4,
-      },
-    ],
-  },
-  {
-    id: 102,
-    name: "room-123",
-    visibility: "private",
-    isDefault: false,
-    maxPlayers: 12,
-    maxDurationMin: 5,
-    startedAt: new Date().toISOString(),
-    endedAt: null,
-    playersCount: 7,
-    winner: null,
-    leaderboard: [
-      {
-        id: "guest-7",
-        type: "guest",
-        trueName: null,
-        name: "Guest-7",
-        kills: 2,
-        maxMass: 140,
-        durationMs: 165000,
-        rank: 1,
-      },
-      {
-        id: "guest-42",
-        type: "guest",
-        trueName: null,
-        name: "Guest-42",
-        kills: 1,
-        maxMass: 95,
-        durationMs: 99000,
-        rank: 3,
-      },
-    ],
-  },
-];
+function mapRoomHistoryToSummary(
+  room: AgarioRoomHistory,
+): AgarRoomHistorySummary {
+  const leaderboard = room.leaderboard.map((entry) => ({
+    id: entry.id,
+    type: entry.type,
+    trueName: entry.trueName,
+    name: entry.name,
+    kills: entry.kills,
+    maxMass: entry.maxMass,
+    durationMs: entry.durationMs,
+    rank: entry.rank,
+  }));
+  const winner =
+    room.leaderboard.find((entry) => entry.isWinner) ?? leaderboard[0] ?? null;
+  return {
+    id: room.id,
+    name: room.name,
+    visibility: room.visibility === "private" ? "private" : "public",
+    isDefault: room.isDefault,
+    maxPlayers: null,
+    maxDurationMin: null,
+    startedAt: room.startedAt ?? null,
+    endedAt: room.endedAt ?? null,
+    playersCount: leaderboard.length,
+    winner: winner
+      ? {
+          name: winner.trueName ?? winner.name,
+          kills: winner.kills,
+          maxMass: winner.maxMass,
+          durationMs: winner.durationMs,
+          rank: winner.rank,
+        }
+      : null,
+    leaderboard,
+  };
+}
+
+function mapLeaderboardEntries(
+  entries: AgarioRoomLeaderboardEntry[],
+  roomLeaderboard?: AgarRoomHistorySummary["leaderboard"],
+) {
+  return entries.map((entry) => {
+    const rawId =
+      entry.id.startsWith("user-") || entry.id.startsWith("guest-")
+        ? entry.id.split("-").slice(1).join("-")
+        : entry.id;
+    const match =
+      roomLeaderboard?.find((p) => String(p.id) === String(rawId)) ?? null;
+    const type = entry.id.startsWith("guest-") ? "guest" : "user";
+    return {
+      id: rawId,
+      type: match?.type ?? type,
+      trueName: match?.trueName ?? null,
+      name: entry.name,
+      kills: entry.kills,
+      maxMass: entry.maxMass,
+      durationMs: match?.durationMs ?? 0,
+      rank: entry.rank,
+    };
+  });
+}
 
 export default function PlayerProfile() {
   const [tab, setTab] = useState<Tab>("profile");
@@ -236,6 +200,20 @@ export default function PlayerProfile() {
   const [historyError, setHistoryError] = useState("");
   const [historyFetched, setHistoryFetched] = useState(false);
   const [historyMode, setHistoryMode] = useState<"pong" | "agario">("pong");
+  const [agarPlayers, setAgarPlayers] = useState<AgarPlayerHistoryRow[]>([]);
+  const [agarPlayersLoading, setAgarPlayersLoading] = useState(false);
+  const [agarPlayersError, setAgarPlayersError] = useState("");
+  const [agarPlayersFetched, setAgarPlayersFetched] = useState(false);
+  const [agarRoomsById, setAgarRoomsById] = useState<
+    Record<number, AgarRoomHistorySummary>
+  >({});
+  const [agarRoomLoading, setAgarRoomLoading] = useState(false);
+  const [agarRoomError, setAgarRoomError] = useState("");
+  const [agarLeaderboardByRoomId, setAgarLeaderboardByRoomId] = useState<
+    Record<number, AgarRoomHistorySummary["leaderboard"]>
+  >({});
+  const [agarLeaderboardLoading, setAgarLeaderboardLoading] = useState(false);
+  const [agarLeaderboardError, setAgarLeaderboardError] = useState("");
   const [stats, setStats] = useState<PlayerStats | null>(null);
   const [statsError, setStatsError] = useState("");
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -246,16 +224,15 @@ export default function PlayerProfile() {
   const [showAgarLeaderboard, setShowAgarLeaderboard] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const selectedAgarPlayer = useMemo(
-    () => initialAgarPlayers.find((p) => p.id === selectedAgarPlayerId) ?? null,
-    [selectedAgarPlayerId],
+    () => agarPlayers.find((p) => p.id === selectedAgarPlayerId) ?? null,
+    [agarPlayers, selectedAgarPlayerId],
   );
   const selectedAgarRoom = useMemo(
     () =>
       selectedAgarPlayer
-        ? (initialAgarRooms.find((r) => r.id === selectedAgarPlayer.roomId) ??
-          null)
+        ? (agarRoomsById[selectedAgarPlayer.roomId] ?? null)
         : null,
-    [selectedAgarPlayer],
+    [agarRoomsById, selectedAgarPlayer],
   );
   const onFileChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
     const file = e.target.files?.[0];
@@ -373,6 +350,145 @@ export default function PlayerProfile() {
   }, [tab, historyFetched]);
 
   useEffect(() => {
+    if (tab !== "history") return;
+    if (historyMode !== "agario") return;
+    if (agarPlayersFetched) return;
+    if (!user) return;
+
+    let cancelled = false;
+    const loadAgarPlayers = async () => {
+      setAgarPlayersLoading(true);
+      setAgarPlayersError("");
+      try {
+        const token = getStoredToken();
+        if (!token) {
+          if (!cancelled) {
+            setAgarPlayers([]);
+            setAgarPlayersError("Not authenticated");
+          }
+          return;
+        }
+        const data = await apiGetAgarioPlayerHistory(token, user.id);
+        if (!cancelled) {
+          setAgarPlayers(mapAgarPlayerRows(data));
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setAgarPlayersError(
+            err instanceof Error ? err.message : "Failed to load agar history",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setAgarPlayersLoading(false);
+          setAgarPlayersFetched(true);
+        }
+      }
+    };
+    void loadAgarPlayers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, historyMode, agarPlayersFetched, user]);
+
+  useEffect(() => {
+    if (!selectedAgarPlayer || historyMode !== "agario") return;
+    const roomId = selectedAgarPlayer.roomId;
+    if (agarRoomsById[roomId]) return;
+
+    let cancelled = false;
+    const loadRoomHistory = async () => {
+      setAgarRoomLoading(true);
+      setAgarRoomError("");
+      try {
+        const token = getStoredToken();
+        if (!token) {
+          if (!cancelled) setAgarRoomError("Not authenticated");
+          return;
+        }
+        const room = await apiGetAgarioRoomHistory(token, roomId);
+        if (!cancelled) {
+          setAgarRoomsById((prev) => ({
+            ...prev,
+            [roomId]: mapRoomHistoryToSummary(room),
+          }));
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setAgarRoomError(
+            err instanceof Error ? err.message : "Failed to load room history",
+          );
+        }
+      } finally {
+        if (!cancelled) setAgarRoomLoading(false);
+      }
+    };
+    void loadRoomHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [agarRoomsById, historyMode, selectedAgarPlayer]);
+
+  useEffect(() => {
+    if (!showAgarLeaderboard || !selectedAgarPlayer) return;
+    if (historyMode !== "agario") return;
+    const roomId = selectedAgarPlayer.roomId;
+    if (agarLeaderboardByRoomId[roomId]) return;
+
+    let cancelled = false;
+    const loadLeaderboard = async () => {
+      setAgarLeaderboardLoading(true);
+      setAgarLeaderboardError("");
+      try {
+        const token = getStoredToken();
+        if (!token) {
+          if (!cancelled) setAgarLeaderboardError("Not authenticated");
+          return;
+        }
+        const data = await apiGetAgarioRoomLeaderboard(token, roomId);
+        if (cancelled) return;
+        const summary =
+          agarRoomsById[roomId] ?? mapRoomHistoryToSummary(data.room);
+        const leaderboard = mapLeaderboardEntries(
+          data.leaderboard,
+          summary.leaderboard,
+        );
+        setAgarRoomsById((prev) => ({
+          ...prev,
+          [roomId]: summary,
+        }));
+        setAgarLeaderboardByRoomId((prev) => ({
+          ...prev,
+          [roomId]: leaderboard,
+        }));
+      } catch (err) {
+        if (!cancelled) {
+          setAgarLeaderboardError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load leaderboard",
+          );
+        }
+      } finally {
+        if (!cancelled) setAgarLeaderboardLoading(false);
+      }
+    };
+    void loadLeaderboard();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    agarLeaderboardByRoomId,
+    agarRoomsById,
+    historyMode,
+    selectedAgarPlayer,
+    showAgarLeaderboard,
+  ]);
+
+  useEffect(() => {
     let cancelled = false;
 
     const loadMe = async () => {
@@ -398,6 +514,18 @@ export default function PlayerProfile() {
       cancelled = true;
     };
   }, []);
+  useEffect(() => {
+    if (!user) return;
+    setAgarPlayers([]);
+    setAgarPlayersError("");
+    setAgarPlayersFetched(false);
+    setAgarRoomsById({});
+    setAgarRoomError("");
+    setAgarLeaderboardByRoomId({});
+    setAgarLeaderboardError("");
+    setSelectedAgarPlayerId(null);
+    setShowAgarLeaderboard(false);
+  }, [user?.id]);
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
@@ -842,212 +970,268 @@ export default function PlayerProfile() {
                       </tr>
                     </thead>
                     <tbody>
-                      {initialAgarPlayers.map((p) => {
-                        const isSelected = selectedAgarPlayerId === p.id;
-                        const isLeaderboardOpen =
-                          isSelected && showAgarLeaderboard;
-                        return (
-                          <React.Fragment key={p.id}>
-                            <tr
-                              className={`text-gray-200 cursor-pointer hover:bg-white/5 border-b border-gray-800 ${isSelected ? "bg-white/10" : ""}`}
-                              onClick={() => {
-                                if (isSelected) {
-                                  setSelectedAgarPlayerId(null);
+                      {agarPlayersLoading && (
+                        <tr className="text-gray-400">
+                          <td className="px-3 py-3" colSpan={6}>
+                            Loading history...
+                          </td>
+                        </tr>
+                      )}
+                      {!agarPlayersLoading && agarPlayersError && (
+                        <tr className="text-red-300">
+                          <td className="px-3 py-3" colSpan={6}>
+                            {agarPlayersError}
+                          </td>
+                        </tr>
+                      )}
+                      {!agarPlayersLoading &&
+                        !agarPlayersError &&
+                        agarPlayers.length === 0 && (
+                          <tr className="text-gray-400">
+                            <td className="px-3 py-3" colSpan={6}>
+                              No matches yet
+                            </td>
+                          </tr>
+                        )}
+                      {!agarPlayersLoading &&
+                        !agarPlayersError &&
+                        agarPlayers.map((p) => {
+                          const isSelected = selectedAgarPlayerId === p.id;
+                          const isLeaderboardOpen =
+                            isSelected && showAgarLeaderboard;
+                          return (
+                            <React.Fragment key={p.id}>
+                              <tr
+                                className={`text-gray-200 cursor-pointer hover:bg-white/5 border-b border-gray-800 ${isSelected ? "bg-white/10" : ""}`}
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setSelectedAgarPlayerId(null);
+                                    setShowAgarLeaderboard(false);
+                                    return;
+                                  }
+                                  setSelectedAgarPlayerId(p.id);
                                   setShowAgarLeaderboard(false);
-                                  return;
-                                }
-                                setSelectedAgarPlayerId(p.id);
-                                setShowAgarLeaderboard(false);
-                              }}
-                            >
-                              <td className="px-3 py-2">{p.name}</td>
-                              <td className="px-3 py-2">
-                                {msToMinSec(p.durationMs)}
-                              </td>
-                              <td className="px-3 py-2">{p.kills}</td>
-                              <td className="px-3 py-2">{p.maxMass}</td>
-                              <td className="px-3 py-2">{p.rank}</td>
-                              <td className="px-3 py-2">{p.roomName}</td>
-                            </tr>
-                            <tr
-                              className={
-                                isSelected
-                                  ? "bg-white/5 border-b border-gray-800"
-                                  : ""
-                              }
-                            >
-                              <td
-                                className={`px-3 ${isSelected ? "py-4" : "py-0"}`}
-                                colSpan={6}
+                                }}
                               >
-                                <div
-                                  className={`overflow-hidden transition-all duration-300 ease-out ${isSelected ? "max-h-[1200px] opacity-100 translate-y-0" : "max-h-0 opacity-0 -translate-y-1 pointer-events-none"}`}
+                                <td className="px-3 py-2">{p.name}</td>
+                                <td className="px-3 py-2">
+                                  {msToMinSec(p.durationMs)}
+                                </td>
+                                <td className="px-3 py-2">{p.kills}</td>
+                                <td className="px-3 py-2">{p.maxMass}</td>
+                                <td className="px-3 py-2">{p.rank}</td>
+                                <td className="px-3 py-2">{p.roomName}</td>
+                              </tr>
+                              <tr
+                                className={
+                                  isSelected
+                                    ? "bg-white/5 border-b border-gray-800"
+                                    : ""
+                                }
+                              >
+                                <td
+                                  className={`px-3 ${isSelected ? "py-4" : "py-0"}`}
+                                  colSpan={6}
                                 >
-                                  {selectedAgarRoom && (
-                                    <div>
-                                      <div className="flex items-center justify-between mb-3">
-                                        <div className="text-xs font-semibold text-gray-300">
-                                          Room history
-                                        </div>
-                                        <button
-                                          onClick={() =>
-                                            setShowAgarLeaderboard(
-                                              (prev) => !prev,
-                                            )
-                                          }
-                                          className="px-3 py-1 rounded text-xs bg-white/10 text-gray-200 hover:text-white"
-                                        >
-                                          Leaderboard
-                                        </button>
+                                  <div
+                                    className={`overflow-hidden transition-all duration-300 ease-out ${isSelected ? "max-h-[1200px] opacity-100 translate-y-0" : "max-h-0 opacity-0 -translate-y-1 pointer-events-none"}`}
+                                  >
+                                    {agarRoomLoading && (
+                                      <div className="text-sm text-gray-400">
+                                        Loading room history...
                                       </div>
-                                      <div className="text-gray-300 mb-3">
-                                        <span className="font-semibold text-white">
-                                          {selectedAgarRoom.name}
-                                        </span>
-                                        <span className="ml-2 text-xs px-2 py-1 rounded bg-white/5">
-                                          {selectedAgarRoom.visibility}
-                                        </span>
+                                    )}
+                                    {!agarRoomLoading && agarRoomError && (
+                                      <div className="text-sm text-red-300">
+                                        {agarRoomError}
                                       </div>
-                                      <div className="text-sm text-gray-400 mb-4">
-                                        Winner:{" "}
-                                        {selectedAgarRoom.winner
-                                          ? `${selectedAgarRoom.winner.name} • ${selectedAgarRoom.winner.kills} kills • ${selectedAgarRoom.winner.maxMass} max mass • ${msToMinSec(selectedAgarRoom.winner.durationMs)} • rank ${selectedAgarRoom.winner.rank}`
-                                          : "—"}
-                                      </div>
-                                      <div className="overflow-x-auto">
-                                        <table className="w-full text-sm">
-                                          <thead>
-                                            <tr className="text-left text-gray-400">
-                                              <th className="px-3 py-2">
-                                                Name
-                                              </th>
-                                              <th className="px-3 py-2">
-                                                Visibility
-                                              </th>
-                                              <th className="px-3 py-2">
-                                                Default
-                                              </th>
-                                              <th className="px-3 py-2">
-                                                Players
-                                              </th>
-                                              <th className="px-3 py-2">
-                                                Duration
-                                              </th>
-                                              <th className="px-3 py-2">
-                                                Started
-                                              </th>
-                                              <th className="px-3 py-2">
-                                                Ended
-                                              </th>
-                                            </tr>
-                                          </thead>
-                                          <tbody className="divide-y divide-gray-800">
-                                            <tr className="text-gray-200">
-                                              <td className="px-3 py-2">
-                                                {selectedAgarRoom.name}
-                                              </td>
-                                              <td className="px-3 py-2">
-                                                {selectedAgarRoom.visibility}
-                                              </td>
-                                              <td className="px-3 py-2">
-                                                {selectedAgarRoom.isDefault
-                                                  ? "Yes"
-                                                  : "No"}
-                                              </td>
-                                              <td className="px-3 py-2">
-                                                {selectedAgarRoom.playersCount}/
-                                                {selectedAgarRoom.maxPlayers}
-                                              </td>
-                                              <td className="px-3 py-2">
-                                                {
-                                                  selectedAgarRoom.maxDurationMin
-                                                }
-                                                m
-                                              </td>
-                                              <td className="px-3 py-2">
-                                                {formatDate(
-                                                  selectedAgarRoom.startedAt,
-                                                )}
-                                              </td>
-                                              <td className="px-3 py-2">
-                                                {formatDate(
-                                                  selectedAgarRoom.endedAt,
-                                                )}
-                                              </td>
-                                            </tr>
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                      <div
-                                        className={`mt-6 overflow-hidden transition-all duration-300 ease-out ${isLeaderboardOpen ? "max-h-[900px] opacity-100 translate-y-0" : "max-h-0 opacity-0 -translate-y-1 pointer-events-none"}`}
-                                      >
-                                        <div className="text-xs font-semibold text-gray-300 mb-3">
-                                          Leaderboard
-                                        </div>
-                                        <div className="overflow-x-auto">
-                                          <table className="w-full text-sm">
-                                            <thead>
-                                              <tr className="text-left text-gray-400">
-                                                <th className="px-3 py-2">
-                                                  Name
-                                                </th>
-                                                <th className="px-3 py-2">
-                                                  In-Game Name
-                                                </th>
-                                                <th className="px-3 py-2">
-                                                  Kills
-                                                </th>
-                                                <th className="px-3 py-2">
-                                                  Max Mass
-                                                </th>
-                                                <th className="px-3 py-2">
-                                                  Duration
-                                                </th>
-                                                <th className="px-3 py-2">
-                                                  Rank
-                                                </th>
-                                              </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-800">
-                                              {selectedAgarRoom.leaderboard.map(
-                                                (p) => (
-                                                  <tr
-                                                    key={p.id}
-                                                    className="text-gray-200"
-                                                  >
-                                                    <td className="px-3 py-2">
-                                                      {p.trueName ?? "—"}
-                                                    </td>
-                                                    <td className="px-3 py-2">
-                                                      {p.name}
-                                                    </td>
-                                                    <td className="px-3 py-2">
-                                                      {p.kills}
-                                                    </td>
-                                                    <td className="px-3 py-2">
-                                                      {p.maxMass}
-                                                    </td>
-                                                    <td className="px-3 py-2">
-                                                      {msToMinSec(p.durationMs)}
-                                                    </td>
-                                                    <td className="px-3 py-2">
-                                                      {p.rank}
-                                                    </td>
-                                                  </tr>
-                                                ),
+                                    )}
+                                    {!agarRoomLoading &&
+                                      !agarRoomError &&
+                                      selectedAgarRoom && (
+                                        <div>
+                                          <div className="flex items-center justify-between mb-3">
+                                            <div className="text-xs font-semibold text-gray-300">
+                                              Room history
+                                            </div>
+                                            <button
+                                              onClick={() =>
+                                                setShowAgarLeaderboard(
+                                                  (prev) => !prev,
+                                                )
+                                              }
+                                              className="px-3 py-1 rounded text-xs bg-white/10 text-gray-200 hover:text-white"
+                                            >
+                                              Leaderboard
+                                            </button>
+                                          </div>
+                                          <div className="text-gray-300 mb-3">
+                                            <span className="font-semibold text-white">
+                                              {selectedAgarRoom.name}
+                                            </span>
+                                            <span className="ml-2 text-xs px-2 py-1 rounded bg-white/5">
+                                              {selectedAgarRoom.visibility}
+                                            </span>
+                                          </div>
+                                          <div className="text-sm text-gray-400 mb-4">
+                                            Winner:{" "}
+                                            {selectedAgarRoom.winner
+                                              ? `${selectedAgarRoom.winner.name} • ${selectedAgarRoom.winner.kills} kills • ${selectedAgarRoom.winner.maxMass} max mass • ${msToMinSec(selectedAgarRoom.winner.durationMs)} • rank ${selectedAgarRoom.winner.rank}`
+                                              : "—"}
+                                          </div>
+                                          <div className="overflow-x-auto">
+                                            <table className="w-full text-sm">
+                                              <thead>
+                                                <tr className="text-left text-gray-400">
+                                                  <th className="px-3 py-2">
+                                                    Name
+                                                  </th>
+                                                  <th className="px-3 py-2">
+                                                    Visibility
+                                                  </th>
+                                                  <th className="px-3 py-2">
+                                                    Default
+                                                  </th>
+                                                  <th className="px-3 py-2">
+                                                    Players
+                                                  </th>
+                                                  <th className="px-3 py-2">
+                                                    Duration
+                                                  </th>
+                                                  <th className="px-3 py-2">
+                                                    Started
+                                                  </th>
+                                                  <th className="px-3 py-2">
+                                                    Ended
+                                                  </th>
+                                                </tr>
+                                              </thead>
+                                              <tbody className="divide-y divide-gray-800">
+                                                <tr className="text-gray-200">
+                                                  <td className="px-3 py-2">
+                                                    {selectedAgarRoom.name}
+                                                  </td>
+                                                  <td className="px-3 py-2">
+                                                    {selectedAgarRoom.visibility}
+                                                  </td>
+                                                  <td className="px-3 py-2">
+                                                    {selectedAgarRoom.isDefault
+                                                      ? "Yes"
+                                                      : "No"}
+                                                  </td>
+                                                  <td className="px-3 py-2">
+                                                    {selectedAgarRoom.playersCount}
+                                                    /
+                                                    {selectedAgarRoom.maxPlayers ??
+                                                      "—"}
+                                                  </td>
+                                                  <td className="px-3 py-2">
+                                                    {selectedAgarRoom.maxDurationMin ===
+                                                    null
+                                                      ? "—"
+                                                      : `${selectedAgarRoom.maxDurationMin}m`}
+                                                  </td>
+                                                  <td className="px-3 py-2">
+                                                    {formatDate(
+                                                      selectedAgarRoom.startedAt,
+                                                    )}
+                                                  </td>
+                                                  <td className="px-3 py-2">
+                                                    {formatDate(
+                                                      selectedAgarRoom.endedAt,
+                                                    )}
+                                                  </td>
+                                                </tr>
+                                              </tbody>
+                                            </table>
+                                          </div>
+                                          <div
+                                            className={`mt-6 overflow-hidden transition-all duration-300 ease-out ${isLeaderboardOpen ? "max-h-[900px] opacity-100 translate-y-0" : "max-h-0 opacity-0 -translate-y-1 pointer-events-none"}`}
+                                          >
+                                            <div className="text-xs font-semibold text-gray-300 mb-3">
+                                              Leaderboard
+                                            </div>
+                                            {agarLeaderboardLoading && (
+                                              <div className="text-sm text-gray-400 mb-3">
+                                                Loading leaderboard...
+                                              </div>
+                                            )}
+                                            {!agarLeaderboardLoading &&
+                                              agarLeaderboardError && (
+                                                <div className="text-sm text-red-300 mb-3">
+                                                  {agarLeaderboardError}
+                                                </div>
                                               )}
-                                            </tbody>
-                                          </table>
+                                            {!agarLeaderboardLoading &&
+                                              !agarLeaderboardError && (
+                                                <div className="overflow-x-auto">
+                                                  <table className="w-full text-sm">
+                                                    <thead>
+                                                      <tr className="text-left text-gray-400">
+                                                        <th className="px-3 py-2">
+                                                          Name
+                                                        </th>
+                                                        <th className="px-3 py-2">
+                                                          In-Game Name
+                                                        </th>
+                                                        <th className="px-3 py-2">
+                                                          Kills
+                                                        </th>
+                                                        <th className="px-3 py-2">
+                                                          Max Mass
+                                                        </th>
+                                                        <th className="px-3 py-2">
+                                                          Duration
+                                                        </th>
+                                                        <th className="px-3 py-2">
+                                                          Rank
+                                                        </th>
+                                                      </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-800">
+                                                      {selectedAgarRoom.leaderboard.map(
+                                                        (p) => (
+                                                          <tr
+                                                            key={p.id}
+                                                            className="text-gray-200"
+                                                          >
+                                                            <td className="px-3 py-2">
+                                                              {p.trueName ??
+                                                                "—"}
+                                                            </td>
+                                                            <td className="px-3 py-2">
+                                                              {p.name}
+                                                            </td>
+                                                            <td className="px-3 py-2">
+                                                              {p.kills}
+                                                            </td>
+                                                            <td className="px-3 py-2">
+                                                              {p.maxMass}
+                                                            </td>
+                                                            <td className="px-3 py-2">
+                                                              {msToMinSec(
+                                                                p.durationMs,
+                                                              )}
+                                                            </td>
+                                                            <td className="px-3 py-2">
+                                                              {p.rank}
+                                                            </td>
+                                                          </tr>
+                                                        ),
+                                                      )}
+                                                    </tbody>
+                                                  </table>
+                                                </div>
+                                              )}
+                                          </div>
                                         </div>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          </React.Fragment>
-                        );
-                      })}
+                                      )}
+                                  </div>
+                                </td>
+                              </tr>
+                            </React.Fragment>
+                          );
+                        })}
                     </tbody>
                   </table>
                 </div>
@@ -1075,6 +1259,20 @@ export function PublicPlayerProfile() {
   const [historyError, setHistoryError] = useState("");
   const [historyFetched, setHistoryFetched] = useState(false);
   const [historyMode, setHistoryMode] = useState<"pong" | "agario">("pong");
+  const [agarPlayers, setAgarPlayers] = useState<AgarPlayerHistoryRow[]>([]);
+  const [agarPlayersLoading, setAgarPlayersLoading] = useState(false);
+  const [agarPlayersError, setAgarPlayersError] = useState("");
+  const [agarPlayersFetched, setAgarPlayersFetched] = useState(false);
+  const [agarRoomsById, setAgarRoomsById] = useState<
+    Record<number, AgarRoomHistorySummary>
+  >({});
+  const [agarRoomLoading, setAgarRoomLoading] = useState(false);
+  const [agarRoomError, setAgarRoomError] = useState("");
+  const [agarLeaderboardByRoomId, setAgarLeaderboardByRoomId] = useState<
+    Record<number, AgarRoomHistorySummary["leaderboard"]>
+  >({});
+  const [agarLeaderboardLoading, setAgarLeaderboardLoading] = useState(false);
+  const [agarLeaderboardError, setAgarLeaderboardError] = useState("");
   const [selectedAgarPlayerId, setSelectedAgarPlayerId] = useState<
     number | null
   >(null);
@@ -1086,16 +1284,15 @@ export function PublicPlayerProfile() {
   const [friendError, setFriendError] = useState("");
 
   const selectedAgarPlayer = useMemo(
-    () => initialAgarPlayers.find((p) => p.id === selectedAgarPlayerId) ?? null,
-    [selectedAgarPlayerId],
+    () => agarPlayers.find((p) => p.id === selectedAgarPlayerId) ?? null,
+    [agarPlayers, selectedAgarPlayerId],
   );
   const selectedAgarRoom = useMemo(
     () =>
       selectedAgarPlayer
-        ? (initialAgarRooms.find((r) => r.id === selectedAgarPlayer.roomId) ??
-          null)
+        ? (agarRoomsById[selectedAgarPlayer.roomId] ?? null)
         : null,
-    [selectedAgarPlayer],
+    [agarRoomsById, selectedAgarPlayer],
   );
 
   useEffect(() => {
@@ -1169,6 +1366,13 @@ export function PublicPlayerProfile() {
     setHistoryError("");
     setHistoryFetched(false);
     setHistoryMode("pong");
+    setAgarPlayers([]);
+    setAgarPlayersError("");
+    setAgarPlayersFetched(false);
+    setAgarRoomsById({});
+    setAgarRoomError("");
+    setAgarLeaderboardByRoomId({});
+    setAgarLeaderboardError("");
     setSelectedAgarPlayerId(null);
     setShowAgarLeaderboard(false);
   }, [username]);
@@ -1214,6 +1418,145 @@ export function PublicPlayerProfile() {
       cancelled = true;
     };
   }, [tab, historyFetched, user]);
+
+  useEffect(() => {
+    if (tab !== "history") return;
+    if (historyMode !== "agario") return;
+    if (agarPlayersFetched) return;
+    if (!user) return;
+
+    let cancelled = false;
+    const loadAgarPlayers = async () => {
+      setAgarPlayersLoading(true);
+      setAgarPlayersError("");
+      try {
+        const token = getStoredToken();
+        if (!token) {
+          if (!cancelled) {
+            setAgarPlayers([]);
+            setAgarPlayersError("Not authenticated");
+          }
+          return;
+        }
+        const data = await apiGetAgarioPlayerHistory(token, user.id);
+        if (!cancelled) {
+          setAgarPlayers(mapAgarPlayerRows(data));
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setAgarPlayersError(
+            err instanceof Error ? err.message : "Failed to load agar history",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setAgarPlayersLoading(false);
+          setAgarPlayersFetched(true);
+        }
+      }
+    };
+    void loadAgarPlayers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, historyMode, agarPlayersFetched, user]);
+
+  useEffect(() => {
+    if (!selectedAgarPlayer || historyMode !== "agario") return;
+    const roomId = selectedAgarPlayer.roomId;
+    if (agarRoomsById[roomId]) return;
+
+    let cancelled = false;
+    const loadRoomHistory = async () => {
+      setAgarRoomLoading(true);
+      setAgarRoomError("");
+      try {
+        const token = getStoredToken();
+        if (!token) {
+          if (!cancelled) setAgarRoomError("Not authenticated");
+          return;
+        }
+        const room = await apiGetAgarioRoomHistory(token, roomId);
+        if (!cancelled) {
+          setAgarRoomsById((prev) => ({
+            ...prev,
+            [roomId]: mapRoomHistoryToSummary(room),
+          }));
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setAgarRoomError(
+            err instanceof Error ? err.message : "Failed to load room history",
+          );
+        }
+      } finally {
+        if (!cancelled) setAgarRoomLoading(false);
+      }
+    };
+    void loadRoomHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [agarRoomsById, historyMode, selectedAgarPlayer]);
+
+  useEffect(() => {
+    if (!showAgarLeaderboard || !selectedAgarPlayer) return;
+    if (historyMode !== "agario") return;
+    const roomId = selectedAgarPlayer.roomId;
+    if (agarLeaderboardByRoomId[roomId]) return;
+
+    let cancelled = false;
+    const loadLeaderboard = async () => {
+      setAgarLeaderboardLoading(true);
+      setAgarLeaderboardError("");
+      try {
+        const token = getStoredToken();
+        if (!token) {
+          if (!cancelled) setAgarLeaderboardError("Not authenticated");
+          return;
+        }
+        const data = await apiGetAgarioRoomLeaderboard(token, roomId);
+        if (cancelled) return;
+        const summary =
+          agarRoomsById[roomId] ?? mapRoomHistoryToSummary(data.room);
+        const leaderboard = mapLeaderboardEntries(
+          data.leaderboard,
+          summary.leaderboard,
+        );
+        setAgarRoomsById((prev) => ({
+          ...prev,
+          [roomId]: summary,
+        }));
+        setAgarLeaderboardByRoomId((prev) => ({
+          ...prev,
+          [roomId]: leaderboard,
+        }));
+      } catch (err) {
+        if (!cancelled) {
+          setAgarLeaderboardError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load leaderboard",
+          );
+        }
+      } finally {
+        if (!cancelled) setAgarLeaderboardLoading(false);
+      }
+    };
+    void loadLeaderboard();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    agarLeaderboardByRoomId,
+    agarRoomsById,
+    historyMode,
+    selectedAgarPlayer,
+    showAgarLeaderboard,
+  ]);
 
   useEffect(() => {
     if (!user) return;
@@ -1589,211 +1932,264 @@ export function PublicPlayerProfile() {
                       </tr>
                     </thead>
                     <tbody>
-                      {initialAgarPlayers.map((p) => {
-                        const isSelected = selectedAgarPlayerId === p.id;
-                        const isLeaderboardOpen =
-                          isSelected && showAgarLeaderboard;
-                        return (
-                          <React.Fragment key={p.id}>
-                            <tr
-                              className={`text-gray-200 cursor-pointer hover:bg-white/5 border-b border-gray-800 ${isSelected ? "bg-white/10" : ""}`}
-                              onClick={() => {
-                                if (isSelected) {
-                                  setSelectedAgarPlayerId(null);
+                      {agarPlayersLoading && (
+                        <tr className="text-gray-400">
+                          <td className="px-3 py-3" colSpan={6}>
+                            Loading history...
+                          </td>
+                        </tr>
+                      )}
+                      {!agarPlayersLoading && agarPlayersError && (
+                        <tr className="text-red-300">
+                          <td className="px-3 py-3" colSpan={6}>
+                            {agarPlayersError}
+                          </td>
+                        </tr>
+                      )}
+                      {!agarPlayersLoading &&
+                        !agarPlayersError &&
+                        agarPlayers.length === 0 && (
+                          <tr className="text-gray-400">
+                            <td className="px-3 py-3" colSpan={6}>
+                              No matches yet
+                            </td>
+                          </tr>
+                        )}
+                      {!agarPlayersLoading &&
+                        !agarPlayersError &&
+                        agarPlayers.map((p) => {
+                          const isSelected = selectedAgarPlayerId === p.id;
+                          const isLeaderboardOpen =
+                            isSelected && showAgarLeaderboard;
+                          return (
+                            <React.Fragment key={p.id}>
+                              <tr
+                                className={`text-gray-200 cursor-pointer hover:bg-white/5 border-b border-gray-800 ${isSelected ? "bg-white/10" : ""}`}
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setSelectedAgarPlayerId(null);
+                                    setShowAgarLeaderboard(false);
+                                    return;
+                                  }
+                                  setSelectedAgarPlayerId(p.id);
                                   setShowAgarLeaderboard(false);
-                                  return;
-                                }
-                                setSelectedAgarPlayerId(p.id);
-                                setShowAgarLeaderboard(false);
-                              }}
-                            >
-                              <td className="px-3 py-2">{p.name}</td>
-                              <td className="px-3 py-2">
-                                {msToMinSec(p.durationMs)}
-                              </td>
-                              <td className="px-3 py-2">{p.kills}</td>
-                              <td className="px-3 py-2">{p.maxMass}</td>
-                              <td className="px-3 py-2">{p.rank}</td>
-                              <td className="px-3 py-2">{p.roomName}</td>
-                            </tr>
-                            <tr
-                              className={
-                                isSelected
-                                  ? "bg-white/5 border-b border-gray-800"
-                                  : ""
-                              }
-                            >
-                              <td
-                                className={`px-3 ${isSelected ? "py-4" : "py-0"}`}
-                                colSpan={6}
+                                }}
                               >
-                                <div
-                                  className={`overflow-hidden transition-all duration-300 ease-out ${isSelected ? "max-h-[1200px] opacity-100 translate-y-0" : "max-h-0 opacity-0 -translate-y-1 pointer-events-none"}`}
+                                <td className="px-3 py-2">{p.name}</td>
+                                <td className="px-3 py-2">
+                                  {msToMinSec(p.durationMs)}
+                                </td>
+                                <td className="px-3 py-2">{p.kills}</td>
+                                <td className="px-3 py-2">{p.maxMass}</td>
+                                <td className="px-3 py-2">{p.rank}</td>
+                                <td className="px-3 py-2">{p.roomName}</td>
+                              </tr>
+                              <tr
+                                className={
+                                  isSelected
+                                    ? "bg-white/5 border-b border-gray-800"
+                                    : ""
+                                }
+                              >
+                                <td
+                                  className={`px-3 ${isSelected ? "py-4" : "py-0"}`}
+                                  colSpan={6}
                                 >
-                                  {selectedAgarRoom && (
-                                    <div>
-                                      <div className="flex items-center justify-between mb-3">
-                                        <div className="text-xs font-semibold text-gray-300">
-                                          Room history
-                                        </div>
-                                        <button
-                                          onClick={() =>
-                                            setShowAgarLeaderboard(
-                                              (prev) => !prev,
-                                            )
-                                          }
-                                          className="px-3 py-1 rounded text-xs bg-white/10 text-gray-200 hover:text-white"
-                                        >
-                                          Leaderboard
-                                        </button>
+                                  <div
+                                    className={`overflow-hidden transition-all duration-300 ease-out ${isSelected ? "max-h-[1200px] opacity-100 translate-y-0" : "max-h-0 opacity-0 -translate-y-1 pointer-events-none"}`}
+                                  >
+                                    {agarRoomLoading && (
+                                      <div className="text-sm text-gray-400">
+                                        Loading room history...
                                       </div>
-                                      <div className="text-gray-300 mb-3">
-                                        <span className="font-semibold text-white">
-                                          {selectedAgarRoom.name}
-                                        </span>
-                                        <span className="ml-2 text-xs px-2 py-1 rounded bg-white/5">
-                                          {selectedAgarRoom.visibility}
-                                        </span>
+                                    )}
+                                    {!agarRoomLoading && agarRoomError && (
+                                      <div className="text-sm text-red-300">
+                                        {agarRoomError}
                                       </div>
-                                      <div className="text-sm text-gray-400 mb-4">
-                                        Winner:{" "}
-                                        {selectedAgarRoom.winner
-                                          ? `${selectedAgarRoom.winner.name} • ${selectedAgarRoom.winner.kills} kills • ${selectedAgarRoom.winner.maxMass} max mass • ${msToMinSec(selectedAgarRoom.winner.durationMs)} • rank ${selectedAgarRoom.winner.rank}`
-                                          : "—"}
-                                      </div>
-                                      <div className="overflow-x-auto">
-                                        <table className="w-full text-sm">
-                                          <thead>
-                                            <tr className="text-left text-gray-400">
-                                              <th className="px-3 py-2">
-                                                Name
-                                              </th>
-                                              <th className="px-3 py-2">
-                                                Visibility
-                                              </th>
-                                              <th className="px-3 py-2">
-                                                Default
-                                              </th>
-                                              <th className="px-3 py-2">
-                                                Players
-                                              </th>
-                                              <th className="px-3 py-2">
-                                                Duration
-                                              </th>
-                                              <th className="px-3 py-2">
-                                                Started
-                                              </th>
-                                              <th className="px-3 py-2">
-                                                Ended
-                                              </th>
-                                            </tr>
-                                          </thead>
-                                          <tbody>
-                                            <tr className="text-gray-200">
-                                              <td className="px-3 py-2">
-                                                {selectedAgarRoom.name}
-                                              </td>
-                                              <td className="px-3 py-2">
-                                                {selectedAgarRoom.visibility}
-                                              </td>
-                                              <td className="px-3 py-2">
-                                                {selectedAgarRoom.isDefault
-                                                  ? "Yes"
-                                                  : "No"}
-                                              </td>
-                                              <td className="px-3 py-2">
-                                                {selectedAgarRoom.playersCount}
-                                              </td>
-                                              <td className="px-3 py-2">
-                                                {
-                                                  selectedAgarRoom.maxDurationMin
-                                                }
-                                                m
-                                              </td>
-                                              <td className="px-3 py-2">
-                                                {formatDate(
-                                                  selectedAgarRoom.startedAt,
-                                                )}
-                                              </td>
-                                              <td className="px-3 py-2">
-                                                {formatDate(
-                                                  selectedAgarRoom.endedAt,
-                                                )}
-                                              </td>
-                                            </tr>
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                      <div
-                                        className={`mt-6 overflow-hidden transition-all duration-300 ease-out ${isLeaderboardOpen ? "max-h-[900px] opacity-100 translate-y-0" : "max-h-0 opacity-0 -translate-y-1 pointer-events-none"}`}
-                                      >
-                                        <div className="text-xs font-semibold text-gray-300 mb-3">
-                                          Leaderboard
-                                        </div>
-                                        <div className="overflow-x-auto">
-                                          <table className="w-full text-sm">
-                                            <thead>
-                                              <tr className="text-left text-gray-400">
-                                                <th className="px-3 py-2">
-                                                  Name
-                                                </th>
-                                                <th className="px-3 py-2">
-                                                  In-Game Name
-                                                </th>
-                                                <th className="px-3 py-2">
-                                                  Kills
-                                                </th>
-                                                <th className="px-3 py-2">
-                                                  Max Mass
-                                                </th>
-                                                <th className="px-3 py-2">
-                                                  Duration
-                                                </th>
-                                                <th className="px-3 py-2">
-                                                  Rank
-                                                </th>
-                                              </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-800">
-                                              {selectedAgarRoom.leaderboard.map(
-                                                (p) => (
-                                                  <tr key={p.id}>
-                                                    <td className="px-3 py-2">
-                                                      {p.type === "user" &&
-                                                      p.trueName
-                                                        ? p.trueName
-                                                        : p.name}
-                                                    </td>
-                                                    <td className="px-3 py-2">
-                                                      {p.name}
-                                                    </td>
-                                                    <td className="px-3 py-2">
-                                                      {p.kills}
-                                                    </td>
-                                                    <td className="px-3 py-2">
-                                                      {p.maxMass}
-                                                    </td>
-                                                    <td className="px-3 py-2">
-                                                      {msToMinSec(p.durationMs)}
-                                                    </td>
-                                                    <td className="px-3 py-2">
-                                                      {p.rank}
-                                                    </td>
-                                                  </tr>
-                                                ),
+                                    )}
+                                    {!agarRoomLoading &&
+                                      !agarRoomError &&
+                                      selectedAgarRoom && (
+                                        <div>
+                                          <div className="flex items-center justify-between mb-3">
+                                            <div className="text-xs font-semibold text-gray-300">
+                                              Room history
+                                            </div>
+                                            <button
+                                              onClick={() =>
+                                                setShowAgarLeaderboard(
+                                                  (prev) => !prev,
+                                                )
+                                              }
+                                              className="px-3 py-1 rounded text-xs bg-white/10 text-gray-200 hover:text-white"
+                                            >
+                                              Leaderboard
+                                            </button>
+                                          </div>
+                                          <div className="text-gray-300 mb-3">
+                                            <span className="font-semibold text-white">
+                                              {selectedAgarRoom.name}
+                                            </span>
+                                            <span className="ml-2 text-xs px-2 py-1 rounded bg-white/5">
+                                              {selectedAgarRoom.visibility}
+                                            </span>
+                                          </div>
+                                          <div className="text-sm text-gray-400 mb-4">
+                                            Winner:{" "}
+                                            {selectedAgarRoom.winner
+                                              ? `${selectedAgarRoom.winner.name} • ${selectedAgarRoom.winner.kills} kills • ${selectedAgarRoom.winner.maxMass} max mass • ${msToMinSec(selectedAgarRoom.winner.durationMs)} • rank ${selectedAgarRoom.winner.rank}`
+                                              : "—"}
+                                          </div>
+                                          <div className="overflow-x-auto">
+                                            <table className="w-full text-sm">
+                                              <thead>
+                                                <tr className="text-left text-gray-400">
+                                                  <th className="px-3 py-2">
+                                                    Name
+                                                  </th>
+                                                  <th className="px-3 py-2">
+                                                    Visibility
+                                                  </th>
+                                                  <th className="px-3 py-2">
+                                                    Default
+                                                  </th>
+                                                  <th className="px-3 py-2">
+                                                    Players
+                                                  </th>
+                                                  <th className="px-3 py-2">
+                                                    Duration
+                                                  </th>
+                                                  <th className="px-3 py-2">
+                                                    Started
+                                                  </th>
+                                                  <th className="px-3 py-2">
+                                                    Ended
+                                                  </th>
+                                                </tr>
+                                              </thead>
+                                              <tbody>
+                                                <tr className="text-gray-200">
+                                                  <td className="px-3 py-2">
+                                                    {selectedAgarRoom.name}
+                                                  </td>
+                                                  <td className="px-3 py-2">
+                                                    {selectedAgarRoom.visibility}
+                                                  </td>
+                                                  <td className="px-3 py-2">
+                                                    {selectedAgarRoom.isDefault
+                                                      ? "Yes"
+                                                      : "No"}
+                                                  </td>
+                                                  <td className="px-3 py-2">
+                                                    {selectedAgarRoom.playersCount}
+                                                  </td>
+                                                  <td className="px-3 py-2">
+                                                    {selectedAgarRoom.maxDurationMin ===
+                                                    null
+                                                      ? "—"
+                                                      : `${selectedAgarRoom.maxDurationMin}m`}
+                                                  </td>
+                                                  <td className="px-3 py-2">
+                                                    {formatDate(
+                                                      selectedAgarRoom.startedAt,
+                                                    )}
+                                                  </td>
+                                                  <td className="px-3 py-2">
+                                                    {formatDate(
+                                                      selectedAgarRoom.endedAt,
+                                                    )}
+                                                  </td>
+                                                </tr>
+                                              </tbody>
+                                            </table>
+                                          </div>
+                                          <div
+                                            className={`mt-6 overflow-hidden transition-all duration-300 ease-out ${isLeaderboardOpen ? "max-h-[900px] opacity-100 translate-y-0" : "max-h-0 opacity-0 -translate-y-1 pointer-events-none"}`}
+                                          >
+                                            <div className="text-xs font-semibold text-gray-300 mb-3">
+                                              Leaderboard
+                                            </div>
+                                            {agarLeaderboardLoading && (
+                                              <div className="text-sm text-gray-400 mb-3">
+                                                Loading leaderboard...
+                                              </div>
+                                            )}
+                                            {!agarLeaderboardLoading &&
+                                              agarLeaderboardError && (
+                                                <div className="text-sm text-red-300 mb-3">
+                                                  {agarLeaderboardError}
+                                                </div>
                                               )}
-                                            </tbody>
-                                          </table>
+                                            {!agarLeaderboardLoading &&
+                                              !agarLeaderboardError && (
+                                                <div className="overflow-x-auto">
+                                                  <table className="w-full text-sm">
+                                                    <thead>
+                                                      <tr className="text-left text-gray-400">
+                                                        <th className="px-3 py-2">
+                                                          Name
+                                                        </th>
+                                                        <th className="px-3 py-2">
+                                                          In-Game Name
+                                                        </th>
+                                                        <th className="px-3 py-2">
+                                                          Kills
+                                                        </th>
+                                                        <th className="px-3 py-2">
+                                                          Max Mass
+                                                        </th>
+                                                        <th className="px-3 py-2">
+                                                          Duration
+                                                        </th>
+                                                        <th className="px-3 py-2">
+                                                          Rank
+                                                        </th>
+                                                      </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-800">
+                                                      {selectedAgarRoom.leaderboard.map(
+                                                        (p) => (
+                                                          <tr key={p.id}>
+                                                            <td className="px-3 py-2">
+                                                              {p.type === "user" &&
+                                                              p.trueName
+                                                                ? p.trueName
+                                                                : p.name}
+                                                            </td>
+                                                            <td className="px-3 py-2">
+                                                              {p.name}
+                                                            </td>
+                                                            <td className="px-3 py-2">
+                                                              {p.kills}
+                                                            </td>
+                                                            <td className="px-3 py-2">
+                                                              {p.maxMass}
+                                                            </td>
+                                                            <td className="px-3 py-2">
+                                                              {msToMinSec(
+                                                                p.durationMs,
+                                                              )}
+                                                            </td>
+                                                            <td className="px-3 py-2">
+                                                              {p.rank}
+                                                            </td>
+                                                          </tr>
+                                                        ),
+                                                      )}
+                                                    </tbody>
+                                                  </table>
+                                                </div>
+                                              )}
+                                          </div>
                                         </div>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          </React.Fragment>
-                        );
-                      })}
+                                      )}
+                                  </div>
+                                </td>
+                              </tr>
+                            </React.Fragment>
+                          );
+                        })}
                     </tbody>
                   </table>
                 </div>
