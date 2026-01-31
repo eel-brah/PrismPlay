@@ -1,4 +1,13 @@
 @import "tailwindcss";
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  overflow-y: auto;
+}
 /* Lightweight page transition helpers */
 .page-transition {
   transition: opacity 300ms ease, transform 300ms ease;
@@ -42,4 +51,3 @@ canvas {
   font-family: monospace;
   font-size: 18px;
 } */
-

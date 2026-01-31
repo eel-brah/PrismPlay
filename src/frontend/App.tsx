@@ -249,7 +249,7 @@ export default function App() {
           path="/home"
           element={
             <div
-              className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass} flex items-center justify-center`}
+              className={`relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass} flex items-center justify-center`}
             >
               <HomePage
                 onPlay={() => navigate("/games")}
@@ -263,7 +263,7 @@ export default function App() {
         <Route
           path="/agario"
           element={
-            <div className={topPaddingClass}>
+            <div className={`${topPaddingClass} min-h-screen overflow-y-auto`}>
               <Agario />
             </div>
           }
@@ -273,7 +273,7 @@ export default function App() {
         <Route
           path="/login/form"
           element={
-            <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
+            <div className="relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
               <LoginForm
                 onSubmit={handleLogin}
                 onRegister={() => navigate("/register")}
@@ -284,7 +284,7 @@ export default function App() {
         <Route
           path="/register"
           element={
-            <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
+            <div className="relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
               <RegisterForm onSubmit={handleRegister} />
             </div>
           }
@@ -293,7 +293,7 @@ export default function App() {
           path="/games"
           element={
             <div
-              className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center ${topPaddingClass}`}
+              className={`relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center ${topPaddingClass}`}
             >
               <div className="flex flex-col items-center justify-center p-8">
                 <h1 className="text-4xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
@@ -369,7 +369,7 @@ export default function App() {
           element={
             isAuthed ? (
               <div
-                className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center ${topPaddingClass}`}
+                className={`relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center ${topPaddingClass}`}
               >
                 <div className="flex flex-col items-center justify-center p-8">
                   <h1 className="text-4xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
@@ -434,7 +434,7 @@ export default function App() {
               </div>
             ) : isAuthed ? (
               <div
-                className={`relative h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass}`}
+                className={`relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass}`}
               >
                 <SocialHub />
               </div>
@@ -452,7 +452,7 @@ export default function App() {
               </div>
             ) : isAuthed ? (
               <div
-                className={`relative h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass}`}
+                className={`relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass}`}
               >
                 <PlayerProfile />
               </div>
@@ -470,7 +470,7 @@ export default function App() {
               </div>
             ) : isAuthed ? (
               <div
-                className={`relative h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass}`}
+                className={`relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass}`}
               >
                 <PublicPlayerProfile />
               </div>
@@ -483,7 +483,7 @@ export default function App() {
           path="/guest"
           element={
             <div
-              className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center ${topPaddingClass}`}
+              className={`relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center ${topPaddingClass}`}
             >
               <div className="flex flex-col items-center justify-center p-8">
                 <h1 className="text-4xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
@@ -521,7 +521,7 @@ export default function App() {
           path="/offline"
           element={
             <div
-              className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-8 ${topPaddingClass}`}
+              className={`relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-8 ${topPaddingClass}`}
             >
               <Pong onReturn={handleReturn} />
             </div>
@@ -536,7 +536,7 @@ export default function App() {
               </div>
             ) : isAuthed && user && token ? (
               <div
-                className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-8 ${topPaddingClass}`}
+                className={`relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-8 ${topPaddingClass}`}
               >
                 <OnlinePong
                   token={token}
