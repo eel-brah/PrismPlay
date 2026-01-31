@@ -434,7 +434,7 @@ export default function App() {
               </div>
             ) : isAuthed ? (
               <div
-                className={`relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass}`}
+                className={`relative h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass}`}
               >
                 <SocialHub />
               </div>

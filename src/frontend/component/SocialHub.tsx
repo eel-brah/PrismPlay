@@ -289,6 +289,8 @@ export default function SocialHub() {
   const [displayNameById, setDisplayNameById] = useState<
     Record<string, string>
   >({});
+  const chatMessagesRef = useRef<HTMLDivElement | null>(null);
+  const groupMessagesRef = useRef<HTMLDivElement | null>(null);
 
   // Groups state (frontend-only mock)
   const [groups, setGroups] = useState<
@@ -446,6 +448,36 @@ const sendMessage = () => {
       }
     }
   }, [messagesByDM, selectedFriendId, chatMode, myUserId]);
+  useEffect(() => {
+    if (activeTab !== "chat") return;
+    const container = chatMessagesRef.current;
+    if (!container) return;
+    const messageList =
+      chatMode === "channel"
+        ? messagesByChannel[selectedChannel] || []
+        : selectedFriendId
+          ? messagesByDM[selectedFriendId] || []
+          : [];
+    if (messageList.length === 0) return;
+    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+  }, [
+    activeTab,
+    chatMode,
+    selectedChannel,
+    selectedFriendId,
+    messagesByChannel,
+    messagesByDM,
+  ]);
+  useEffect(() => {
+    if (activeTab !== "groups") return;
+    const container = groupMessagesRef.current;
+    if (!container) return;
+    const messageList = selectedGroupId
+      ? messagesByGroup[selectedGroupId] || []
+      : [];
+    if (messageList.length === 0) return;
+    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+  }, [activeTab, selectedGroupId, messagesByGroup]);
 const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
     setChatInput(e.target.value);
     if (chatMode === "dm" && selectedFriendId && socketRef.current) {
@@ -502,7 +534,7 @@ const handleStartDirectMessage = (friendId: string) => {
   };
 
   return (
-    <div className="w-full h-full text-white">
+    <div className="w-full h-full text-white flex flex-col">
       <div className="max-w-6xl mx-auto px-6 pt-8 pb-4">
         <div className="text-center">
           <h2 className="text-2xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
@@ -531,9 +563,9 @@ const handleStartDirectMessage = (friendId: string) => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-hidden">
         {activeTab === "friends" && (
-          <div className="max-w-6xl mx-auto px-6 pb-10 space-y-6">
+          <div className="max-w-6xl mx-auto px-6 pb-10 space-y-6 h-full overflow-y-auto">
             <div className="max-w-3xl mx-auto">
               <div className="relative">
                 <input
@@ -748,9 +780,9 @@ const handleStartDirectMessage = (friendId: string) => {
         )}
 
         {activeTab === "chat" && (
-          <div className="max-w-6xl mx-auto px-6 pb-10">
-            <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6">
-              <div className="space-y-6">
+          <div className="max-w-6xl mx-auto px-6 pb-10 h-full">
+            <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6 h-full min-h-0">
+              <div className="space-y-6 h-full overflow-y-auto min-h-0 scrollbar-theme pr-2">
                 <div className="rounded-2xl border border-white/10 bg-gray-900/60 p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-gray-200">
@@ -897,7 +929,7 @@ const handleStartDirectMessage = (friendId: string) => {
                   </div>
                 </div>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-gray-900/60 p-4 flex flex-col">
+              <div className="rounded-2xl border border-white/10 bg-gray-900/60 p-4 flex flex-col h-full min-h-0">
                 <div className="text-sm font-semibold text-gray-200">
                   {chatMode === "channel"
                     ? `${selectedChannel[0].toUpperCase()}${selectedChannel.slice(1)} Chat`
@@ -925,7 +957,10 @@ const handleStartDirectMessage = (friendId: string) => {
                     Welcome to PingPong Pro chat
                   </div>
                 </div>
-                <div className="flex-1 mt-3 space-y-3 overflow-y-auto">
+                <div
+                  ref={chatMessagesRef}
+                  className="flex-1 min-h-0 mt-3 space-y-3 overflow-y-auto scrollbar-theme pr-2"
+                >
 
                   {(chatMode === "channel"
                     ? messagesByChannel[selectedChannel] || []
@@ -1019,8 +1054,8 @@ const handleStartDirectMessage = (friendId: string) => {
         )}
 
         {activeTab === "groups" && (
-          <div className="max-w-6xl mx-auto px-6 pb-10 grid grid-cols-1 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr] gap-4">
-            <div className="rounded-2xl border border-white/10 bg-gray-900/60 flex flex-col">
+          <div className="max-w-6xl mx-auto px-6 pb-10 grid grid-cols-1 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr] gap-4 h-full min-h-0">
+            <div className="rounded-2xl border border-white/10 bg-gray-900/60 flex flex-col h-full min-h-0">
               <div className="p-3 border-b border-white/10 space-y-2">
                 <div className="relative">
                   <input
@@ -1046,7 +1081,7 @@ const handleStartDirectMessage = (friendId: string) => {
                   </button>
                 </div>
               </div>
-              <div className="p-3 space-y-3 flex-1 overflow-y-auto">
+              <div className="p-3 space-y-3 flex-1 overflow-y-auto scrollbar-theme pr-2">
                 {groups
                   .filter((g) =>
                     g.name.toLowerCase().includes(groupSearch.toLowerCase()),
@@ -1090,13 +1125,16 @@ const handleStartDirectMessage = (friendId: string) => {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-gray-900/60 flex flex-col">
+            <div className="rounded-2xl border border-white/10 bg-gray-900/60 flex flex-col h-full min-h-0">
               <div className="px-3 py-2 text-sm font-semibold border-b border-white/10">
                 {selectedGroupId
                   ? groups.find((g) => g.id === selectedGroupId)?.name
                   : "Select a group"}
               </div>
-              <div className="flex-1 p-3 space-y-2 overflow-y-auto">
+              <div
+                ref={groupMessagesRef}
+                className="flex-1 min-h-0 p-3 space-y-2 overflow-y-auto scrollbar-theme pr-2"
+              >
                 {(selectedGroupId
                   ? messagesByGroup[selectedGroupId] || []
                   : ([] as Message[])
