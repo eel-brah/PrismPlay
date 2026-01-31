@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useMemo, useRef, useState, useEffect } from "react";
+import React, { useMemo, useRef, useState, useEffect, use } from "react";
 import {
   MessageCircle,
   Gamepad2,
@@ -147,12 +147,23 @@ export default function SocialHub() {
              }
           });
 
-
+// LISTEN: New Messages (Fixed: Loose Equality)
           s.on("new_message", (msg: any) => {
-             const friendId = Object.keys(chatIdByOther.current).find(
-               (k) => chatIdByOther.current[k] === msg.chatId
+             // 1. Try to identify friend by Chat ID (Using == for loose string/number match)
+             let friendId = Object.keys(chatIdByOther.current).find(
+               (k) => chatIdByOther.current[k] == msg.chatId
              );
+
+             // 2. FALLBACK: If Chat ID match failed, use Sender ID
+             // Check if I am NOT the sender (msg.senderId != me.id)
+             if (!friendId && msg.senderId && String(msg.senderId) != String(me.id)) {
+                 friendId = String(msg.senderId);
+                 // Save the mapping for future strict lookups
+                 if (msg.chatId) chatIdByOther.current[friendId] = msg.chatId;
+             }
+
              if (friendId) {
+               // A. Update Messages List
                setMessagesByDM((prev) => ({
                  ...prev,
                  [friendId]: [
@@ -161,15 +172,23 @@ export default function SocialHub() {
                      id: String(msg.id),
                      author: msg.sender?.username || "",
                      text: msg.content,
-                     ts: new Date(msg.createdAt).getTime(), // FIXED: Added ()
+                     ts: new Date(msg.createdAt).getTime(),
                      senderId: msg.senderId,
                      readAt: msg.readAt
                    },
                  ],
                }));
+
+               // B. Update Notification Badge
+               // Add +1 if: (Not looking at this chat) AND (Message is not from me)
+               if (friendId !== selectedFriendIdRef.current && String(msg.senderId) != String(me.id)) {
+                   setUnreadByDM((prev) => ({
+                       ...prev,
+                       [friendId]: (prev[friendId] || 0) + 1
+                   }));
+               }
              }
           });
-
           s.on("user_typing", (data: any) => {
              const friendId = Object.keys(chatIdByOther.current).find(
                (k) => chatIdByOther.current[k] === data.chatId
@@ -276,12 +295,11 @@ export default function SocialHub() {
   const [chatInput, setChatInput] = useState("");
   const [typingStatus, setTypingStatus] = useState<Record<string, boolean>>({});
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [unreadByDM, setUnreadByDM] = useState<Record<string, number>>({
-    "2": 2,
-    "3": 1,
-  });
+  const [unreadByDM, setUnreadByDM] = useState<Record<string, number>>({});
   const [dmSearch, setDmSearch] = useState("");
   const socketRef = useRef<Socket | null>(null);
+  const selectedFriendIdRef = useRef<string | null>(null);
+  useEffect(() => { selectedFriendIdRef.current = selectedFriendId; }, [selectedFriendId]);
   const [myUserId, setMyUserId] = useState<number | null>(null);
   const chatIdByOther = useRef<Record<string, number>>({});
   const [displayNameById, setDisplayNameById] = useState<
