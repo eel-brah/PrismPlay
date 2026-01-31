@@ -378,7 +378,7 @@ export default function App() {
                   <p className="text-gray-300 mb-8">
                     Choose how you want to play
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
                     <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-gray-700">
                       <h2 className="text-xl font-semibold text-green-400 mb-2">
                         Offline Mode
@@ -415,25 +415,6 @@ export default function App() {
                         className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
                       >
                         Play Online
-                      </button>
-                    </div>
-                    <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-gray-700">
-                      <h2 className="text-xl font-semibold text-purple-400 mb-2">
-                        Tournament
-                      </h2>
-                      <p className="text-gray-300 mb-4">
-                        Bracketed competition
-                      </p>
-                      <ul className="text-sm text-gray-400 mb-6 space-y-1">
-                        <li>• Private rooms</li>
-                        <li>• Custom settings</li>
-                        <li>• Spectator mode</li>
-                      </ul>
-                      <button
-                        disabled
-                        className="w-full bg-gray-700 text-gray-400 py-3 rounded-lg font-semibold cursor-not-allowed"
-                      >
-                        Coming Soon
                       </button>
                     </div>
                   </div>
