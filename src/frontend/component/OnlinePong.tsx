@@ -615,11 +615,11 @@ socket.on("match.reconnected", (payload) => {
     }
   };
 
-  // Handler for rematch (request rematch with same opponent)
-  const handleRematch = () => {
-    // For now, just find a new match (rematch logic would need server support)
-    handleFindMatch();
-  };
+  // // Handler for rematch (request rematch with same opponent)
+  // const handleRematch = () => {
+  //   // For now, just find a new match (rematch logic would need server support)
+  //   handleFindMatch();
+  // };
 
   // Handler for leaving to games page
   const handleLeave = () => {
@@ -712,7 +712,6 @@ socket.on("match.reconnected", (payload) => {
           mySide={side}
           winReason={gameOverData.winReason}
           onFindMatch={handleFindMatch}
-          onRematch={handleRematch}
           onLeave={handleLeave}
         />
       )}
