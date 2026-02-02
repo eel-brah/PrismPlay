@@ -210,6 +210,18 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
   // ========================================================================
   
   socket.on("block_user", async (data: { myId: number; otherId: number }) => {
+   const isBlocked = await prisma.block.findFirst({
+            where: {
+              OR: [
+                { blockerId: data.myId, blockedId: data.otherId }, // I blocked them
+                // { blockerId: data.otherId, blockedId: data.myId }, // They blocked me
+              ],
+            },
+          });
+          // isBlocked = 0; // TEMP DISABLE BLOCKS FOR TESTING
+          if (isBlocked) {
+            return; 
+          }
     try {
       await prisma.block.create({
         data: { blockerId: data.myId, blockedId: data.otherId , },
