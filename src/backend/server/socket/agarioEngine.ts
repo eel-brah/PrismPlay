@@ -22,6 +22,7 @@ import {
   PlayerData,
   PlayerState,
   Virus,
+  World,
 } from "src/shared/agario/types";
 import {
   radiusFromMass,
@@ -30,7 +31,7 @@ import {
   randomViruses,
 } from "src/shared/agario/utils";
 import type { Namespace } from "socket.io";
-import { World, worldByRoom } from "./agario";
+import { worldByRoom } from "./agario";
 import {
   createPlayerHistoryDb,
   finalizeRoomResultsDb,

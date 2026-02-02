@@ -19,6 +19,8 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { pipeline } from "node:stream/promises";
 
+export type JwtPayload = { id: number };
+
 function extractBearerToken(authHeader: string): string | null {
   const [scheme, token] = authHeader.split(" ");
   if (scheme !== "Bearer" || !token) return null;
@@ -58,11 +60,12 @@ export async function loginHandler(
   const ok = await verifyPassword(password, user.passwordHash);
   if (!ok) return rep.code(401).send({ message: "Invalid email or password" });
 
-  const accessToken = await rep.jwtSign(
-    { id: user.id },
-    { sign: { expiresIn: "1d" } },
-  );
-  // console.log("uder is ", user)
+  const payload: JwtPayload = { id: user.id };
+
+  const accessToken = await rep.jwtSign(payload, {
+    sign: { expiresIn: "1d" },
+  });
+
   return rep.send({
     accessToken,
     user: {

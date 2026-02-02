@@ -135,3 +135,42 @@ export type FinalStatus = {
   kills: number;
   maxMass: number;
 };
+
+export type RoomVisibility = "public" | "private";
+export type RoomStatus = "waiting" | "started";
+
+export type RoomMeta = {
+  roomId?: number;
+  room: string;
+  visibility: RoomVisibility;
+  key?: string;
+  maxPlayers: number;
+  durationMin: number;
+
+  status: RoomStatus;
+  createdAt: number;
+  startedAt?: number;
+  endAt?: number;
+
+  hostId: number;
+
+  allowSpectators: boolean;
+  spectators: Set<string>;
+};
+
+export type WorldHistory = {
+  playerName: string;
+  maxMass: number;
+  kills: number;
+  durationMs: number;
+};
+
+export type World = {
+  players: Record<string, PlayerState>;
+  orbs: Orb[];
+  ejects: Eject[];
+  viruses: Virus[];
+  meta: RoomMeta;
+};
+
+

@@ -2,13 +2,13 @@ import { FastifyBaseLogger, FastifyInstance } from "fastify";
 import { Namespace, Socket } from "socket.io";
 import { Player } from "src/shared/agario/player";
 import { randomColor } from "src/shared/agario/utils";
-import { RoomVisibility, World, worldByRoom } from "./agario";
 import crypto from "crypto";
 import {
-  FinalLeaderboardEntry,
   FinalStatus,
   PlayerState,
   RoomSummary,
+  RoomVisibility,
+  World,
 } from "src/shared/agario/types";
 import {
   DEFAULT_ROOM,
@@ -27,6 +27,7 @@ import {
   finalizeRoomResultsDb,
   getRoomLeaderboard,
 } from "src/backend/modules/agario/agario_service";
+import { worldByRoom } from "./agario";
 
 type CreateRoomPayload = {
   room: string;
@@ -228,12 +229,10 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
 
     try {
       await startRoom(socket, world);
-      socket.nsp
-        .to(room)
-        .emit("agario:room-status", {
-          status: "started",
-          started: world.meta.startedAt,
-        });
+      socket.nsp.to(room).emit("agario:room-status", {
+        status: "started",
+        started: world.meta.startedAt,
+      });
 
       for (const id of Object.keys(world.players)) {
         const client = socket.nsp.sockets.get(id);
@@ -382,12 +381,10 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
     ) {
       try {
         await startRoom(socket, world);
-        socket.nsp
-          .to(roomName)
-          .emit("agario:room-status", {
-            status: world.meta.status,
-            startedAt: world.meta.startedAt,
-          });
+        socket.nsp.to(roomName).emit("agario:room-status", {
+          status: world.meta.status,
+          startedAt: world.meta.startedAt,
+        });
       } catch (err) {
         let errorMessage = err instanceof Error ? err.message : "Unknown error";
         fastify.log.error({ id: socket.id }, errorMessage);

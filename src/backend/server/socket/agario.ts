@@ -1,47 +1,11 @@
 import { Server as SocketIOServer } from "socket.io";
-import { Eject, Orb, PlayerState, Virus } from "src/shared/agario/types";
 import { agarioEngine } from "./agarioEngine";
 import { agarioHandlers } from "./agarioHanders";
 import { FastifyInstance } from "fastify";
 import { createGuestDb } from "src/backend/modules/agario/agario_service.ts";
 import { socketAuthSchema } from "src/backend/modules/agario/agario_schema.ts";
-
-export type RoomVisibility = "public" | "private";
-export type RoomStatus = "waiting" | "started";
-
-export type RoomMeta = {
-  roomId?: number;
-  room: string;
-  visibility: RoomVisibility;
-  key?: string;
-  maxPlayers: number;
-  durationMin: number;
-
-  status: RoomStatus;
-  createdAt: number;
-  startedAt?: number;
-  endAt?: number;
-
-  hostId: number;
-
-  allowSpectators: boolean;
-  spectators: Set<string>;
-};
-
-export type WorldHistory = {
-  playerName: string;
-  maxMass: number;
-  kills: number;
-  durationMs: number;
-};
-
-export type World = {
-  players: Record<string, PlayerState>;
-  orbs: Orb[];
-  ejects: Eject[];
-  viruses: Virus[];
-  meta: RoomMeta;
-};
+import { World } from "src/shared/agario/types";
+import { JwtPayload } from "src/backend/modules/user/user_controller";
 
 export const worldByRoom = new Map<string, World>();
 
@@ -55,25 +19,19 @@ export function init_agario(io: SocketIOServer, fastify: FastifyInstance) {
     }
 
     const { sessionId, token, guestId } = parsed.data;
-    console.log(token)
-    console.log(guestId)
-    console.log(socket.id)
-    console.log(sessionId)
 
     if (!sessionId) {
       return next(new Error("Missing sessionId"));
     }
 
-    // console.log("S: ", sessionId)
-    // console.log("d: ", guestId)
-    // console.log("T: ", token)
     socket.data.sessionId = sessionId;
     if (token) {
       try {
         socket.data.guestId = undefined;
-        const decoded = fastify.jwt.verify(token);
+        const decoded = fastify.jwt.verify<JwtPayload>(token);
         socket.data.userId = decoded.id as number;
       } catch {
+        fastify.log.error({ id: socket.id }, "Invalid credentials");
         return next(new Error("Invalid credentials"));
       }
       return next();
@@ -85,9 +43,9 @@ export function init_agario(io: SocketIOServer, fastify: FastifyInstance) {
       try {
         await createGuestDb(guestId);
       } catch (err) {
-        let errorMessage = err instanceof Error ? err.message : "Unknown error";
+        const errorMessage = err instanceof Error ? err.message : "Unknown error";
         fastify.log.error({ id: socket.id }, errorMessage);
-        socket.emit("agario:error", errorMessage);
+        return next(new Error("Guest creation failed"));
       }
       return next();
     }
