@@ -30,6 +30,21 @@ export async function listIncomingRequests(userId: number) {
   });
 }
 
+export async function IsFrienddPending(myUserId: number, userId: number) {
+  const req = await prisma.friendRequest.findFirst({
+    where: {
+      status: "PENDING",
+      OR: [
+        { fromUserId: myUserId, toUserId: userId },
+        { fromUserId: userId, toUserId: myUserId },
+      ],
+    },
+    select: { id: true },
+  });
+
+  return !!req;
+}
+
 export async function sendFriendRequest(
   fromUserId: number,
   toUsername: string,
@@ -111,10 +126,13 @@ export async function declineFriendRequest(
   if (fr.status !== "PENDING")
     return { ok: false as const, code: "NOT_PENDING" as const };
 
-  await prisma.friendRequest.update({
-    where: { id: requestId },
-    data: { status: "DECLINED", respondedAt: new Date() },
+  await prisma.friendRequest.delete({
+    where: { id: requestId }
   });
+  // await prisma.friendRequest.update({
+  //   where: { id: requestId },
+  //   data: { status: "DECLINED", respondedAt: new Date() },
+  // });
 
   return { ok: true as const };
 }

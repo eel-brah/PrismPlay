@@ -7,6 +7,7 @@ import {
   acceptFriendRequest,
   declineFriendRequest,
   removeFriend,
+  IsFrienddPending,
 } from "./friend_service";
 
 type AuthedReq = FastifyRequest & { user: { id: number } };
@@ -19,6 +20,13 @@ export async function listFriendsHandler(req: AuthedReq, rep: FastifyReply) {
 export async function listIncomingHandler(req: AuthedReq, rep: FastifyReply) {
   const data = await listIncomingRequests(req.user.id);
   return rep.send(data);
+}
+
+export async function isPendingHandler(req:FastifyRequest<{Params: {userId: number}}>, rep: FastifyReply) {
+  const myUserId = req.user.id;
+  const other_id = Number(req.params.userId);
+  const pending = await IsFrienddPending(myUserId, other_id);
+  return rep.send({pending});
 }
 
 export async function sendRequestHandler(

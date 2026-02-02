@@ -328,6 +328,18 @@ export function apiRemoveFriend(token: string, id: string){
   });
 }
 
+type PendingResponse = { pending: boolean };
+
+export async function apiIsFrienddPending(token: string, id: number){
+   const res = await requestJson<PendingResponse>(`/api/friend/requests/pending/${id}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return !!res.pending;
+}
+
 export function apiAddFriend(token: string, username: string){
   // const obj = {username : user};
   return requestJson<FriendRequest[]>(`/api/friend/requests`, {

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useMemo, useRef, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   MessageCircle,
   Gamepad2,
@@ -57,7 +58,7 @@ export default function SocialHub() {
       avatarUrl?: string;
       status?: string; // Added optional status for UI pills
     }[]>([]);
-
+  const navigate = useNavigate();
   // Stores incoming friend requests
   const [requests, setRequests] = useState<{ id: string; name: string; avatarUrl?: string; mutualFriends?: number }[]>([]);
   
@@ -629,7 +630,15 @@ export default function SocialHub() {
                             : { text: "Offline", cls: "bg-gray-600 text-white" };
                     return (
                       <div key={f.id} className="rounded-2xl border border-white/10 bg-gray-900/60 shadow-xl p-5">
+                        {/* <a href="windown." */}
                         <div className="flex items-start justify-between">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigate(`/profile/${encodeURIComponent(f.name)}`)
+                            }
+                            className="flex items-center gap-3 text-left"
+                          >
                           <div className="flex items-center gap-3">
                             {f.avatarUrl ? (
                               <img src={f.avatarUrl} alt={f.name} className="w-10 h-10 rounded-full object-cover" />
@@ -644,6 +653,7 @@ export default function SocialHub() {
                               </div>
                             </div>
                           </div>
+                          </button>
                           <span className={`text-xs px-2 py-1 rounded-full ${pill.cls}`}>
                             {pill.text}
                           </span>
