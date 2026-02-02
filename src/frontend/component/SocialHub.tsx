@@ -12,6 +12,7 @@ import {
   Ban,
   LockKeyholeOpen,
   LockKeyhole,
+  GamePad,
 } from "lucide-react";
 import { io, type Socket } from "socket.io-client";
 import {
@@ -109,6 +110,10 @@ export default function SocialHub() {
   
   // Tracks if a specific friend is currently typing (mapped by friend ID)
   const [typingStatus, setTypingStatus] = useState<Record<string, boolean>>({});
+
+  // const [isBlocked, setIsBlocked] = useState(false); //  checking block status
+  const [blockStatus, setBlockStatus] = useState({ byMe: false, byThem: false });
+  const isChatLocked = blockStatus.byMe || blockStatus.byThem;
 
   // ============================================================================
   // 5. GROUPS FEATURE STATE (Mock Data)
@@ -376,6 +381,29 @@ export default function SocialHub() {
     container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
   }, [activeTab, chatMode, selectedChannel, selectedFriendId, messagesByChannel, messagesByDM]);
 
+  // Check block status whenever the selected friend changes
+useEffect(() => {
+  if (chatMode === "dm" && selectedFriendId && myUserId && socketRef.current) {
+    // Reset state
+    setBlockStatus({ byMe: false, byThem: false });
+    
+    socketRef.current.emit(
+      "check_block_status", 
+      { myId: myUserId, otherId: Number(selectedFriendId) }, 
+      (response: { blockedByMe: boolean; blockedByThem: boolean }) => {
+         setBlockStatus({ 
+           byMe: response.blockedByMe, 
+           byThem: response.blockedByThem 
+         });
+      }
+    );
+  } else {
+    setBlockStatus({ byMe: false, byThem: false });
+  }
+}, [selectedFriendId, chatMode, myUserId]);
+
+
+  
   // Effect: Auto-scroll group messages to bottom when new messages arrive
   useEffect(() => {
     if (activeTab !== "groups") return;
@@ -539,6 +567,8 @@ export default function SocialHub() {
       socketRef.current.emit("block_user", { myId: myUserId, otherId: Number(fID)});
     }
 
+        if (selectedFriendId === friendIdToBlock) {
+              setBlockStatus(prev => ({ ...prev, byMe: true }));    }
   };
 
 
@@ -549,6 +579,8 @@ export default function SocialHub() {
     {
       socketRef.current.emit("unblock_user", { myId: myUserId, otherId: Number(fID)});
     }
+    if (selectedFriendId === friendIdToBlock) {
+setBlockStatus(prev => ({ ...prev, byMe: false }));    }
 
   };
 
@@ -868,6 +900,17 @@ export default function SocialHub() {
                                 <div className="text-xs text-gray-400 truncate">{last ? last.text : "No messages yet"}</div>
                               </div>
                             </button>
+                                              {/* <button
+                 onClick={() => {
+                  if (selectedFriendId) UnBlockUser(selectedFriendId);
+                }}
+                className="p-2 rounded-md bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
+                disabled={chatMode !== "dm" || !selectedFriendId}
+                title="Unblock User">
+                  <Gamepad2 className="w-4 h-4" />
+                </button> */}
+                          
+                            {/*SSSSSSSSSSS*/}
                           </li>
                         );
                       })}
@@ -958,37 +1001,68 @@ export default function SocialHub() {
                 </div>
 
                 {/* Input Area */}
-                <div className="mt-4 flex items-center gap-2">
+              <div className="mt-4 flex items-center gap-2">
+                                <button
+                  onClick={() => {
+                    if (!selectedFriendId) return;
+                    if (blockStatus.byMe) {
+                      UnBlockUser(selectedFriendId);
+                    } else {
+                      blockUser(selectedFriendId);
+                    }
+                  }}
+                  className={`p-2 rounded-md text-white disabled:opacity-50 transition-colors ${
+                    blockStatus.byMe 
+                      ? "bg-green-600 hover:bg-green-700" 
+                      : "bg-red-600 hover:bg-red-700"
+                  }`}
+                  disabled={chatMode !== "dm" || !selectedFriendId}
+                  title={blockStatus.byMe ? "Unblock User" : "Block User"}
+                >
+                  {blockStatus.byMe ? (
+                    <LockKeyholeOpen className="w-4 h-4" />
+                  ) : (
+                    <LockKeyhole className="w-4 h-4" />
+                  )}
+                </button>
+
+                <input
+                  value={isChatLocked ? "" : chatInput}
+                  onChange={handleTyping}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !isChatLocked) sendMessage();
+                  }}
+                  // Placeholder explains WHY it is locked
+                  placeholder={
+                    blockStatus.byThem
+                      ? "You have been blocked by this user."
+                      : blockStatus.byMe
+                      ? "You blocked this user. Unblock to chat."
+                      : "Type your message..."
+                  }
+                  className={`flex-1 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none ${
+                    isChatLocked ? "cursor-not-allowed opacity-50 bg-gray-900" : ""
+                  }`}
+                  disabled={chatMode === "dm" && (!selectedFriendId || isChatLocked)}
+                />
                 <button
-                 onClick={() => {
-                  if (selectedFriendId) UnBlockUser(selectedFriendId);
-                }}
-                className="p-2 rounded-md bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
-                disabled={chatMode !== "dm" || !selectedFriendId}
-                title="Unblock User">
-                  <LockKeyholeOpen className="w-4 h-4" />
+                  onClick={sendMessage}
+                  className="p-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+                  disabled={chatMode === "dm" && (!selectedFriendId || isChatLocked)}
+                >
+                  <Send className="w-4 h-4" />
                 </button>
-                 <button
-                 onClick={() => {
-                  if (selectedFriendId) blockUser(selectedFriendId);
-                }}
-                className="p-2 rounded-md bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
-                disabled={chatMode !== "dm" || !selectedFriendId}
-                title="Block User">
-                  <LockKeyhole className="w-4 h-4" />
+                <button
+                  onClick={() => {
+                    console.log("");
+                  }}
+                  className="p-2 rounded-md bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
+                  disabled={chatMode !== "dm" || !selectedFriendId || isChatLocked}
+                  title="Invite to Game"
+                >
+                  <Gamepad2 className="w-4 h-4" />
                 </button>
-                  <input
-                    value={chatInput}
-                    onChange={handleTyping}
-                    onKeyDown={(e) => { if (e.key === "Enter") sendMessage(); }}
-                    placeholder="Type your message..."
-                    className="flex-1 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none"
-                    disabled={chatMode === "dm" && !selectedFriendId}
-                  />
-                  <button onClick={sendMessage} className="p-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50" disabled={chatMode === "dm" && !selectedFriendId}>
-                    <Send className="w-4 h-4" />
-                  </button>
-                </div>
+              </div>
               </div>
             </div>
           </div>
