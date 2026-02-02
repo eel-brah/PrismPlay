@@ -1,3 +1,4 @@
+import { boolean } from "node_modules/zod/v4/classic/coerce.d.cts";
 import { Socket, Namespace } from "socket.io";
 import prisma from "src/backend/utils/prisma"; 
 
@@ -211,10 +212,9 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
   socket.on("block_user", async (data: { myId: number; otherId: number }) => {
     try {
       await prisma.block.create({
-        data: { blockerId: data.myId, blockedId: data.otherId },
+        data: { blockerId: data.myId, blockedId: data.otherId , },
       });
-      // Notify sender success (optional)
-      // socket.emit("block_success", { blockedId: data.otherId });
+      socket.emit("block_success", { blockedId: data.otherId });
     } catch (e) {
       console.error("Block failed", e);
     }
@@ -235,7 +235,20 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
   // ZONE D: EPHEMERAL EVENTS (Typing)
   // ========================================================================
   
-  socket.on("typing_start", (payload: { chatId: number; userId: number }) => {
+  socket.on("typing_start", async (payload: { chatId: number; userId: number; otherParticipantID: number }) => {
+    const isBlocked = await prisma.block.findFirst({
+    where: {
+    OR: [
+    { blockerId: payload.userId, blockedId: payload.otherParticipantID}, // I blocked them
+          { blockerId: payload.otherParticipantID , blockedId: payload.userId }, // They blocked me
+        ],
+      },
+    });
+    // isBlocked = 0; // TEMP DISABLE BLOCKS FOR TESTING
+    if (isBlocked) {
+      return; 
+    }
+    
     // Broadcast to everyone in the room EXCEPT the sender
     socket.to(`chat_${payload.chatId}`).emit("user_typing", {
       chatId: payload.chatId,
@@ -315,4 +328,28 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
       console.error("Error fetching unread counts:", e);
     }
   });
+
+// // Update the handler to accept a callback function as the second argument
+//   socket.on("is_user_blocked", async (payload: { senderId: number, userId: number }, callback) => {
+//     try {
+//       const isBlocked = await prisma.block.findFirst({
+//         where: {
+//           OR: [
+//             { blockerId: payload.senderId, blockedId: payload.userId },
+//             { blockerId: payload.userId, blockedId: payload.senderId },
+//           ],
+//         },
+//       });
+
+//       // Send the response back to the specific client who asked
+//       if (callback) {
+//         callback(!!isBlocked); // !! converts object/null to boolean true/false
+//       }
+//     } catch (e) {
+//       console.error("Error checking block status:", e);
+//       if (callback) callback(false); // Default to false on error
+//     }
+//   });
+
+
 }

@@ -9,6 +9,9 @@ import {
   Search,
   Clock,
   Send,
+  Ban,
+  LockKeyholeOpen,
+  LockKeyhole,
 } from "lucide-react";
 import { io, type Socket } from "socket.io-client";
 import {
@@ -478,8 +481,7 @@ export default function SocialHub() {
     if (chatMode === "dm" && selectedFriendId && socketRef.current) {
       const chatId = chatIdByOther.current[selectedFriendId];
       if (!chatId) return;
-
-      socketRef.current.emit("typing_start", { chatId, userId: myUserId });
+      socketRef.current.emit("typing_start", { chatId, userId: myUserId, otherUserId: Number(selectedFriendId) });
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       
       typingTimeoutRef.current = setTimeout(() => {
@@ -522,6 +524,44 @@ export default function SocialHub() {
     }
     setChatInput("");
   };
+
+
+///
+
+  const blockUser = (friendIdToBlock: string) => {
+    if (!friendIdToBlock) return;
+    const fID = Number(friendIdToBlock);
+    // if (chatMode === "dm" && Number(selectedFriendId) === fID) {
+    //   setSelectedFriendId(null);
+    // }
+    if (socketRef.current && myUserId)
+    {
+      socketRef.current.emit("block_user", { myId: myUserId, otherId: Number(fID)});
+    }
+
+  };
+
+
+    const UnBlockUser = (friendIdToBlock: string) => {
+    if (!friendIdToBlock) return;
+    const fID = Number(friendIdToBlock);
+    if (socketRef.current && myUserId)
+    {
+      socketRef.current.emit("unblock_user", { myId: myUserId, otherId: Number(fID)});
+    }
+
+  };
+
+// const checkBlockStatus = (myId: number, friendId: number):boolean => {
+//   if (socketRef.current) {
+//     socketRef.current.emit(
+//       "is_user_blocked", 
+//       { senderId: myId, userId: friendId }, (response: { isBlocked: boolean }) => { 
+//         return response.isBlocked;
+//       }
+//     );
+//   }
+// };
 
   // ============================================================================
   // 10. GROUP HELPER FUNCTIONS
@@ -919,6 +959,24 @@ export default function SocialHub() {
 
                 {/* Input Area */}
                 <div className="mt-4 flex items-center gap-2">
+                <button
+                 onClick={() => {
+                  if (selectedFriendId) UnBlockUser(selectedFriendId);
+                }}
+                className="p-2 rounded-md bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
+                disabled={chatMode !== "dm" || !selectedFriendId}
+                title="Unblock User">
+                  <LockKeyholeOpen className="w-4 h-4" />
+                </button>
+                 <button
+                 onClick={() => {
+                  if (selectedFriendId) blockUser(selectedFriendId);
+                }}
+                className="p-2 rounded-md bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+                disabled={chatMode !== "dm" || !selectedFriendId}
+                title="Block User">
+                  <LockKeyhole className="w-4 h-4" />
+                </button>
                   <input
                     value={chatInput}
                     onChange={handleTyping}
