@@ -36,7 +36,7 @@ export async function IsFrienddPending(myUserId: number, userId: number) {
       status: "PENDING",
       OR: [
         { fromUserId: myUserId, toUserId: userId },
-        { fromUserId: userId, toUserId: myUserId },
+        // { fromUserId: userId, toUserId: myUserId },
       ],
     },
     select: { id: true },

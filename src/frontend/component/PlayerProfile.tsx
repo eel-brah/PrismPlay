@@ -18,6 +18,7 @@ import {
   apiAddFriend,
   apiRemoveFriend,
   apiIsFrienddPending,
+  apiIncomingRequests,
   type Achievement,
   type AgarioPlayerHistoryRecord,
   type AgarioRoomHistory,
@@ -26,6 +27,8 @@ import {
   type PlayerStats,
   type PublicUser,
   type User,
+  apiAcceptFriend,
+  apiDeclineFriend,
 } from "../api";
 
 type Tab = "profile" | "history";
@@ -1284,9 +1287,52 @@ export function PublicPlayerProfile() {
   const [showAgarLeaderboard, setShowAgarLeaderboard] = useState(false);
   const [myUserId, setMyUserId] = useState<number | null>(null);
   const [isFriend, setIsFriend] = useState(false);
+  const [incomingRequestId, setIncomingRequestId] = useState<number | null>(
+    null,
+  );
   const [friendPending, setFriendPending] = useState(false);
   const [friendLoading, setFriendLoading] = useState(false);
   const [friendError, setFriendError] = useState("");
+
+  const handleAccept = async () => {
+    if (!incomingRequestId || friendLoading) return;
+    const token = getStoredToken();
+    if (!token) return;
+
+    setFriendLoading(true);
+    setFriendError("");
+    try {
+      await apiAcceptFriend(token, String(incomingRequestId));
+      setIncomingRequestId(null);
+      setIsFriend(true);
+      setFriendPending(false);
+    } catch (e) {
+      setFriendError(
+        e instanceof Error ? e.message : "Failed to accept request",
+      );
+    } finally {
+      setFriendLoading(false);
+    }
+  };
+  const handleDecline = async () => {
+    if (!incomingRequestId || friendLoading) return;
+    const token = getStoredToken();
+    if (!token) return;
+    setFriendLoading(true);
+    setFriendError("");
+    try {
+      await apiDeclineFriend(token, String(incomingRequestId));
+      setIncomingRequestId(null);
+      setIsFriend(false);
+      setFriendPending(false);
+    } catch (e) {
+      setFriendError(
+        e instanceof Error ? e.message : "Failed to decline request",
+      );
+    } finally {
+      setFriendLoading(false);
+    }
+  };
 
   const selectedAgarPlayer = useMemo(
     () => agarPlayers.find((p) => p.id === selectedAgarPlayerId) ?? null,
@@ -1569,21 +1615,29 @@ export function PublicPlayerProfile() {
       try {
         const token = getStoredToken();
         if (!token) throw new Error("Not authenticated");
-        const [me, friends] = await Promise.all([
+        const [me, friends, incoming] = await Promise.all([
           apiGetMe(token),
           apiListFriends(token),
+          apiIncomingRequests(token),
         ]);
         if (cancelled) return;
         setMyUserId(me.id);
         const friendIds = new Set(friends.map((f) => f.friend.id));
         const isFriend = friendIds.has(user.id);
         setIsFriend(isFriend);
-        if (!isFriend) {
-          const pending = await apiIsFrienddPending(token, user.id);
-          if (!cancelled) setFriendPending(pending);
-        } else {
+        if (isFriend) {
           setFriendPending(false);
+          setIncomingRequestId(null);
+          return;
         }
+        const inc = incoming.find((r) => r.fromUser.id === user.id);
+        if (inc) {
+          setIncomingRequestId(inc.id);
+          setFriendPending(false);
+          return;
+        }
+        const pending = await apiIsFrienddPending(token, user.id);
+        if (!cancelled) setFriendPending(pending);
       } catch (e) {
         if (!cancelled) {
           setFriendError(
@@ -1715,19 +1769,43 @@ export function PublicPlayerProfile() {
                 </div>
                 {showFriendAction && (
                   <div className="mt-4 flex flex-col items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleFriendAction}
-                      disabled={friendLoading || friendPending}
-                      className={`px-4 py-2 rounded-md ${friendButtonClass} disabled:opacity-60`}
-                    >
-                      {friendLoading ? "Updating..." : friendButtonLabel}
-                    </button>
-                    {friendError && !friendPending && (
+                    {incomingRequestId ? (
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleAccept}
+                          disabled={friendLoading}
+                          className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white disabled:opacity-60"
+                        >
+                          {friendLoading ? "Updating..." : "Accept"}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleDecline}
+                          disabled={friendLoading}
+                          className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white disabled:opacity-60"
+                        >
+                          {friendLoading ? "Updating..." : "Decline"}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleFriendAction}
+                        disabled={friendLoading || friendPending}
+                        className={`px-4 py-2 rounded-md ${friendButtonClass} disabled:opacity-60`}
+                      >
+                        {friendLoading ? "Updating..." : friendButtonLabel}
+                      </button>
+                    )}
+
+                    {friendError && (
                       <div className="text-xs text-red-300">{friendError}</div>
                     )}
                   </div>
                 )}
+
                 <div className="mt-4">
                   <div className="flex items-center justify-between text-xs text-gray-400">
                     <span>Level {level}</span>
