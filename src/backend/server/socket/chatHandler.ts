@@ -1,4 +1,3 @@
-import { boolean } from "node_modules/zod/v4/classic/coerce.d.cts";
 import { Socket, Namespace } from "socket.io";
 import prisma from "src/backend/utils/prisma"; 
 
@@ -363,5 +362,25 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
 //     }
 //   });
 
+
+socket.on("check_block_status", async (payload: { myId: number, otherId: number }, callback) => {
+  try {
+    const blockByMe = await prisma.block.findFirst({
+      where: { blockerId: payload.myId, blockedId: payload.otherId },
+    });
+
+    const blockByThem = await prisma.block.findFirst({
+      where: { blockerId: payload.otherId, blockedId: payload.myId },
+    });
+
+    callback({ 
+      blockedByMe: !!blockByMe, 
+      blockedByThem: !!blockByThem 
+    }); 
+  } catch (e) {
+    console.error("Error checking block status:", e);
+    callback({ blockedByMe: false, blockedByThem: false });
+  }
+});
 
 }
