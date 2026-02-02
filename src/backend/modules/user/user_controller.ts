@@ -65,7 +65,6 @@ export async function loginHandler(
     { id: user.id },
     { sign: { expiresIn: "1d" } },
   );
-  // console.log("uder is ", user)
   return rep.send({
     accessToken,
     user: {

@@ -17,6 +17,7 @@ import {
   apiListFriends,
   apiAddFriend,
   apiRemoveFriend,
+  apiIsFrienddPending,
   type Achievement,
   type AgarioPlayerHistoryRecord,
   type AgarioRoomHistory,
@@ -466,9 +467,7 @@ export default function PlayerProfile() {
       } catch (err) {
         if (!cancelled) {
           setAgarLeaderboardError(
-            err instanceof Error
-              ? err.message
-              : "Failed to load leaderboard",
+            err instanceof Error ? err.message : "Failed to load leaderboard",
           );
         }
       } finally {
@@ -592,7 +591,9 @@ export default function PlayerProfile() {
   const level = Math.max(1, Math.floor(xpTotal / xpMax) + 1);
   const xpCurrent = xpTotal % xpMax;
   const xpPercent = Math.min(100, Math.round((xpCurrent / xpMax) * 100));
-  const lastLoginAt = user.lastLogin ? new Date(user.lastLogin).getTime() : null;
+  const lastLoginAt = user.lastLogin
+    ? new Date(user.lastLogin).getTime()
+    : null;
   const isOnline =
     lastLoginAt !== null && Date.now() - lastLoginAt < 5 * 60 * 1000;
   const statusPill = isOnline
@@ -1112,7 +1113,9 @@ export default function PlayerProfile() {
                                                     {selectedAgarRoom.name}
                                                   </td>
                                                   <td className="px-3 py-2">
-                                                    {selectedAgarRoom.visibility}
+                                                    {
+                                                      selectedAgarRoom.visibility
+                                                    }
                                                   </td>
                                                   <td className="px-3 py-2">
                                                     {selectedAgarRoom.isDefault
@@ -1120,7 +1123,9 @@ export default function PlayerProfile() {
                                                       : "No"}
                                                   </td>
                                                   <td className="px-3 py-2">
-                                                    {selectedAgarRoom.playersCount}
+                                                    {
+                                                      selectedAgarRoom.playersCount
+                                                    }
                                                     /
                                                     {selectedAgarRoom.maxPlayers ??
                                                       "—"}
@@ -1337,8 +1342,7 @@ export function PublicPlayerProfile() {
         }
         try {
           const nextAchievements = await apiGetAchievements(token, profile.id);
-          if (!cancelled)
-            setAchievements(nextAchievements.achievements ?? []);
+          if (!cancelled) setAchievements(nextAchievements.achievements ?? []);
         } catch (e) {
           if (!cancelled) {
             setAchievementsError(
@@ -1536,9 +1540,7 @@ export function PublicPlayerProfile() {
       } catch (err) {
         if (!cancelled) {
           setAgarLeaderboardError(
-            err instanceof Error
-              ? err.message
-              : "Failed to load leaderboard",
+            err instanceof Error ? err.message : "Failed to load leaderboard",
           );
         }
       } finally {
@@ -1574,8 +1576,14 @@ export function PublicPlayerProfile() {
         if (cancelled) return;
         setMyUserId(me.id);
         const friendIds = new Set(friends.map((f) => f.friend.id));
-        setIsFriend(friendIds.has(user.id));
-        setFriendPending(false);
+        const isFriend = friendIds.has(user.id);
+        setIsFriend(isFriend);
+        if (!isFriend) {
+          const pending = await apiIsFrienddPending(token, user.id);
+          if (!cancelled) setFriendPending(pending);
+        } else {
+          setFriendPending(false);
+        }
       } catch (e) {
         if (!cancelled) {
           setFriendError(
@@ -1605,7 +1613,9 @@ export function PublicPlayerProfile() {
   const level = Math.max(1, Math.floor(xpTotal / xpMax) + 1);
   const xpCurrent = xpTotal % xpMax;
   const xpPercent = Math.min(100, Math.round((xpCurrent / xpMax) * 100));
-  const lastLoginAt = user.lastLogin ? new Date(user.lastLogin).getTime() : null;
+  const lastLoginAt = user.lastLogin
+    ? new Date(user.lastLogin).getTime()
+    : null;
   const isOnline =
     lastLoginAt !== null && Date.now() - lastLoginAt < 5 * 60 * 1000;
   const statusPill = isOnline
@@ -1658,9 +1668,7 @@ export function PublicPlayerProfile() {
           <h2 className="text-2xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
             Player Profile
           </h2>
-          <p className="text-sm text-gray-400 mt-1">
-            Viewing player profile
-          </p>
+          <p className="text-sm text-gray-400 mt-1">Viewing player profile</p>
         </div>
         <div className="mt-6 flex items-center justify-center">
           <div className="inline-flex rounded-full bg-gray-800/60 p-1">
@@ -2074,7 +2082,9 @@ export function PublicPlayerProfile() {
                                                     {selectedAgarRoom.name}
                                                   </td>
                                                   <td className="px-3 py-2">
-                                                    {selectedAgarRoom.visibility}
+                                                    {
+                                                      selectedAgarRoom.visibility
+                                                    }
                                                   </td>
                                                   <td className="px-3 py-2">
                                                     {selectedAgarRoom.isDefault
@@ -2082,7 +2092,9 @@ export function PublicPlayerProfile() {
                                                       : "No"}
                                                   </td>
                                                   <td className="px-3 py-2">
-                                                    {selectedAgarRoom.playersCount}
+                                                    {
+                                                      selectedAgarRoom.playersCount
+                                                    }
                                                   </td>
                                                   <td className="px-3 py-2">
                                                     {selectedAgarRoom.maxDurationMin ===
@@ -2152,7 +2164,8 @@ export function PublicPlayerProfile() {
                                                         (p) => (
                                                           <tr key={p.id}>
                                                             <td className="px-3 py-2">
-                                                              {p.type === "user" &&
+                                                              {p.type ===
+                                                                "user" &&
                                                               p.trueName
                                                                 ? p.trueName
                                                                 : p.name}

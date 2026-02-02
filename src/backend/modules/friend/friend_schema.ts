@@ -38,4 +38,13 @@ export const messageSchema = z.object({
   message: z.string(),
 });
 
+export const userIdParamsSchema = z.object({
+  userId: z.coerce.number().int().positive(),
+});
+
+export const pendingSchema = z.object({
+  pending: z.boolean(),
+});
+
+
 export type SendRequestBody = z.infer<typeof sendRequestBodySchema>;

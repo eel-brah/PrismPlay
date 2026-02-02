@@ -6,6 +6,8 @@ import {
   requestIdParamsSchema,
   friendIdParamsSchema,
   messageSchema,
+  pendingSchema,
+  userIdParamsSchema,
 } from "./friend_schema";
 import {
   listFriendsHandler,
@@ -14,6 +16,7 @@ import {
   acceptRequestHandler,
   declineRequestHandler,
   removeFriendHandler,
+  isPendingHandler,
 } from "./friend_controller";
 
 export async function friendsRoutes(app: FastifyInstance) {
@@ -41,6 +44,15 @@ export async function friendsRoutes(app: FastifyInstance) {
       },
     },
     handler: sendRequestHandler,
+  });
+
+  app.get("/requests/pending/:userId", {
+    preHandler: [app.auth],
+    schema: {
+      params: userIdParamsSchema,
+      response: { 200: pendingSchema },
+    },
+    handler: isPendingHandler,
   });
 
   app.post("/requests/:requestId/accept", {
