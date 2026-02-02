@@ -51,7 +51,13 @@ export default function RegisterForm({ onSubmit }: Props) {
           Register to create a new account
         </p>
 
-        <div className="space-y-4">
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleRegisterClick();
+          }}
+        >
           <div>
             <label className="block text-sm text-gray-300 mb-1">Email</label>
             <input
@@ -106,6 +112,7 @@ export default function RegisterForm({ onSubmit }: Props) {
             Register
           </button> */}
           <button
+            type="submit"
             onClick={handleRegisterClick}
             disabled={loading}
             className="w-full mt-2 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white py-2.5 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
@@ -121,6 +128,7 @@ export default function RegisterForm({ onSubmit }: Props) {
             <div className="h-px flex-1 bg-gray-700" />
           </div>
           <button
+            type="button"
             // onClick={() => onSubmit("google", "oauth")}
             className="w-full bg-white text-gray-900 hover:bg-gray-100 border border-gray-300 py-2.5 rounded-lg font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
           >
@@ -145,7 +153,7 @@ export default function RegisterForm({ onSubmit }: Props) {
             </svg>
             Sign up with Google
           </button>
-        </div>
+        </form>
       </div>
     </div>
   );

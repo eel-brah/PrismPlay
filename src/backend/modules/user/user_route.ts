@@ -4,15 +4,20 @@ import {
   loginHandler,
   logoutHandler,
   getMeHandler,
+  getUserByIdHandler,
+  getUserByUsernameHandler,
+  getUserAchievementsHandler,
   updateMeHandler,
   uploadAvatar,
 } from "./user_controller.ts";
 import {
+  achievementsResponseSchema,
   createResponseSchema,
   createUserSchema,
   loginResponseSchema,
   loginSchema,
   messageResponseSchema,
+  publicUserResponseSchema,
   updateUserSchema,
   userResponseSchema,
 } from "./user_schema.ts";
@@ -48,6 +53,39 @@ export async function userRoutes(server: FastifyInstance) {
     preHandler: [server.auth],
     schema: { response: { 200: userResponseSchema } },
     handler: getMeHandler,
+  });
+  server.get("/username/:username", {
+    preHandler: [server.auth],
+    schema: {
+      response: {
+        200: publicUserResponseSchema,
+        400: messageResponseSchema,
+        404: messageResponseSchema,
+      },
+    },
+    handler: getUserByUsernameHandler,
+  });
+  server.get("/:id", {
+    preHandler: [server.auth],
+    schema: {
+      response: {
+        200: publicUserResponseSchema,
+        400: messageResponseSchema,
+        404: messageResponseSchema,
+      },
+    },
+    handler: getUserByIdHandler,
+  });
+  server.get("/:id/achievements", {
+    preHandler: [server.auth],
+    schema: {
+      response: {
+        200: achievementsResponseSchema,
+        400: messageResponseSchema,
+        404: messageResponseSchema,
+      },
+    },
+    handler: getUserAchievementsHandler,
   });
 
   server.patch("/me", {

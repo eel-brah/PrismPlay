@@ -12,6 +12,14 @@ const safeSelect = {
   lastLogin: true,
 } as const;
 
+const publicSelect = {
+  id: true,
+  username: true,
+  createdAt: true,
+  avatarUrl: true,
+  lastLogin: true,
+} as const;
+
 export async function createUser(input: CreateUserInput) {
   const { password, ...rest } = input;
   const passwordHash = await hashPassword(password);
@@ -30,6 +38,20 @@ export async function findUserById(id: number) {
   return prisma.user.findUnique({
     where: { id },
     select: safeSelect,
+  });
+}
+
+export async function findUserPublicById(id: number) {
+  return prisma.user.findUnique({
+    where: { id },
+    select: publicSelect,
+  });
+}
+
+export async function findUserPublicByUsername(username: string) {
+  return prisma.user.findUnique({
+    where: { username },
+    select: publicSelect,
   });
 }
 
@@ -61,4 +83,83 @@ export async function createRevokedToken(token: string) {
 
 export async function findToken(token: string) {
   return prisma.revokedToken.findUnique({ where: { token } });
+}
+
+export async function getUserAchievements(userId: number) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { createdAt: true },
+  });
+  if (!user) return null;
+
+  const [pongWins, agarioWins] = await Promise.all([
+    prisma.pongMatch.count({ where: { winnerId: userId } }),
+    prisma.playerHistory.count({
+      where: { userId, isWinner: true },
+    }),
+  ]);
+
+  const hasFirstWin = pongWins + agarioWins > 0;
+
+  const now = Date.now();
+  const veteran =
+    now - new Date(user.createdAt).getTime() >= 30 * 24 * 60 * 60 * 1000;
+
+  const [pongRecent, agarioRecent] = await Promise.all([
+    prisma.pongMatch.findMany({
+      where: { OR: [{ leftPlayerId: userId }, { rightPlayerId: userId }] },
+      select: {
+        createdAt: true,
+        winnerId: true,
+        leftPlayerId: true,
+        rightPlayerId: true,
+        leftScore: true,
+        rightScore: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }),
+    prisma.playerHistory.findMany({
+      where: { userId },
+      select: { createdAt: true, isWinner: true },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }),
+  ]);
+
+  const combined = [
+    ...pongRecent.map((match) => ({
+      createdAt: match.createdAt,
+      win: match.winnerId === userId,
+    })),
+    ...agarioRecent.map((match) => ({
+      createdAt: match.createdAt,
+      win: match.isWinner,
+    })),
+  ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+  let hotStreakCount = 0;
+  for (const entry of combined) {
+    if (!entry.win) break;
+    hotStreakCount += 1;
+    if (hotStreakCount >= 5) break;
+  }
+
+  let precisionCount = 0;
+  for (const match of pongRecent) {
+    const isLeft = match.leftPlayerId === userId;
+    const opponentScore = isLeft ? match.rightScore : match.leftScore;
+    const isPerfectWin =
+      match.winnerId === userId && opponentScore === 0;
+    if (!isPerfectWin) break;
+    precisionCount += 1;
+    if (precisionCount >= 3) break;
+  }
+
+  return [
+    { id: "first_win", name: "First Win", unlocked: hasFirstWin },
+    { id: "hot_streak", name: "Hot Streak", unlocked: hotStreakCount >= 5 },
+    { id: "precision", name: "Precision", unlocked: precisionCount >= 3 },
+    { id: "veteran", name: "Veteran", unlocked: veteran },
+  ];
 }

@@ -7,7 +7,7 @@ import LoginForm from "./component/LoginForm";
 import RegisterForm from "./component/RegisterForm";
 import HomePage from "./component/HomePage";
 import SocialHub from "./component/SocialHub";
-import PlayerProfile from "./component/PlayerProfile";
+import PlayerProfile, { PublicPlayerProfile } from "./component/PlayerProfile";
 import {
   Route,
   Routes,
@@ -157,6 +157,20 @@ export default function App() {
           : location.pathname.startsWith("/profile")
             ? "profile"
             : "none";
+  const isHome = location.pathname === "/home";
+  const returnLabel = isHome ? (isAuthed ? "Log Out" : "Log In") : "Return";
+
+  const handleReturnClick = () => {
+    if (isHome) {
+      if (isAuthed) {
+        void handleLogout();
+      } else {
+        navigate("/login/form");
+      }
+      return;
+    }
+    handleReturn();
+  };
 
   const handleReturn = () => {
     if (globalThis.history.length > 1) {
@@ -232,10 +246,10 @@ export default function App() {
                   )}
                 </div>
                 <button
-                  onClick={handleReturn}
+                  onClick={handleReturnClick}
                   className="px-4 py-2 rounded-md text-sm font-semibold text-gray-200 hover:text-white hover:bg-white/5 transition-colors"
                 >
-                  Return
+                  {returnLabel}
                 </button>
               </div>
             </div>
@@ -249,7 +263,7 @@ export default function App() {
           path="/home"
           element={
             <div
-              className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass} flex items-center justify-center`}
+              className={`relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass} flex items-center justify-center`}
             >
               <HomePage
                 onPlay={() => navigate("/games")}
@@ -263,7 +277,7 @@ export default function App() {
         <Route
           path="/agario"
           element={
-            <div className={topPaddingClass}>
+            <div className={`${topPaddingClass} min-h-screen overflow-y-auto`}>
               <Agario />
             </div>
           }
@@ -273,7 +287,7 @@ export default function App() {
         <Route
           path="/login/form"
           element={
-            <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
+            <div className="relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
               <LoginForm
                 onSubmit={handleLogin}
                 onRegister={() => navigate("/register")}
@@ -284,7 +298,7 @@ export default function App() {
         <Route
           path="/register"
           element={
-            <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
+            <div className="relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
               <RegisterForm onSubmit={handleRegister} />
             </div>
           }
@@ -293,7 +307,7 @@ export default function App() {
           path="/games"
           element={
             <div
-              className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center ${topPaddingClass}`}
+              className={`relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center ${topPaddingClass}`}
             >
               <div className="flex flex-col items-center justify-center p-8">
                 <h1 className="text-4xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
@@ -369,7 +383,7 @@ export default function App() {
           element={
             isAuthed ? (
               <div
-                className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center ${topPaddingClass}`}
+                className={`relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center ${topPaddingClass}`}
               >
                 <div className="flex flex-col items-center justify-center p-8">
                   <h1 className="text-4xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
@@ -378,7 +392,7 @@ export default function App() {
                   <p className="text-gray-300 mb-8">
                     Choose how you want to play
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
                     <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-gray-700">
                       <h2 className="text-xl font-semibold text-green-400 mb-2">
                         Offline Mode
@@ -417,25 +431,6 @@ export default function App() {
                         Play Online
                       </button>
                     </div>
-                    <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-gray-700">
-                      <h2 className="text-xl font-semibold text-purple-400 mb-2">
-                        Tournament
-                      </h2>
-                      <p className="text-gray-300 mb-4">
-                        Bracketed competition
-                      </p>
-                      <ul className="text-sm text-gray-400 mb-6 space-y-1">
-                        <li>• Private rooms</li>
-                        <li>• Custom settings</li>
-                        <li>• Spectator mode</li>
-                      </ul>
-                      <button
-                        disabled
-                        className="w-full bg-gray-700 text-gray-400 py-3 rounded-lg font-semibold cursor-not-allowed"
-                      >
-                        Coming Soon
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -471,9 +466,27 @@ export default function App() {
               </div>
             ) : isAuthed ? (
               <div
-                className={`relative h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass}`}
+                className={`relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass}`}
               >
                 <PlayerProfile />
+              </div>
+            ) : (
+              <Navigate to="/login/form" replace />
+            )
+          }
+        />
+        <Route
+          path="/profile/:username"
+          element={
+            bootingAuth ? (
+              <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
+                Loading...
+              </div>
+            ) : isAuthed ? (
+              <div
+                className={`relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 ${topPaddingClass}`}
+              >
+                <PublicPlayerProfile />
               </div>
             ) : (
               <Navigate to="/login/form" replace />
@@ -484,7 +497,7 @@ export default function App() {
           path="/guest"
           element={
             <div
-              className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center ${topPaddingClass}`}
+              className={`relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center ${topPaddingClass}`}
             >
               <div className="flex flex-col items-center justify-center p-8">
                 <h1 className="text-4xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
@@ -522,7 +535,7 @@ export default function App() {
           path="/offline"
           element={
             <div
-              className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-8 ${topPaddingClass}`}
+              className={`relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-8 ${topPaddingClass}`}
             >
               <Pong onReturn={handleReturn} />
             </div>
@@ -537,7 +550,7 @@ export default function App() {
               </div>
             ) : isAuthed && user && token ? (
               <div
-                className={`relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-8 ${topPaddingClass}`}
+                className={`relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-8 ${topPaddingClass}`}
               >
                 <OnlinePong
                   token={token}

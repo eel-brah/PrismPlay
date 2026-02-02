@@ -55,6 +55,7 @@ interface Match {
   isPaused: boolean;
   startTime: number;
   isEnding: boolean;
+  hasStarted: boolean;
 }
 
 const RECONNECT_TIMEOUT_MS = 15000;
@@ -94,7 +95,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
 
     socket.on("match.join", async () => {
       const userId = socket.data.userId;
-      
+
       if (!userId) {
         socket.emit("match.error", { message: "Not authenticated" });
         return;
@@ -103,7 +104,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       // Load canonical profile from DB
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: { id: true, username: true,email: true, avatarUrl: true },
+        select: { id: true, username: true, avatarUrl: true },
       });
 
       if (!user) {
@@ -114,7 +115,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       const profile: PlayerProfile = {
         id: user.id,
         nickname: user.username,
-        email: user.email,
+        // email: user.email,
         avatarUrl: user.avatarUrl ?? undefined,
       };
 
@@ -128,25 +129,38 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       const existingMatchId = playerMatchMap.get(profile.id);
       if (existingMatchId) {
         const match = matches.get(existingMatchId);
-        if (match && (match.leftDisconnectedAt !== null || match.rightDisconnectedAt !== null)) {
+        if (
+          match &&
+          (match.leftDisconnectedAt !== null ||
+            match.rightDisconnectedAt !== null)
+        ) {
           const side = match.leftProfile.id === profile.id ? "left" : "right";
-          const isDisconnected = side === "left" 
-            ? match.leftDisconnectedAt !== null 
-            : match.rightDisconnectedAt !== null;
-          
+          const isDisconnected =
+            side === "left"
+              ? match.leftDisconnectedAt !== null
+              : match.rightDisconnectedAt !== null;
+
+          // if (isDisconnected) {
+          //   handleReconnect(socket, match, profile.id);
+          //   return;
+          // }
           if (isDisconnected) {
-            handleReconnect(socket, match, profile.id);
+            await handleReconnect(socket, match, profile.id);
             return;
           }
         }
       }
 
-      const existingInQueue = waitingQueue.findIndex((s) => s.data.profile?.id === profile.id);
+      const existingInQueue = waitingQueue.findIndex(
+        (s) => s.data.profile?.id === profile.id,
+      );
       if (existingInQueue >= 0) {
         // Kick the older socket
         const oldSocket = waitingQueue[existingInQueue];
         waitingQueue.splice(existingInQueue, 1);
-        oldSocket.emit("match.error", { message: "Connected from another tab" });
+        oldSocket.emit("match.error", {
+          message: "Connected from another tab",
+        });
         oldSocket.disconnect();
       }
 
@@ -174,10 +188,10 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       if (!matchId) return;
       const match = matches.get(matchId);
       if (!match) return;
-      
+
       const side = socket.data.side!;
       const winnerSide: Side = side === "left" ? "right" : "left";
-      
+
       endMatch(match, winnerSide, "surrender", { surrenderingSide: side });
     });
 
@@ -206,14 +220,14 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     while (waitingQueue.length >= 2) {
       const a = waitingQueue.shift()!;
       const b = waitingQueue.shift()!;
-      
+
       // Verify both sockets are still valid
       if (!a.connected || !b.connected || !a.data.profile || !b.data.profile) {
         if (a.connected && a.data.profile) waitingQueue.unshift(a);
         if (b.connected && b.data.profile) waitingQueue.unshift(b);
         continue;
       }
-      
+
       createMatch(a, b);
     }
   }
@@ -260,6 +274,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       isPaused: false,
       startTime: Date.now(),
       isEnding: false,
+      hasStarted: false,
     };
 
     match.loop = setInterval(() => tickMatch(match), 1000 / 60);
@@ -307,8 +322,15 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     );
   }
 
-  function handleReconnect(socket: PongSocket, match: Match, playerId: number) {
-    const side = match.leftProfile.id === playerId ? "left" : "right";
+  async function handleReconnect(
+    socket: PongSocket,
+    match: Match,
+    playerId: number,
+  ) {
+    const side: Side = match.leftProfile.id === playerId ? "left" : "right";
+
+    const playerProfile =
+      side === "left" ? match.leftProfile : match.rightProfile;
     const opponentProfile =
       side === "left" ? match.rightProfile : match.leftProfile;
 
@@ -335,18 +357,27 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     socket.data.matchId = match.id;
     socket.data.side = side;
 
-    const bothConnected = match.leftDisconnectedAt === null && match.rightDisconnectedAt === null;
+    const bothConnected =
+      match.leftDisconnectedAt === null && match.rightDisconnectedAt === null;
     if (bothConnected) {
       match.isPaused = false;
     }
 
     const opponent = side === "left" ? match.right : match.left;
 
+    const [playerStats, opponentStats] = await Promise.all([
+      getPlayerStats(playerProfile.id),
+      getPlayerStats(opponentProfile.id),
+    ]);
+
     socket.emit("match.reconnected", {
       matchId: match.id,
       side,
       snapshot: toSnapshot(match.state),
+      player: playerProfile,
       opponent: opponentProfile,
+      playerStats,
+      opponentStats,
     });
 
     if (opponent) {
@@ -374,7 +405,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
 
     if (isConnectionLoss && match.state.phase !== "gameover") {
       match.isPaused = true;
-      
+
       const now = Date.now();
       if (isLeft) {
         match.left = null;
@@ -394,7 +425,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       if (match.reconnectTimeout) {
         clearTimeout(match.reconnectTimeout);
       }
-      
+
       match.reconnectTimeout = setTimeout(() => {
         fastify.log.info(
           { matchId: match.id },
@@ -423,9 +454,12 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     if (leftDisconnected && rightDisconnected) {
       const leftTime = match.leftDisconnectedAt!;
       const rightTime = match.rightDisconnectedAt!;
-      
+
       if (Math.abs(leftTime - rightTime) < 1000) {
-        fastify.log.info({ matchId: match.id }, "[pong] Both players disconnected - cancelling match");
+        fastify.log.info(
+          { matchId: match.id },
+          "[pong] Both players disconnected - cancelling match",
+        );
         cancelMatch(match);
       } else if (leftTime < rightTime) {
         endMatch(match, "right", "disconnect");
@@ -459,22 +493,24 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     if (!matchId) return;
 
     const match = matches.get(matchId);
-    if (!match) return;
+    if (!match || match.isEnding) return;
 
-    if (match.state.phase === "countdown") {
+    const isPreStartCountdown =
+      match.state.phase === "countdown" && !match.hasStarted;
+
+    // ✅ only cancel if match hasn't started yet
+    if (isPreStartCountdown) {
       const isLeft = socket.data.side === "left";
       const opponent = isLeft ? match.right : match.left;
 
-      if (opponent) {
-        opponent.emit("opponent.left");
-        opponent.emit("match.cancelled");
-      }
+      opponent?.emit("opponent.left");
+      opponent?.emit("match.cancelled");
 
       cancelMatch(match);
       return;
     }
 
-    // During game, treat as surrender
+    // ✅ otherwise treat as surrender (including between-round countdown)
     const side = socket.data.side!;
     const winnerSide: Side = side === "left" ? "right" : "left";
     endMatch(match, winnerSide, "surrender", { surrenderingSide: side });
@@ -484,7 +520,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     match: Match,
     winnerSide: Side,
     reason: "score" | "surrender" | "disconnect",
-    options?: { surrenderingSide?: Side }
+    options?: { surrenderingSide?: Side },
   ) {
     if (match.isEnding) return;
     match.isEnding = true;
@@ -508,7 +544,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     match: Match,
     winnerSide: Side,
     reason: "score" | "surrender" | "disconnect",
-    options?: { surrenderingSide?: Side }
+    options?: { surrenderingSide?: Side },
   ) {
     const gameOverPayload = {
       matchId: match.id,
@@ -521,8 +557,10 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     // Emit based on reason
     if (reason === "surrender" && options?.surrenderingSide) {
       const surrenderingSide = options.surrenderingSide;
-      const surrenderingSocket = surrenderingSide === "left" ? match.left : match.right;
-      const winnerSocket = surrenderingSide === "left" ? match.right : match.left;
+      const surrenderingSocket =
+        surrenderingSide === "left" ? match.left : match.right;
+      const winnerSocket =
+        surrenderingSide === "left" ? match.right : match.left;
 
       surrenderingSocket?.emit("match.surrendered", { matchId: match.id });
       winnerSocket?.emit("opponent.surrendered");
@@ -539,7 +577,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
 
     // Save to DB
     await saveMatchResult(match, winnerSide, reason);
-    
+
     // Final cleanup
     cleanupMatch(match);
   }
@@ -581,10 +619,18 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
   function tickMatch(match: Match) {
     // Guard: don't tick if paused or ending
     if (match.isPaused || match.isEnding) return;
-
+    const prevPhase = match.state.phase;
     const dt = 1 / 60;
     stepServerGame(match.state, match.inputs, dt);
 
+    // ✅ First time we transition countdown -> playing, mark match as started
+    if (
+      !match.hasStarted &&
+      prevPhase === "countdown" &&
+      match.state.phase === "playing"
+    ) {
+      match.hasStarted = true;
+    }
     const snapshot: GameSnapshot = toSnapshot(match.state);
     match.left?.emit("game.state", snapshot);
     match.right?.emit("game.state", snapshot);
@@ -601,7 +647,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       clearInterval(match.loop);
       match.loop = null;
     }
-    
+
     if (match.reconnectTimeout) {
       clearTimeout(match.reconnectTimeout);
       match.reconnectTimeout = null;

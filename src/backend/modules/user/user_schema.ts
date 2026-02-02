@@ -50,6 +50,24 @@ export const userResponseSchema = z.object({
   avatarUrl: z.string().nullable(),
 });
 
+export const publicUserResponseSchema = z.object({
+  id: z.number(),
+  username: usernameSchema,
+  createdAt: isoDateOrDate,
+  lastLogin: isoDateOrDate.nullable(),
+  avatarUrl: z.string().nullable(),
+});
+
+export const achievementSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  unlocked: z.boolean(),
+});
+
+export const achievementsResponseSchema = z.object({
+  achievements: z.array(achievementSchema),
+});
+
 export const usersResponseSchema = z.array(userResponseSchema);
 
 export const loginSchema = z.object({
@@ -85,6 +103,9 @@ export function createResponseSchema(schema: any, codes: number[]) {
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UserResponse = z.infer<typeof userResponseSchema>;
+export type PublicUserResponse = z.infer<typeof publicUserResponseSchema>;
+export type AchievementResponse = z.infer<typeof achievementSchema>;
+export type AchievementsResponse = z.infer<typeof achievementsResponseSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type UpdateUserBody = z.infer<typeof updateUserSchema>;
 export type MessageResponse = z.infer<typeof messageResponseSchema>;

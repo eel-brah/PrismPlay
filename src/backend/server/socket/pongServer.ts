@@ -62,13 +62,29 @@ function randomDirection() {
 //   return Math.random() * (max - min) + min;
 // }
 
+// function createBall(): Ball {
+//   return {
+//     x: GAME_WIDTH / 2,
+//     y: GAME_HEIGHT / 2,
+//     radius: BALL_RADIUS,
+//     speedX: randomDirection() * INITIAL_BALL_SPEED,
+//     speedY: randomDirection(),
+//     trail: [],
+//   };
+// }
+
 function createBall(): Ball {
+  const dirX = randomDirection();
+  // Random angle between -27° and +27° (0.3 * 90°)
+  const angle = (Math.random() * 0.6 - 0.3) * (Math.PI / 2);
+  const speed = INITIAL_BALL_SPEED;
+
   return {
     x: GAME_WIDTH / 2,
     y: GAME_HEIGHT / 2,
     radius: BALL_RADIUS,
-    speedX: randomDirection() * INITIAL_BALL_SPEED,
-    speedY: randomDirection(),
+    speedX: Math.cos(angle) * speed * dirX,
+    speedY: Math.sin(angle) * speed,
     trail: [],
   };
 }

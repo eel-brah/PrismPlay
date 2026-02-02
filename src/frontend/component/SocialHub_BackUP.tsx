@@ -1,0 +1,1184 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useMemo, useRef, useState, useEffect, use } from "react";
+import {
+  MessageCircle,
+  Gamepad2,
+  UserPlus,
+  UserMinus,
+  Search,
+  Clock,
+  Send,
+  MessageSquarePlus,
+} from "lucide-react";
+import { io, type Socket } from "socket.io-client";
+import {
+  apiGetMe,
+  getStoredToken,
+  apiListFriends,
+  apiIncomingRequests,
+  apiAcceptFriend,
+  apiDeclineFriend,
+  apiRemoveFriend,
+  apiAddFriend,
+} from "../api";
+
+type TabKey = "friends" | "chat" | "groups";
+
+export default function SocialHub() {
+  const sendFriendRequestByUsername = async () => {
+    const token = getStoredToken();
+    if (!token) return;
+    const username = addUsername.trim();
+    if (!username) return;
+    // need to check 
+    // if (username.toLowerCase() === user.username.toLowerCase()) {
+    //   setAddErr("You can't add yourself");
+    //   return;
+    // }
+    if (
+      friends.some((f) => f.name.toLowerCase() == username.toLocaleLowerCase())
+    ) {
+      setAddErr("you are already friend with this user");
+      setAddMsg(null);
+      return;
+    }
+    try {
+      setAddLoading(true);
+      setAddErr(null);
+      setAddMsg(null);
+      await apiAddFriend(token, username);
+      setAddMsg("Friend request sent Success");
+      setAddUsername("");
+    } catch (e: any) {
+      setAddErr(e?.message ?? "Request Send failed");
+    } finally {
+      setAddLoading(false);
+    }
+  };
+  const [addUsername, setAddUsername] = useState("");
+  const [addMsg, setAddMsg] = useState<string | null>(null);
+  const [addErr, setAddErr] = useState<string | null>(null);
+  const [addLoading, setAddLoading] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<TabKey>("friends");
+  const [friends, setFriends] = useState<
+    {
+      id: string;
+      name: string;
+      lastLogin: string | null;
+      createdAt: string;
+      avatarUrl?: string;
+    }[]
+  >([]);
+  const [requests, setRequests] = useState<
+    { id: string; name: string; avatarUrl?: string }[]
+  >([]);
+  const reload = async () => {
+    const token = getStoredToken();
+    if (!token) return;
+
+    const [friendList, incomingRequest] = await Promise.all([
+      apiListFriends(token),
+      apiIncomingRequests(token),
+    ]);
+
+    setFriends(
+      friendList.map((r) => ({
+        id: String(r.friend.id),
+        name: r.friend.username,
+        lastLogin: r.friend.lastLogin,
+        createdAt: r.friend.createdAt,
+        avatarUrl: r.friend.avatarUrl ?? undefined,
+      })),
+    );
+
+    setRequests(
+      incomingRequest.map((r) => ({
+        id: String(r.id),
+        name: r.fromUser.username,
+        avatarUrl: r.fromUser.avatarUrl ?? undefined,
+      })),
+    );
+  };
+
+// 1. Init: Load data & Connect Socket
+  useEffect(() => {
+    const init = async () => {
+      const token = getStoredToken();
+      if (!token) return;
+
+      try {
+        // Fetch 'me' to get myUserId needed for socket
+        const me = await apiGetMe(token);
+        setMyUserId(me.id);
+        
+        // Run the existing reload for friends
+        await reload();
+
+        // Connect Socket if not already connected
+        if (!socketRef.current) {
+            const s = io("/chat", {
+            path: "/socket.io",
+            transports: ["websocket", "polling"],
+            withCredentials: true,
+            query: { userId: me.id },
+          });
+          socketRef.current = s;
+
+          // GLOBAL LISTENER: When joining a DM, update messages
+          s.on("dm_joined", (payload: any) => {
+             // payload: { chatId, messages }
+             // We need to find which friend belongs to this chatId
+             // We check our reference map
+             const friendId = Object.keys(chatIdByOther.current).find(
+               (k) => chatIdByOther.current[k] === payload.chatId
+             );
+
+             if (friendId) {
+                const msgs = (payload.messages || []).map((m: any) => ({
+                  id: String(m.id),
+                  author: m.sender?.username || "Unknown",
+                  text: m.content,
+                  ts: new Date(m.createdAt).getTime(), // LATER
+                  senderId: m.senderId,
+                }));
+                setMessagesByDM((prev) => ({ ...prev, [friendId]: msgs }));
+             }
+          });
+
+// LISTEN: New Messages (Fixed: Loose Equality)
+          s.on("new_message", (msg: any) => {
+             // 1. Try to identify friend by Chat ID (Using == for loose string/number match)
+             let friendId = Object.keys(chatIdByOther.current).find(
+               (k) => chatIdByOther.current[k] == msg.chatId
+             );
+
+             // 2. FALLBACK: If Chat ID match failed, use Sender ID
+             // Check if I am NOT the sender (msg.senderId != me.id)
+             if (!friendId && msg.senderId && String(msg.senderId) != String(me.id)) {
+                 friendId = String(msg.senderId);
+                 // Save the mapping for future strict lookups
+                 if (msg.chatId) chatIdByOther.current[friendId] = msg.chatId;
+             }
+
+             if (friendId) {
+               // A. Update Messages List
+               setMessagesByDM((prev) => ({
+                 ...prev,
+                 [friendId]: [
+                   ...(prev[friendId] || []),
+                   {
+                     id: String(msg.id),
+                     author: msg.sender?.username || "",
+                     text: msg.content,
+                     ts: new Date(msg.createdAt).getTime(),
+                     senderId: msg.senderId,
+                     readAt: msg.readAt
+                   },
+                 ],
+               }));
+
+               // B. Update Notification Badge
+               // Add +1 if: (Not looking at this chat) AND (Message is not from me)
+               if (friendId !== selectedFriendIdRef.current && String(msg.senderId) != String(me.id)) {
+                   setUnreadByDM((prev) => ({
+                       ...prev,
+                       [friendId]: (prev[friendId] || 0) + 1
+                   }));
+               }
+             }
+          });
+          s.on("user_typing", (data: any) => {
+             const friendId = Object.keys(chatIdByOther.current).find(
+               (k) => chatIdByOther.current[k] === data.chatId
+             );
+             if (friendId) {
+               setTypingStatus(prev => ({ ...prev, [friendId]: data.isTyping }));
+             }
+          });
+
+          s.on("messages_seen", (data: any) => {
+             const friendId = Object.keys(chatIdByOther.current).find(
+               (k) => chatIdByOther.current[k] === data.chatId
+             );
+             if (friendId && data.seenByUserId !== me.id) {
+                setMessagesByDM((prev) => {
+                  const currentMsgs = prev[friendId] || [];
+                  return {
+                    ...prev,
+                    [friendId]: currentMsgs.map(m => ({ ...m, readAt: new Date().toISOString() }))
+                  };
+                });
+             }
+          });
+
+
+        }
+      } catch (e) {
+        console.error("Init failed", e);
+      }
+    };
+    init();
+  }, []);
+  // const [friends, setFriends] = useState<
+  //   {
+  //     id: string;
+  //     name: string;
+  //     status: "online" | "offline" | "busy" | "away" | "in_game";
+  //     lastSeen: string;
+  //     gamesPlayed: number;
+  //     winRate: number;
+  //     mutualFriends: number;
+  //     avatarUrl?: string;
+  //   }[]
+  // >([
+  //   { id: "1", name: "Alice", status: "online", lastSeen: "Online now", gamesPlayed: 45, winRate: 78, mutualFriends: 3 },
+  //   { id: "2", name: "Bob", status: "in_game", lastSeen: "Playing now", gamesPlayed: 67, winRate: 65, mutualFriends: 5 },
+  //   { id: "3", name: "Charlie", status: "away", lastSeen: "2 hours ago", gamesPlayed: 23, winRate: 52, mutualFriends: 1 },
+  //   { id: "4", name: "Diana", status: "offline", lastSeen: "1 day ago", gamesPlayed: 89, winRate: 82, mutualFriends: 7 },
+  // ]);
+  // const [requests, setRequests] = useState<
+  //   { id: string; name: string; avatarUrl?: string; mutualFriends?: number }[]
+  // >([
+  //   { id: "r1", name: "Ethan", mutualFriends: 2 },
+  //   { id: "r2", name: "Mia", mutualFriends: 1 },
+  // ]);
+  const [suggestions, setSuggestions] = useState<
+    { id: string; name: string; avatarUrl?: string; mutualFriends?: number }[]
+  >([
+    { id: "s1", name: "Noah", mutualFriends: 4 },
+    { id: "s2", name: "Ava", mutualFriends: 3 },
+    { id: "s3", name: "Liam", mutualFriends: 2 },
+  ]);
+  const [friendSearch, setFriendSearch] = useState("");
+  const [friendsSubTab, setFriendsSubTab] = useState<
+    "friends" | "requests" | "add"
+  >("friends");
+
+  type Message = { id: string; author: string; text: string; ts: number; senderId?: number; readAt?: string | null }; //TODO CHECK
+  const channels = useMemo(() => ["general", "lobby", "support"], []);
+  const [selectedChannel, setSelectedChannel] = useState<string>(channels[0]);
+  const [chatMode, setChatMode] = useState<"channel" | "dm">("channel");
+  const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
+  const [messagesByChannel, setMessagesByChannel] = useState<
+    Record<string, Message[]>
+  >({
+    general: [
+      {
+        id: "m1",
+        author: "System",
+        text: "Welcome to General!",
+        ts: Date.now() - 60_000,
+      },
+    ],
+    lobby: [
+      {
+        id: "m2",
+        author: "System",
+        text: "Chat with players in the lobby.",
+        ts: Date.now() - 120_000,
+      },
+    ],
+    support: [
+      {
+        id: "m3",
+        author: "System",
+        text: "Need help? Ask here.",
+        ts: Date.now() - 240_000,
+      },
+    ],
+  });
+  const [messagesByDM, setMessagesByDM] = useState<Record<string, Message[]>>(
+    {},
+  );
+  const [chatInput, setChatInput] = useState("");
+  const [typingStatus, setTypingStatus] = useState<Record<string, boolean>>({});
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [unreadByDM, setUnreadByDM] = useState<Record<string, number>>({});
+  const [dmSearch, setDmSearch] = useState("");
+  const socketRef = useRef<Socket | null>(null);
+  const selectedFriendIdRef = useRef<string | null>(null);
+  useEffect(() => { selectedFriendIdRef.current = selectedFriendId; }, [selectedFriendId]);
+  const [myUserId, setMyUserId] = useState<number | null>(null);
+  const chatIdByOther = useRef<Record<string, number>>({});
+  const [displayNameById, setDisplayNameById] = useState<
+    Record<string, string>
+  >({});
+
+  // Groups state (frontend-only mock)
+  const [groups, setGroups] = useState<
+    { id: string; name: string; members: number; joined: boolean }[]
+  >([
+    { id: "g1", name: "Casual Players", members: 42, joined: true },
+    { id: "g2", name: "Ranked Grind", members: 18, joined: false },
+    { id: "g3", name: "Weekend Warriors", members: 27, joined: false },
+  ]);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>("g1");
+  const [messagesByGroup, setMessagesByGroup] = useState<
+    Record<string, Message[]>
+  >({
+    g1: [
+      {
+        id: "gmsg1",
+        author: "System",
+        text: "Welcome to Casual Players",
+        ts: Date.now() - 180_000,
+      },
+    ],
+    g2: [
+      {
+        id: "gmsg2",
+        author: "System",
+        text: "Welcome to Ranked Grind",
+        ts: Date.now() - 180_000,
+      },
+    ],
+    g3: [
+      {
+        id: "gmsg3",
+        author: "System",
+        text: "Welcome to Weekend Warriors",
+        ts: Date.now() - 180_000,
+      },
+    ],
+  });
+  const [groupChatInput, setGroupChatInput] = useState("");
+  const [groupSearch, setGroupSearch] = useState("");
+
+  const acceptFriend = async (id: string) => {
+    try {
+      const token = getStoredToken();
+      if (!token) return;
+      await apiAcceptFriend(token, id);
+      await reload();
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+
+  const declineFriend = async (id: string) => {
+    try {
+      const token = getStoredToken();
+      if (!token) return;
+      await apiDeclineFriend(token, id);
+      await reload();
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  const removeFriend = async (id: string) => {
+    try {
+      const token = getStoredToken();
+      if (!token) return;
+      await apiRemoveFriend(token, id);
+      await reload();
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+const sendMessage = () => {
+    const text = chatInput.trim();
+    if (!text) return;
+
+    if (chatMode === "channel") {
+      setMessagesByChannel((prev) => ({
+        ...prev,
+        [selectedChannel]: [
+          ...prev[selectedChannel],
+          {
+            id: Math.random().toString(36).slice(2),
+            author: "You",
+            text,
+            ts: Date.now(),
+          },
+        ],
+      }));
+    } else if (chatMode === "dm" && selectedFriendId) {
+      // SEND VIA SOCKET
+      const chatId = chatIdByOther.current[selectedFriendId];
+      if (socketRef.current && chatId && myUserId) {
+        socketRef.current.emit("send_message", { 
+          chatId, 
+          senderId: myUserId, 
+          content: text 
+        });
+      } else {
+        // Fallback if socket fails (optimistic UI)
+        setMessagesByDM((prev) => ({
+          ...prev,
+          [selectedFriendId]: [
+            ...(prev[selectedFriendId] || []),
+            {
+              id: Math.random().toString(36).slice(2),
+              author: "You",
+              text,
+              ts: Date.now(),
+            },
+          ],
+        }));
+      }
+    }
+    setChatInput("");
+  };
+
+  const toggleJoinGroup = (id: string) => {
+    setGroups((prev) =>
+      prev.map((g) => (g.id === id ? { ...g, joined: !g.joined } : g)),
+    );
+  };
+
+  const createGroup = () => {
+    const name = newGroupName.trim();
+    if (!name) return;
+    const id = Math.random().toString(36).slice(2);
+    setGroups((prev) => [...prev, { id, name, members: 1, joined: true }]);
+    setMessagesByGroup((prev) => ({
+      ...prev,
+      [id]: [
+        {
+          id: Math.random().toString(36).slice(2),
+          author: "System",
+          text: `Welcome to ${name}`,
+          ts: Date.now(),
+        },
+      ],
+    }));
+    setSelectedGroupId(id);
+    setNewGroupName("");
+  };
+ 
+  useEffect(() => {
+    if (chatMode === "dm" && selectedFriendId && socketRef.current && myUserId) {
+      const chatId = chatIdByOther.current[selectedFriendId];
+      if (chatId) {
+        socketRef.current.emit("mark_seen", { chatId, userId: myUserId });
+        // Also clear the unread badge locally
+        setUnreadByDM(prev => ({...prev, [selectedFriendId]: 0}));
+      }
+    }
+  }, [messagesByDM, selectedFriendId, chatMode, myUserId]);
+const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setChatInput(e.target.value);
+    if (chatMode === "dm" && selectedFriendId && socketRef.current) {
+      const chatId = chatIdByOther.current[selectedFriendId];
+      if (!chatId) return;
+
+      socketRef.current.emit("typing_start", { chatId, userId: myUserId });
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      
+      typingTimeoutRef.current = setTimeout(() => {
+        socketRef.current?.emit("typing_stop", { chatId, userId: myUserId });
+      }, 2000);
+    }
+  };
+
+const handleStartDirectMessage = (friendId: string) => {
+    setSelectedFriendId(friendId);
+    setChatMode("dm");
+    setActiveTab("chat");
+    setUnreadByDM((prev) => ({ ...prev, [friendId]: 0 }));
+
+    if (socketRef.current && myUserId) {
+      const onJoinHandler = (payload: any) => {
+        if (payload.chatId) {
+           chatIdByOther.current[friendId] = payload.chatId;
+           
+           const msgs = (payload.messages || []).map((m: any) => ({
+              id: String(m.id),
+              author: m.sender?.username || "Unknown",
+              text: m.content,
+              ts: new Date(m.createdAt).getTime(),
+              senderId: m.senderId,
+              readAt: m.readAt 
+           }));
+
+           setMessagesByDM((prev) => ({ ...prev, [friendId]: msgs }));
+
+           // Emit SEEN immediately
+           socketRef.current?.emit("mark_seen", { 
+             chatId: payload.chatId, 
+             userId: myUserId 
+           });
+           
+           socketRef.current?.off("dm_joined", onJoinHandler);
+        }
+      };
+
+      socketRef.current.on("dm_joined", onJoinHandler);
+      socketRef.current.emit("join_dm", {
+        myId: myUserId,
+        otherUserId: Number(friendId),
+      });
+    }
+  };
+
+  return (
+    <div className="w-full h-full text-white">
+      <div className="max-w-6xl mx-auto px-6 pt-8 pb-4">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+            Social Hub
+          </h2>
+          <p className="text-sm text-gray-400 mt-1">
+            Friends, chat, and groups
+          </p>
+        </div>
+        <div className="mt-6 flex items-center justify-center">
+          <div className="inline-flex rounded-full bg-gray-800/60 p-1">
+            {(["friends", "chat", "groups"] as TabKey[]).map((key) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`px-4 py-1 rounded-full text-sm transition-colors ${
+                  activeTab === key
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-300 hover:bg-gray-800"
+                }`}
+              >
+                {key[0].toUpperCase() + key.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {activeTab === "friends" && (
+          <div className="max-w-6xl mx-auto px-6 pb-10 space-y-6">
+            <div className="max-w-3xl mx-auto">
+              <div className="relative">
+                <input
+                  value={friendSearch}
+                  onChange={(e) => setFriendSearch(e.target.value)}
+                  placeholder="Search friends..."
+                  className="w-full px-4 py-2 rounded-xl bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700"
+                />
+                <Search className="w-4 h-4 text-gray-400 absolute right-3 top-2.5" />
+              </div>
+            </div>
+            <div className="flex items-center justify-center">
+              <div className="inline-flex rounded-full bg-gray-800/60 p-1">
+                {(["friends", "requests", "add"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setFriendsSubTab(t)}
+                    className={`px-4 py-1 rounded-full text-sm transition-colors ${
+                      friendsSubTab === t
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-300 hover:bg-gray-800"
+                    }`}
+                  >
+                    {t === "friends" && `Friends (${friends.length})`}
+                    {t === "requests" && `Requests (${requests.length})`}
+                    {t === "add" && `New friend`}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {friendsSubTab === "friends" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl-grid-cols-3 xl:grid-cols-3 gap-6">
+                {friends
+                  .filter((f) =>
+                    f.name.toLowerCase().includes(friendSearch.toLowerCase()),
+                  )
+                  .map((f) => {
+                    const pill =
+                      f.status === "online"
+                        ? { text: "Online", cls: "bg-green-600 text-white" }
+                        : f.status === "in_game"
+                          ? { text: "In Game", cls: "bg-blue-600 text-white" }
+                          : f.status === "away"
+                            ? { text: "Away", cls: "bg-yellow-600 text-black" }
+                            : {
+                                text: "Offline",
+                                cls: "bg-gray-600 text-white",
+                              };
+                    return (
+                      <div
+                        key={f.id}
+                        className="rounded-2xl border border-white/10 bg-gray-900/60 shadow-xl p-5"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            {f.avatarUrl ? (
+                              <img
+                                src={f.avatarUrl}
+                                alt={f.name}
+                                className="w-10 h-10 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
+                            )}
+                            <div>
+                              <div className="font-semibold text-gray-100">
+                                {f.name}
+                              </div>
+                              <div className="text-xs text-gray-400 flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                <span>{f.lastLogin}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full ${pill.cls}`}
+                          >
+                            {pill.text}
+                          </span>
+                        </div>
+        
+                        <div className="mt-5 flex items-center gap-3">
+                          <button
+                            onClick={() => handleStartDirectMessage(f.id)}
+                            className="px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white"
+                          >
+                            Chat
+                          </button>
+                          <button
+                            onClick={() => {}}
+                            className="px-4 py-2 rounded-md bg-gray-800/80 hover:bg-gray-800 text-gray-200 flex items-center gap-2"
+                          >
+                            <Gamepad2 className="w-4 h-4" />
+                            <span>Play</span>
+                          </button>
+                          <button
+                            onClick={() => removeFriend(f.id)}
+                            className="ml-auto p-2 rounded-md bg-gray-800/60 hover:bg-gray-800 text-gray-300"
+                          >
+                            <UserMinus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+            {friendsSubTab === "requests" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl-grid-cols-3 xl:grid-cols-3 gap-6">
+                {requests
+                  .filter((r) =>
+                    r.name.toLowerCase().includes(friendSearch.toLowerCase()),
+                  )
+                  .map((r) => (
+                    <div
+                      key={r.id}
+                      className="rounded-2xl border border-white/10 bg-gray-900/60 shadow-xl p-5"
+                    >
+                      <div className="flex items-center gap-3">
+                        {r.avatarUrl ? (
+                          <img
+                            src={r.avatarUrl}
+                            alt={r.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
+                        )}
+                        <div>
+                          <div className="font-semibold text-gray-100">
+                            {r.name}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {r.mutualFriends || 0} mutual friends
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex gap-3">
+                        <button
+                          onClick={() => {
+                            acceptFriend(r.id);
+                            setRequests((prev) =>
+                              prev.filter((x) => x.id !== r.id),
+                            );
+                          }}
+                          className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={() => {
+                            declineFriend(r.id);
+                            setRequests((prev) =>
+                              prev.filter((x) => x.id !== r.id),
+                            );
+                          }}
+                          className="px-4 py-2 rounded-md bg-gray-800/80 hover:bg-gray-800 text-gray-200"
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+            {friendsSubTab === "add" && (
+              <div className="max-w-3xl mx-auto space-y-4">
+                {/* Add by username */}
+                <div className="rounded-2xl border border-white/10 bg-gray-900/60 p-5">
+                  <div className="text-sm font-semibold text-gray-200">
+                    Add by username
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <input
+                      value={addUsername}
+                      onChange={(e) => {
+                        setAddUsername(e.target.value);
+                        setAddErr(null);
+                        setAddMsg(null);
+                      }}
+                      placeholder="Enter username (exact)..."
+                      className="flex-1 min-w-0 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") sendFriendRequestByUsername();
+                      }}
+                    />
+                    <button
+                      onClick={sendFriendRequestByUsername}
+                      disabled={addLoading || !addUsername.trim()}
+                      className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 disabled:bg-green-600/40 text-white shrink-0"
+                    >
+                      {addLoading ? "Sending..." : "Send"}
+                    </button>
+                  </div>
+
+                  {addMsg && (
+                    <div className="mt-2 text-m text-green-400">{addMsg}</div>
+                  )}
+                  {addErr && (
+                    <div className="mt-2 text-m text-red-400">{addErr}</div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "chat" && (
+          <div className="max-w-6xl mx-auto px-6 pb-10">
+            <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6">
+              <div className="space-y-6">
+                <div className="rounded-2xl border border-white/10 bg-gray-900/60 p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-gray-200">
+                      <MessageCircle className="w-4 h-4" />
+                      <span className="text-sm font-semibold">
+                        Private Chats
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setActiveTab("friends");
+                          setFriendsSubTab("add");
+                        }}
+                        className="p-2 rounded-md bg-gray-800/60 hover:bg-gray-800"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <div className="relative">
+                      <input
+                        value={dmSearch}
+                        onChange={(e) => setDmSearch(e.target.value)}
+                        placeholder="Search chats..."
+                        className="w-full px-4 py-2 rounded-xl bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700"
+                      />
+                      <Search className="w-4 h-4 text-gray-400 absolute right-3 top-2.5" />
+                    </div>
+                  </div>
+
+                  <ul className="mt-3 space-y-2">
+                    {friends
+                      .filter((f) =>
+                        f.name.toLowerCase().includes(dmSearch.toLowerCase()),
+                      )
+                      .sort((a, b) => {
+                        // 1. Find the last message for Friend A and Friend B
+                        const msgsA = messagesByDM[a.id] || [];
+                        const msgsB = messagesByDM[b.id] || [];
+                        const lastA = msgsA[msgsA.length - 1];
+                        const lastB = msgsB[msgsB.length - 1];
+
+                        // 2. Get timestamps (default to 0 if no chat exists)
+                        const timeA = lastA ? lastA.ts : 0;
+                        const timeB = lastB ? lastB.ts : 0;
+
+                        // 3. Sort descending (Newest time (B) - Oldest time (A))
+                        return timeB - timeA;
+                      })
+                      .map((f) => {
+                        const last = (messagesByDM[f.id] || []).slice(-1)[0];
+                        const unread = unreadByDM[f.id] || 0;
+                        return (
+                          <li key={f.id}>
+                            <button
+                            onClick={() => handleStartDirectMessage(f.id)}
+                              className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center gap-3 ${
+                                chatMode === "dm" && selectedFriendId === f.id
+                                  ? "bg-blue-600/20"
+                                  : "hover:bg-gray-800/60"
+                              }`}
+                            >
+                              {f.avatarUrl ? (
+                                <img
+                                  src={f.avatarUrl}
+                                  alt={f.name}
+                                  className="w-8 h-8 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-gray-100">
+                                    {f.name}
+                                  </span>
+                                  {unread > 0 && (
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-red-600 text-white">
+                                      {unread}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-gray-400 truncate">
+                                  {last ? last.text : "No messages yet"}
+                                </div>
+                              </div>
+                            </button>
+                          </li>
+                        );
+                      })}
+                  </ul>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-gray-900/60 p-4">
+                  <div className="text-sm font-semibold text-gray-200">
+                    Online Now
+                  </div>
+                  <div className="mt-2 space-y-2">
+                    {friends
+                      .filter(
+                        (f) =>
+                          f.status === "online" ||
+                          f.status === "in_game" ||
+                          f.status === "away",
+                      )
+                      .map((f) => {
+                        const pill =
+                          f.status === "online"
+                            ? { text: "Online", cls: "bg-green-600 text-white" }
+                            : f.status === "in_game"
+                              ? {
+                                  text: "In Game",
+                                  cls: "bg-blue-600 text-white",
+                                }
+                              : {
+                                  text: "Away",
+                                  cls: "bg-yellow-600 text-black",
+                                };
+                        return (
+                          <div key={f.id} className="flex items-center gap-3">
+                            {f.avatarUrl ? (
+                              <img
+                                src={f.avatarUrl}
+                                alt={f.name}
+                                className="w-8 h-8 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
+                            )}
+                            <div className="flex-1">
+                              <div className="text-sm text-gray-100">
+                                {f.name}
+                              </div>
+                            </div>
+                            <span
+                              className={`text-xs px-2 py-0.5 rounded-full ${pill.cls}`}
+                            >
+                              {pill.text}
+                            </span>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-gray-900/60 p-4 flex flex-col">
+                <div className="text-sm font-semibold text-gray-200">
+                  {chatMode === "channel"
+                    ? `${selectedChannel[0].toUpperCase()}${selectedChannel.slice(1)} Chat`
+                    : `${friends.find((x) => x.id === selectedFriendId)?.name || "Select a friend"}`}
+                </div>
+                <div className="text-xs text-gray-400">
+                  {
+                    (chatMode === "channel"
+                      ? messagesByChannel[selectedChannel] || []
+                      : selectedFriendId
+                        ? messagesByDM[selectedFriendId] || []
+                        : []
+                    ).length
+                  }{" "}
+                  messages •{" "}
+                  {
+                    friends.filter(
+                      (f) => f.status === "online" || f.status === "in_game",
+                    ).length
+                  }{" "}
+                  online
+                </div>
+                <div className="mt-3">
+                  <div className="text-center text-xs text-gray-400">
+                    Welcome to PingPong Pro chat
+                  </div>
+                </div>
+                <div className="flex-1 mt-3 space-y-3 overflow-y-auto">
+
+                  {(chatMode === "channel"
+                    ? messagesByChannel[selectedChannel] || []
+                    : selectedFriendId
+                      ? messagesByDM[selectedFriendId] || []
+                      : ([] as Message[])
+                  ).map((m, i, arr) => {
+                    const date = new Date(m.ts);
+                    const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const isToday = new Date().toDateString() === date.toDateString();
+                    const displayTime = isToday ? timeString : date.toLocaleDateString();
+                    const isMe = m.senderId === myUserId;
+                    
+                    // Logic: Only show "Seen" on the very last message sent by YOU
+                    const isMyLastMessage = isMe && !arr.slice(i + 1).some(next => next.senderId === myUserId);
+
+                    return (
+                      <div
+                        key={m.id}
+                        className={`max-w-[80%] mb-4 flex flex-col ${
+                          isMe ? "ml-auto items-end" : "mr-auto items-start"
+                        }`}
+                      >
+                        <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
+                          <span className="text-gray-200 font-semibold">
+                            {isMe ? "You" : m.author}
+                          </span>
+                          <span className="text-[10px] opacity-70">
+                            {displayTime}
+                          </span>
+                        </div>
+                        
+                        <div
+                          className={`px-4 py-2 rounded-2xl text-white ${
+                            isMe
+                              ? "bg-purple-600 rounded-tr-none"
+                              : "bg-gray-700 rounded-tl-none"
+                          }`}
+                        >
+                          {m.text}
+                        </div>
+
+                        {/* Footer: Seen Status (Only on the last message) */}
+                        {isMyLastMessage && chatMode === "dm" && m.readAt && (
+                           <span className="text-[10px] text-gray-500 mt-1 mr-1 font-medium select-none">
+                             Seen
+                           </span>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {chatMode === "dm" && selectedFriendId && typingStatus[selectedFriendId] && (
+                     <div className="mr-auto items-start max-w-[80%] mb-4 flex flex-col animate-pulse">
+                        <div className="text-xs text-gray-400 mb-1 ml-1">
+                           {friends.find(f => f.id === selectedFriendId)?.name} is typing...
+                        </div>
+                        <div className="px-4 py-2 rounded-2xl bg-gray-700/50 rounded-tl-none text-gray-400 italic text-sm">
+                           ...
+                        </div>
+                     </div>
+                  )}
+
+
+  </div>
+  <div className="mt-4 flex items-center gap-2">
+    <input
+    value={chatInput}
+    onChange={handleTyping}
+    onKeyDown={(e) => {
+        if (e.key === "Enter")
+          {
+            sendMessage();
+          }
+        }}
+    placeholder="Type your message..."
+    className="flex-1 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none"
+    disabled={chatMode === "dm" && !selectedFriendId}
+/>
+                  <button
+                    onClick={sendMessage}
+                    className="p-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+                    disabled={chatMode === "dm" && !selectedFriendId}
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "groups" && (
+          <div className="max-w-6xl mx-auto px-6 pb-10 grid grid-cols-1 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr] gap-4">
+            <div className="rounded-2xl border border-white/10 bg-gray-900/60 flex flex-col">
+              <div className="p-3 border-b border-white/10 space-y-2">
+                <div className="relative">
+                  <input
+                    value={groupSearch}
+                    onChange={(e) => setGroupSearch(e.target.value)}
+                    placeholder="Search groups..."
+                    className="w-full px-4 py-2 rounded-xl bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700"
+                  />
+                  <Search className="w-4 h-4 text-gray-400 absolute right-3 top-2.5" />
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    value={newGroupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                    placeholder="Create a new group"
+                    className="flex-1 min-w-0 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none"
+                  />
+                  <button
+                    onClick={createGroup}
+                    className="px-4 py-2 rounded-md bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shrink-0 whitespace-nowrap"
+                  >
+                    Create
+                  </button>
+                </div>
+              </div>
+              <div className="p-3 space-y-3 flex-1 overflow-y-auto">
+                {groups
+                  .filter((g) =>
+                    g.name.toLowerCase().includes(groupSearch.toLowerCase()),
+                  )
+                  .map((g) => (
+                    <div
+                      key={g.id}
+                      className={`rounded-lg border border-white/10 px-3 py-3 flex items-center justify-between ${selectedGroupId === g.id ? "bg-blue-600/10" : "bg-gray-800/40"}`}
+                    >
+                      <button
+                        onClick={() => setSelectedGroupId(g.id)}
+                        className="text-left flex-1"
+                      >
+                        <div className="font-medium text-gray-100">
+                          {g.name}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {g.members} members
+                        </div>
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setSelectedGroupId(g.id)}
+                          className="px-3 py-1 rounded-md bg-gray-800/80 hover:bg-gray-800 text-gray-200"
+                        >
+                          Open
+                        </button>
+                        <button
+                          onClick={() => toggleJoinGroup(g.id)}
+                          className={`px-3 py-1 rounded-md ${
+                            g.joined
+                              ? "bg-gray-800/80 hover:bg-gray-800 text-gray-200"
+                              : "bg-blue-600 hover:bg-blue-700 text-white"
+                          }`}
+                        >
+                          {g.joined ? "Leave" : "Join"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-gray-900/60 flex flex-col">
+              <div className="px-3 py-2 text-sm font-semibold border-b border-white/10">
+                {selectedGroupId
+                  ? groups.find((g) => g.id === selectedGroupId)?.name
+                  : "Select a group"}
+              </div>
+              <div className="flex-1 p-3 space-y-2 overflow-y-auto">
+                {(selectedGroupId
+                  ? messagesByGroup[selectedGroupId] || []
+                  : ([] as Message[])
+                ).map((m) => (
+                  <div key={m.id} className="">
+                    <span className="text-blue-300 font-semibold mr-2">
+                      {m.author}
+                    </span>
+                    <span className="text-gray-200">{m.text}</span>
+                    <span className="text-xs text-gray-500 ml-2">
+                      {new Date(m.ts).toLocaleTimeString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="p-3 border-t border-white/10 flex gap-2">
+                <input
+                  value={groupChatInput}
+                  onChange={(e) => setGroupChatInput(e.target.value)}
+                  placeholder={
+                    selectedGroupId
+                      ? `Message ${groups.find((g) => g.id === selectedGroupId)?.name}`
+                      : "Select a group to chat"
+                  }
+                  className="flex-1 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none"
+                  disabled={
+                    !selectedGroupId ||
+                    !groups.find((g) => g.id === selectedGroupId)?.joined
+                  }
+                />
+                <button
+                  onClick={() => {
+                    const text = groupChatInput.trim();
+                    if (!text || !selectedGroupId) return;
+                    setMessagesByGroup((prev) => ({
+                      ...prev,
+                      [selectedGroupId]: [
+                        ...(prev[selectedGroupId] || []),
+                        {
+                          id: Math.random().toString(36).slice(2),
+                          author: "You",
+                          text,
+                          ts: Date.now(),
+                        },
+                      ],
+                    }));
+                    setGroupChatInput("");
+                  }}
+                  className="px-4 py-2 rounded-md bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 disabled:opacity-50"
+                  disabled={
+                    !selectedGroupId ||
+                    !groups.find((g) => g.id === selectedGroupId)?.joined
+                  }
+                >
+                  Send
+                </button>
+              </div>
+              {!selectedGroupId && (
+                <div className="p-3 text-sm text-gray-400">
+                  Select a group from the list to view chat.
+                </div>
+              )}
+              {selectedGroupId &&
+                !groups.find((g) => g.id === selectedGroupId)?.joined && (
+                  <div className="p-3 text-sm text-yellow-400">
+                    Join the group to send messages.
+                  </div>
+                )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
