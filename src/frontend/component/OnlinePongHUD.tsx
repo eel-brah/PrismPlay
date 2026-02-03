@@ -70,9 +70,6 @@ function PlayerStack({
               alt={displayName}
               className={`w-20 h-20 rounded-xl bg-gradient-to-br ${avatarBg} p-0.5 shadow-lg object-cover`}
             />
-            {/* <span
-              className={`absolute bottom-0 right-0 w-3 h-3 ${statusColor} rounded-full border-2 border-gray-900`}
-            /> */}
           </div>
         </div>
 
@@ -157,50 +154,6 @@ interface OnlinePongHUDProps {
   loadingRight?: boolean;
   children: React.ReactNode;
 }
-
-// export function OnlinePongHUD({
-//   mySide,
-//   leftPlayer,
-//   rightPlayer,
-//   leftStatus,
-//   rightStatus,
-//   leftStats,
-//   rightStats,
-//   loadingLeft = false,
-//   loadingRight = false,
-//   children,
-// }: OnlinePongHUDProps) {
-//   return (
-//     <div className="flex items-center justify-center gap-4 md:gap-8 p-4">
-//       {/* Left Player Stack */}
-//       <PlayerStack
-//         side="left"
-//         displayName={leftPlayer.nickname}
-//         avatarUrl={leftPlayer.avatarUrl}
-//         status={leftStatus}
-//         stats={leftStats}
-//         loading={loadingLeft}
-//         isMe={mySide === "left"}
-//       />
-
-//       {/* Center: Game Canvas only (no score) */}
-//       <div className="relative">
-//         {children}
-//       </div>
-
-//       {/* Right Player Stack */}
-//       <PlayerStack
-//         side="right"
-//         displayName={rightPlayer.nickname}
-//         avatarUrl={rightPlayer.avatarUrl}
-//         status={rightStatus}
-//         stats={rightStats}
-//         loading={loadingRight}
-//         isMe={mySide === "right"}
-//       />
-//     </div>
-//   );
-// }
 
 export function OnlinePongHUD({
   mySide,

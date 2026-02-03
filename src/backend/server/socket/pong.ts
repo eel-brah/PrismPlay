@@ -55,7 +55,7 @@ interface Match {
   isPaused: boolean;
   startTime: number;
   isEnding: boolean;
-  hasStarted: boolean;
+  // hasStarted: boolean;
 }
 
 const RECONNECT_TIMEOUT_MS = 15000;
@@ -274,7 +274,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       isPaused: false,
       startTime: Date.now(),
       isEnding: false,
-      hasStarted: false,
+      // hasStarted: false,
     };
 
     match.loop = setInterval(() => tickMatch(match), 1000 / 60);
@@ -495,22 +495,20 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     const match = matches.get(matchId);
     if (!match || match.isEnding) return;
 
-    const isPreStartCountdown =
-      match.state.phase === "countdown" && !match.hasStarted;
+    // const isPreStartCountdown =
+    //   match.state.phase === "countdown" && !match.hasStarted;
 
-    // ✅ only cancel if match hasn't started yet
-    if (isPreStartCountdown) {
-      const isLeft = socket.data.side === "left";
-      const opponent = isLeft ? match.right : match.left;
+    // if (isPreStartCountdown) {
+    //   const isLeft = socket.data.side === "left";
+    //   const opponent = isLeft ? match.right : match.left;
 
-      opponent?.emit("opponent.left");
-      opponent?.emit("match.cancelled");
+    //   opponent?.emit("opponent.left");
+    //   opponent?.emit("match.cancelled");
 
-      cancelMatch(match);
-      return;
-    }
+    //   cancelMatch(match);
+    //   return;
+    // }
 
-    // ✅ otherwise treat as surrender (including between-round countdown)
     const side = socket.data.side!;
     const winnerSide: Side = side === "left" ? "right" : "left";
     endMatch(match, winnerSide, "surrender", { surrenderingSide: side });
@@ -523,7 +521,9 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     options?: { surrenderingSide?: Side },
   ) {
     if (match.isEnding) return;
+    
     match.isEnding = true;
+    match.isPaused = true;
 
     if (match.loop) {
       clearInterval(match.loop);
@@ -619,18 +619,18 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
   function tickMatch(match: Match) {
     // Guard: don't tick if paused or ending
     if (match.isPaused || match.isEnding) return;
-    const prevPhase = match.state.phase;
+    // const prevPhase = match.state.phase;
     const dt = 1 / 60;
     stepServerGame(match.state, match.inputs, dt);
 
-    // ✅ First time we transition countdown -> playing, mark match as started
-    if (
-      !match.hasStarted &&
-      prevPhase === "countdown" &&
-      match.state.phase === "playing"
-    ) {
-      match.hasStarted = true;
-    }
+    // // ✅ First time we transition countdown -> playing, mark match as started
+    // if (
+    //   !match.hasStarted &&
+    //   prevPhase === "countdown" &&
+    //   match.state.phase === "playing"
+    // ) {
+    //   match.hasStarted = true;
+    // }
     const snapshot: GameSnapshot = toSnapshot(match.state);
     match.left?.emit("game.state", snapshot);
     match.right?.emit("game.state", snapshot);

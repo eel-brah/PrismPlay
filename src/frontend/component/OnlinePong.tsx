@@ -28,7 +28,7 @@ type PhaseUI = "searching" | "inMatch" | "gameover" | "opponentLeft" | "error";
 const GAME_WIDTH = 810;
 const GAME_HEIGHT = 600;
 
-// Placeholder for when opponent is unknown
+//opponent is unknown object
 const UNKNOWN_PLAYER: OnlinePlayerLite = {
   id: 0,
   nickname: "???",
@@ -586,8 +586,6 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
         cancelAnimationFrame(animationRef.current);
     };
   }, []);
-  // uiPhase, opponent.nickname, side, connectionError
-  // --- UI ---
 
   // Handler for finding a new match
   const handleFindMatch = () => {
@@ -615,6 +613,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
     navigate("/games");
   };
 
+  // --- UI --- //
   return (
     <div className="fixed inset-0 flex flex-col bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">
       {/* Top bar with controls */}
@@ -649,44 +648,6 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
       </div>
 
       {/* Main game area with HUD */}
-      {/* <div className="flex-1 flex items-center justify-center overflow-auto">
-        {side ? (
-          <OnlinePongHUD
-            mySide={side}
-            leftPlayer={leftPlayer}
-            rightPlayer={rightPlayer}
-            leftStatus={leftStatus}
-            rightStatus={rightStatus}
-            leftStats={leftStats}
-            rightStats={rightStats}
-            loadingLeft={loadingStats}
-            loadingRight={loadingStats}
-          >
-            <canvas
-              ref={canvasRef}
-              width={GAME_WIDTH}
-              height={GAME_HEIGHT}
-              className="border-4 border-gray-700 rounded-lg shadow-2xl"
-              style={{ imageRendering: "pixelated" }}
-            />
-          </OnlinePongHUD>
-        ) : (
-          // Searching state - show canvas without HUD
-          <div className="flex flex-col items-center gap-6">
-            <canvas
-              ref={canvasRef}
-              width={GAME_WIDTH}
-              height={GAME_HEIGHT}
-              className="border-4 border-gray-700 rounded-lg shadow-2xl"
-              style={{ imageRendering: "pixelated" }}
-            />
-            <div className="flex items-center gap-3 text-gray-400">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping" />
-              <span>Waiting for an opponent to join...</span>
-            </div>
-          </div>
-        )}
-      </div> */}
       <div className="flex-1 flex items-center justify-center overflow-auto">
         <OnlinePongHUD
           mySide={side}
@@ -700,7 +661,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
           loadingLeft={loadingStats}
           loadingRight={loadingStats}
         >
-          {/* ✅ ONE CANVAS ONLY */}
+          {/* CANVAS */}
           <canvas
             ref={canvasRef}
             width={GAME_WIDTH}
