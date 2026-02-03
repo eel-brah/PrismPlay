@@ -96,7 +96,7 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
 
       if (!input) continue;
 
-      const mouse: Mouse = { x: input.mouseX, y: input.mouseY };
+      const mouse: Mouse = { x: input.x, y: input.y };
 
       if (state.splitRequested) {
         p.split(mouse);

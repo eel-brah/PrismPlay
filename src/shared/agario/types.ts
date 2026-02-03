@@ -53,12 +53,12 @@ export interface Camera {
   height: number;
 }
 
-export interface InputState {
-  mouseX: number;
-  mouseY: number;
-  // seq: number;
-  dt: number;
-}
+// export interface InputState {
+//   mouseX: number;
+//   mouseY: number;
+//   // seq: number;
+//   dt: number;
+// }
 
 export interface PlayerState {
   player: Player;

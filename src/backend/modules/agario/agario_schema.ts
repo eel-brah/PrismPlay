@@ -22,3 +22,10 @@ function validate<T extends z.ZodTypeAny>(
   return parsed.data;
 }
 
+export const InputSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  dt: z.number(),
+});
+
+export type InputState = z.infer<typeof InputSchema>;
