@@ -39,11 +39,10 @@ import {
 } from "src/backend/modules/agario/agario_service";
 import {
   broadcastPlayers,
-  removeActivePlayer,
   sendRoomInfo,
 } from "./agarioHanders";
 import { FastifyBaseLogger } from "fastify";
-import { Player } from "src/shared/agario/player";
+import { removeActivePlayer } from "./agarioUtils";
 
 const TICK_RATE = 50;
 const TICK_DT = 1 / TICK_RATE;

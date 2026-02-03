@@ -2,9 +2,11 @@ import { FastifyBaseLogger, FastifyInstance } from "fastify";
 import { Namespace, Socket } from "socket.io";
 import { Player } from "src/shared/agario/player";
 import { randomColor } from "src/shared/agario/utils";
-import crypto from "crypto";
 import {
+  ActivePlayer,
+  CreateRoomPayload,
   FinalStatus,
+  JoinRoomPayload,
   PlayerState,
   RoomSummary,
   RoomVisibility,
@@ -28,80 +30,14 @@ import {
   getRoomLeaderboard,
 } from "src/backend/modules/agario/agario_service";
 import { worldByRoom } from "./agario";
+import { clampInt, getIdentity, identityKey, makeKey, removeActivePlayer } from "./agarioUtils";
 
-type CreateRoomPayload = {
-  room: string;
-  name: string;
-  visibility: RoomVisibility;
-  maxPlayers: number;
-  durationMin: number;
-  allowSpectators: boolean;
-};
+export const activePlayers = new Map<string, ActivePlayer>();
 
-type JoinRoomPayload = {
-  room: string;
-  name: string;
-  key?: string;
-  spectator: boolean;
-};
-
-type Identity = {
-  type: string;
-  userId?: number;
-  guestId?: string;
-};
-
-type ActivePlayer = {
-  identity: Identity;
-  roomName: string;
-
-  socketId: string;
-  sessionId: string;
-  disconnectedAt?: number;
-  timeoutId?: NodeJS.Timeout;
-};
-
-const activePlayers = new Map<string, ActivePlayer>();
-
-export function removeActivePlayer(socket: Socket) {
-  const key = identityKey(getIdentity(socket));
-  const activePlayer = activePlayers.get(key);
-  if (activePlayer?.socketId == socket.id) {
-    activePlayers.delete(key);
-  }
-}
-
-function getIdentity(socket: Socket): Identity {
-  if (socket.data.userId) {
-    return { type: "user", userId: socket.data.userId };
-  }
-
-  return { type: "guest", guestId: socket.data.guestId };
-}
-function identityKey(identity: Identity) {
-  return identity.type === "user"
-    ? `user:${identity.userId}`
-    : `guest:${identity.guestId}`;
-}
-
-function clampInt(n: number, min: number, max: number) {
-  n = Math.floor(Number(n));
-  if (!Number.isFinite(n)) return min;
-  return Math.max(min, Math.min(max, n));
-}
-
-function makeKey() {
-  return crypto.randomBytes(4).toString("hex");
-}
-
-function nowMs() {
-  return Date.now();
-}
-
-async function startRoom(socket: Socket, world: World) {
+async function startRoom(world: World) {
   if (world.meta.status === "started") return;
   world.meta.status = "started";
-  world.meta.startedAt = nowMs();
+  world.meta.startedAt = Date.now();
   world.meta.endAt = world.meta.startedAt + world.meta.durationMin * 60000;
 
   for (const s of Object.values(world.players)) {
@@ -187,6 +123,7 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
         spectators: new Set(),
       },
     };
+
     try {
       const roomDb = await createRoomDb(defaultWorld.meta);
       defaultWorld.meta.roomId = roomDb.id;
@@ -228,7 +165,7 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
     }
 
     try {
-      await startRoom(socket, world);
+      await startRoom(world);
       socket.nsp.to(room).emit("agario:room-status", {
         status: "started",
         started: world.meta.startedAt,
@@ -248,7 +185,7 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
   socket.on("agario:list-rooms", () => {
     const summaries: RoomSummary[] = [];
 
-    const t = nowMs();
+    const t = Date.now();
     for (const [room, world] of worldByRoom) {
       const playerCount = Object.keys(world.players).length;
 
@@ -279,7 +216,6 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
   });
 
   socket.on("agario:create-room", async (payload: CreateRoomPayload) => {
-    //TODO:
     if (!socket.data.userId) {
       socket.emit("agario:error", "You must be logged in to create a room");
       return;
@@ -319,7 +255,7 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
         maxPlayers,
         durationMin,
         status: "waiting",
-        createdAt: nowMs(),
+        createdAt: Date.now(),
         hostId: socket.data.userId,
         allowSpectators: payload.allowSpectators,
         spectators: new Set(),
@@ -380,7 +316,7 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       afterJoinCount == world.meta.maxPlayers
     ) {
       try {
-        await startRoom(socket, world);
+        await startRoom(world);
         socket.nsp.to(roomName).emit("agario:room-status", {
           status: world.meta.status,
           startedAt: world.meta.startedAt,
@@ -491,8 +427,8 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
 
     world.players[socket.id] = {
       player: newPlayer,
-      startTime: nowMs(),
-      endTime: nowMs(),
+      startTime: Date.now(),
+      endTime: Date.now(),
       kills: 0,
       maxMass: INIT_MASS / MASS,
       input: null,
@@ -562,11 +498,6 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
     }
   });
 
-  // socket.on("room:ended", async ({ roomId }) => {
-  //   const leaderboard = await getRoomLeaderboard(roomId);
-  //
-  //   io.to(`room:${roomId}`).emit("leaderboard:final", leaderboard);
-  // });
   socket.on("disconnect", async (reason) => {
     fastify.log.info({ id: socket.id, reason }, "socket disconnected");
 
@@ -694,16 +625,4 @@ async function deletePlayer(
       if (client) sendRoomInfo(client, world);
     }
   }
-
-  // socket.data.room = undefined;
-  // socket.data.role = undefined;
-  // socket.data.identity = undefined;
-  // socket.data.room = undefined;
-  // socket.data.userId = undefined;
-  // socket.data.guestId = undefined;
-  // socket.data.role = undefined;
-  // socket.data.identity = undefined;
-  // socket.data.sessionId = undefined;
-  // socket.data.userId = undefined;
-  // socket.data.guestId = undefined;
 }
