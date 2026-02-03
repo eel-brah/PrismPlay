@@ -7,7 +7,6 @@ import {
   Eject,
   FinalLeaderboardEntry,
   FinalStatus,
-  InputState,
   LeaderboardEntry,
   LobbyPlayer,
   Mouse,
@@ -24,6 +23,7 @@ import { FinalStatusOverlay } from "./agario/FinalStatusOverlay";
 import { TopStatusBar } from "./agario/RoomStatusBar";
 import { nanoid } from "nanoid"
 import { TOKEN_KEY } from "@/api";
+import { InputState } from "src/backend/modules/agario/agario_schema";
 
 type AlertType = "error" | "warning" | "info" | "";
 const alertStyles: Record<Exclude<AlertType, "">, string> = {
@@ -399,8 +399,8 @@ const Agario = () => {
 
       // inputSeqRef.current += 1;
       const input: InputState = {
-        mouseX: worldMouse.x,
-        mouseY: worldMouse.y,
+        x: worldMouse.x,
+        y: worldMouse.y,
         // seq: inputSeqRef.current,
         dt,
       };

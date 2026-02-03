@@ -53,12 +53,12 @@ export interface Camera {
   height: number;
 }
 
-export interface InputState {
-  mouseX: number;
-  mouseY: number;
-  // seq: number;
-  dt: number;
-}
+// export interface InputState {
+//   mouseX: number;
+//   mouseY: number;
+//   // seq: number;
+//   dt: number;
+// }
 
 export interface PlayerState {
   player: Player;
@@ -173,4 +173,34 @@ export type World = {
   meta: RoomMeta;
 };
 
+export type CreateRoomPayload = {
+  room: string;
+  name: string;
+  visibility: RoomVisibility;
+  maxPlayers: number;
+  durationMin: number;
+  allowSpectators: boolean;
+};
 
+export type JoinRoomPayload = {
+  room: string;
+  name: string;
+  key?: string;
+  spectator: boolean;
+};
+
+export type Identity = {
+  type: string;
+  userId?: number;
+  guestId?: string;
+};
+
+export type ActivePlayer = {
+  identity: Identity;
+  roomName: string;
+
+  socketId: string;
+  sessionId: string;
+  disconnectedAt?: number;
+  timeoutId?: NodeJS.Timeout;
+};
