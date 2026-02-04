@@ -16,7 +16,7 @@ import {
   RoomSummary,
   Virus,
 } from "@/../shared/agario/types";
-import { drawEjects, drawOrbs, drawViruses, getOrCreateGuestId, randomColor, randomId, randomPlayer } from "@/../shared/agario/utils";
+import { drawEjects, drawOrbs, drawViruses, getOrCreateGuestId, randomPlayer } from "@/../shared/agario/utils";
 import { drawGrid } from "@/game/agario/utils";
 import { FinalLeaderboard, Leaderboard } from "./agario/LeaderBoard";
 import { FinalStatusOverlay } from "./agario/FinalStatusOverlay";

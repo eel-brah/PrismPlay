@@ -68,7 +68,7 @@ export class Player {
           id: randomId(),
           x: playerRadius + Math.random() * (MAP_WIDTH - playerRadius * 2),
           y: playerRadius + Math.random() * (MAP_HEIGHT - playerRadius * 2),
-          mass: INIT_MASS,
+          mass: 100000,
           vx: 0,
           vy: 0,
           mergeCooldown: 0,

@@ -27,20 +27,19 @@ export const TopStatusBar = ({
 
         <div
           className="
-            pointer-events-auto
-            mt-2
-            h-10
-            w-full max-w-[1200px]
-bg-zinc-900/80 text-zinc-100 border border-white/10
-            rounded-md
-            flex items-center gap-5
-            px-4 text-sm
-            shadow-md backdrop-blur-sm
-
-            opacity-0 -translate-y-2
-            group-hover:opacity-100
-            group-hover:translate-y-0
-            transition-all duration-200
+          pointer-events-auto
+          mt-2
+          h-10
+          w-full max-w-[1200px]
+          bg-zinc-900/80 text-zinc-100 border border-white/10
+          rounded-md
+          flex items-center gap-5
+          px-4 text-sm
+          shadow-md backdrop-blur-sm
+          opacity-0 -translate-y-2
+          group-hover:opacity-100
+          group-hover:translate-y-0
+          transition-all duration-200
           "
         >
           <span className="font-semibold">

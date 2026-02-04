@@ -26,7 +26,6 @@ export const FinalStatusOverlay = ({ status, onClose }: Props) => {
   return (
     <div className="absolute inset-0 flex items-center justify-center z-50">
       <div className="w-[420px] max-w-[92vw] bg-zinc-900 rounded-xl shadow-xl p-6 text-white">
-        {/* Header */}
         <div className="text-center mb-6">
           <div className="text-3xl font-bold text-gray-200">
             Match Summary
@@ -36,7 +35,6 @@ export const FinalStatusOverlay = ({ status, onClose }: Props) => {
           </div>
         </div>
 
-        {/* Player Stats */}
         <div className="border border-white/10 rounded-lg">
           <div className="flex justify-between items-center px-4 py-3">
             <span className="font-semibold">{status.name}</span>
@@ -47,7 +45,6 @@ export const FinalStatusOverlay = ({ status, onClose }: Props) => {
           </div>
         </div>
 
-        {/* Actions */}
         <div className="mt-6 flex justify-center">
           <button
             onClick={onClose}

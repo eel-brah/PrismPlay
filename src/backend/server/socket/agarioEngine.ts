@@ -37,10 +37,7 @@ import {
   finalizeRoomResultsDb,
   getRoomLeaderboard,
 } from "src/backend/modules/agario/agario_service";
-import {
-  broadcastPlayers,
-  sendRoomInfo,
-} from "./agarioHanders";
+import { broadcastPlayers, sendRoomInfo } from "./agarioHanders";
 import { FastifyBaseLogger } from "fastify";
 import { removeActivePlayer } from "./agarioUtils";
 
@@ -77,7 +74,7 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
     return attacker.mass >= defender.mass * required;
   }
 
-  function simulate(dt: number, world: World) {
+  function simulate(dt: number, world: World, tickNow: number) {
     const started = world.meta.status === "started";
 
     const players = world.players;
@@ -107,42 +104,16 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
         state.ejectRequested = false;
       }
 
-      // if (started && state.splitRequested) {
-      //   p.split(mouse);
-      //   state.splitRequested = false;
-      // } else {
-      //   state.splitRequested = false;
-      // }
-      //
-      // if (started && state.ejectRequested) {
-      //   ejects.push(...p.eject(mouse));
-      //   state.ejectRequested = false;
-      // } else {
-      //   state.ejectRequested = false;
-      // }
-
       const [eatenOrbs, eatenEjects] = p.update(dt, mouse, orbs, ejects);
       state.maxMass = Math.max(state.maxMass, state.player.getTotalMass());
-      // const [eatenOrbs, eatenEjects] = p.update(
-      //   dt,
-      //   mouse,
-      //   started ? orbs : [],
-      //   started ? ejects : [],
-      // );
 
-      // if (started) {
       if (eatenOrbs.length > 0) {
-        // let changed = false;
         for (const orbId of eatenOrbs) {
           const idx = orbs.findIndex((o) => o.id === orbId);
           if (idx !== -1) {
             orbs.splice(idx, 1);
-            // changed = true;
           }
         }
-        // if (changed) {
-        //   ensureOrbs(orbs);
-        // }
       }
       if (eatenEjects.length > 0) {
         for (const ejectId of eatenEjects) {
@@ -152,20 +123,15 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
           }
         }
       }
-      // }
       state.maxMass = Math.max(state.maxMass, state.player.getTotalMass());
 
-      updateVirusPenalty(state, Date.now());
+      updateVirusPenalty(state, tickNow);
     }
-
-    // if (!started) return;
 
     for (const e of ejects) {
       e.age += dt;
       e.x += e.vx * dt;
       e.y += e.vy * dt;
-      // e.x = Math.max(0, Math.min(MAP_WIDTH, e.x));
-      // e.y = Math.max(0, Math.min(MAP_HEIGHT, e.y));
 
       if (e.x < 0 || e.x > MAP_WIDTH) e.vx *= -1;
       if (e.y < 0 || e.y > MAP_HEIGHT) e.vy *= -1;
@@ -345,10 +311,12 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
           state.guestId,
         );
       } catch (err) {
-        let errorMessage = err instanceof Error ? err.message : "Unknown error";
         if (socket) {
-          logger.error({ id: socket.id }, errorMessage);
-          socket.emit("agario:error", errorMessage);
+          logger.error(
+            { id: socket.id },
+            err instanceof Error ? err.message : "Unknown error",
+          );
+          socket.emit("agario:error", "Internal server error");
         }
       }
 
@@ -514,7 +482,9 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
           tickNow >= world.meta.endAt;
 
         if (roomEnded) {
-          const snapshotPlayers = Object.values(world.players);
+          const snapshotPlayers = Object.values(world.players).filter(
+            (p) => p.endTime === undefined,
+          );
 
           const saveJobs = snapshotPlayers.map((player) =>
             createPlayerHistoryDb(
@@ -529,7 +499,7 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
               const socket = io.sockets.get(player.player.id);
               if (socket) {
                 logger.error({ id: socket.id }, err);
-                socket.emit("agario:error", "Failed to save match history");
+                socket.emit("agario:error", "Internal server error");
               }
             }),
           );
@@ -550,11 +520,13 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
           continue;
         }
 
-        const deaths = simulate(TICK_DT, world);
+        const deaths = simulate(TICK_DT, world, tickNow);
         ensureOrbs(world.orbs);
         ensureViruses(world.viruses);
 
-        void processDeaths(world, deaths);
+        // TODO:
+        // void processDeaths(world, deaths);
+        await processDeaths(world, deaths);
       }
 
       for (const room of roomsToDelete) {

@@ -14,7 +14,6 @@ import {
 } from "src/shared/agario/types";
 import {
   DEFAULT_ROOM,
-  DEFAULT_ROOM_MAX_PLAYERS,
   INIT_MASS,
   MASS,
   MAX_MINUTES,
@@ -112,7 +111,6 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
   fastify.log.info({ id: socket.id }, "agario handlers attached");
   try {
     await ensureDefaultRoom();
-    //TODO: test
   } catch (err) {
     fastify.log.error(err, "Failed to initialize default room");
     socket.emit("agario:error", "Server is temporarily unavailable");
@@ -572,9 +570,8 @@ async function deletePlayer(
           socket.data.guestId,
         );
       } catch (err) {
-        let errorMessage = err instanceof Error ? err.message : "Unknown error";
-        logger.error({ id: socket.id }, errorMessage);
-        if (!disconnected) socket.emit("agario:error", errorMessage);
+        logger.error({ id: socket.id }, err instanceof Error ? err.message : "Unknown error");
+        if (!disconnected) socket.emit("agario:error", "Internal server error");
       }
     }
 
