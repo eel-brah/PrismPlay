@@ -24,6 +24,7 @@ import { TopStatusBar } from "./agario/RoomStatusBar";
 import { nanoid } from "nanoid"
 import { TOKEN_KEY } from "@/api";
 import { InputState } from "src/backend/modules/agario/agario_schema";
+import { useNavigate } from "react-router-dom";
 
 type AlertType = "error" | "warning" | "info" | "";
 const alertStyles: Record<Exclude<AlertType, "">, string> = {
@@ -84,6 +85,17 @@ const Agario = () => {
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [lobbyPlayers, setLobbyPlayers] = useState<LobbyPlayer[]>([]);
   const roomStatusRef = useRef<"waiting" | "started" | "ended">("waiting");
+
+
+  const navigate = useNavigate();
+
+  const goHome = () => {
+    navigate("/");
+  };
+
+  const goProfile = () => {
+    navigate("/profile");
+  };
 
   useEffect(() => {
     const socket = io("/agario", {
@@ -553,11 +565,11 @@ const Agario = () => {
       <div className="pointer-events-none fixed top-6 left-1/2 -translate-x-1/2 z-50">
         <div
           className={`
-      px-6 py-3 rounded-md border text-lg transition-all duration-200
-      ${alert.type
+            px-6 py-3 rounded-md border text-lg transition-all duration-200
+            ${alert.type
               ? `${alertStyles[alert.type]} opacity-100 translate-y-0`
               : "opacity-0 -translate-y-2"}
-    `}
+            `}
           aria-live="polite"
         >
           {alert.message}
@@ -601,7 +613,7 @@ const Agario = () => {
             <button
               onClick={() => {
                 setAlert({ type: "", message: "" });
-                setMenuMode("join");
+                setMenuMode(menuMode != "join" ? "join" : HOME_PAGE);
               }}
               className="px-6 py-3 bg-zinc-800 text-white rounded-md text-xl hover:bg-zinc-700 transition"
             >
@@ -611,13 +623,31 @@ const Agario = () => {
             <button
               onClick={() => {
                 setAlert({ type: "", message: "" });
-                setMenuMode("create");
+                setMenuMode(menuMode != "create" ? "create" : HOME_PAGE);
               }}
               className="px-6 py-3 bg-zinc-800 text-white rounded-md text-xl hover:bg-zinc-700 transition"
             >
               Create Room
             </button>
           </div>
+
+          {menuMode === HOME_PAGE && (
+            <div className="flex gap-3 mt-2">
+              <button
+                onClick={goHome}
+                className="px-4 py-2 bg-zinc-800  text-white rounded-md text-lg hover:bg-zinc-700 transition"
+              >
+                🏠 Home
+              </button>
+
+              <button
+                onClick={goProfile}
+                className="px-4 py-2 bg-zinc-800  text-white rounded-md text-lg hover:bg-zinc-700 transition"
+              >
+                👤 Profile
+              </button>
+            </div>
+          )}
 
           {menuMode === "join" && (
             <div className="w-[560px] max-w-[92vw] bg-zinc-900/90 rounded-lg p-4 border border-fuchsia-500/60 backdrop-blur">
