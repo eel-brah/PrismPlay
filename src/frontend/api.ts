@@ -362,3 +362,14 @@ export function apiUploadAvatar(token: string, file: File) {
     body: form,
   });
 }
+
+export function apiPingMe(token: string) {
+  return requestJson<{ ok: boolean; lastLogin: string | null }>(
+    "/api/users/me/ping",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+}
+

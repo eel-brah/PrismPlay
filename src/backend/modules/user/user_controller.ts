@@ -8,6 +8,7 @@ import {
   findUserPublicById,
   findUserPublicByUsername,
   getUserAchievements,
+  touchUserLastLogin,
   updateUserById,
 } from "./user_service.ts";
 import type {
@@ -68,16 +69,16 @@ export async function loginHandler(
   const accessToken = await rep.jwtSign(payload, {
     sign: { expiresIn: "1d" },
   });
-
+  const update = await touchUserLastLogin(user.id);
   return rep.send({
     accessToken,
     user: {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      createdAt: user.createdAt,
-      lastLogin: user.lastLogin,
-      avatarUrl: user.avatarUrl,
+      id: update.id,
+      username: update.username,
+      email: update.email,
+      createdAt: update.createdAt,
+      lastLogin: update.lastLogin,
+      avatarUrl: update.avatarUrl,
     },
   });
 }
@@ -179,6 +180,14 @@ export async function updateMeHandler(
     return rep.code(400).send({ message: "Error updating user" });
   }
 }
+
+export async function pingMeHandler(req: FastifyRequest, rep: FastifyReply) {
+  const userId = req.user.id;
+  const updated = await touchUserLastLogin(userId);
+  return rep.send({ ok: true, lastLogin: updated.lastLogin });
+}
+
+
 
 const ALLOWED = new Set(["image/png", "image/jpeg", "image/webp"]);
 

@@ -28,7 +28,7 @@ type PhaseUI = "searching" | "inMatch" | "gameover" | "opponentLeft" | "error";
 const GAME_WIDTH = 810;
 const GAME_HEIGHT = 600;
 
-// Placeholder for when opponent is unknown
+//opponent is unknown object
 const UNKNOWN_PLAYER: OnlinePlayerLite = {
   id: 0,
   nickname: "???",
@@ -82,12 +82,20 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
   }, [soundOn]);
 
   const uiPhaseRef = useRef<PhaseUI>("searching");
-
   useEffect(() => {
     uiPhaseRef.current = uiPhase;
   }, [uiPhase]);
 
-  // Ref to track current side for socket callbacks (avoids stale closure)
+  const connectionErrorRef = useRef<string | null>(null);
+  useEffect(() => {
+    connectionErrorRef.current = connectionError;
+  }, [connectionError]);
+
+  const opponentNicknameRef = useRef<string>(UNKNOWN_PLAYER.nickname);
+  useEffect(() => {
+    opponentNicknameRef.current = opponent.nickname;
+  }, [opponent.nickname]);
+
   const sideRef = useRef<Side | null>(null);
   useEffect(() => {
     sideRef.current = side;
@@ -247,52 +255,33 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
       setOpponentStatus("connected");
     });
 
-    // // Handle reconnection to existing match (after page refresh)
-    // socket.on("match.reconnected", (payload) => {
-    //   console.log("[match.reconnected]", payload);
-    //   setSide(payload.side);
-    //   sideRef.current = payload.side;
-    //   snapshotRef.current = payload.snapshot;
-    //   setOpponent({
-    //     id: payload.opponent.id,
-    //     nickname: payload.opponent.nickname,
-    //     avatarUrl: payload.opponent.avatarUrl,
-    //   });
-    //   setOpponentStatus("connected");
-    //   setUiPhase("inMatch");
-    // });
+    socket.on("match.reconnected", (payload) => {
+      console.log("[match.reconnected]", payload);
 
-socket.on("match.reconnected", (payload) => {
-  console.log("[match.reconnected]", payload);
+      setSide(payload.side);
+      sideRef.current = payload.side;
 
-  setSide(payload.side);
-  sideRef.current = payload.side;
+      snapshotRef.current = payload.snapshot;
 
-  snapshotRef.current = payload.snapshot;
+      setMyProfile({
+        id: payload.player.id,
+        nickname: payload.player.nickname,
+        avatarUrl: payload.player.avatarUrl,
+      });
 
-  // ✅ restore "me"
-  setMyProfile({
-    id: payload.player.id,
-    nickname: payload.player.nickname,
-    avatarUrl: payload.player.avatarUrl,
-  });
+      setOpponent({
+        id: payload.opponent.id,
+        nickname: payload.opponent.nickname,
+        avatarUrl: payload.opponent.avatarUrl,
+      });
 
-  // ✅ restore opponent
-  setOpponent({
-    id: payload.opponent.id,
-    nickname: payload.opponent.nickname,
-    avatarUrl: payload.opponent.avatarUrl,
-  });
+      setMyStats(payload.playerStats);
+      setOpponentStats(payload.opponentStats);
+      setLoadingStats(false);
 
-  // ✅ restore stats so HUD is correct after refresh
-  setMyStats(payload.playerStats);
-  setOpponentStats(payload.opponentStats);
-  setLoadingStats(false);
-
-  setOpponentStatus("connected");
-  setUiPhase("inMatch");
-});
-
+      setOpponentStatus("connected");
+      setUiPhase("inMatch");
+    });
 
     socket.on("opponent.left", () => {
       setOpponentStatus("disconnected");
@@ -443,7 +432,7 @@ socket.on("match.reconnected", (payload) => {
     };
   }, []);
 
-  // --- Rendering loop (client only draws; server runs physics) ---
+  // --- Rendering loop --- //
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -451,11 +440,16 @@ socket.on("match.reconnected", (payload) => {
     if (!ctx) return;
 
     const draw = () => {
+      const phase = uiPhaseRef.current;
+      const connectionError = connectionErrorRef.current;
+      const side = sideRef.current;
+      const openentNickname = opponentNicknameRef.current;
+
       const snap = snapshotRef.current;
       ctx.fillStyle = "#1e1e2e";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      if (uiPhase === "error") {
+      if (phase === "error") {
         ctx.fillStyle = "#f38ba8";
         ctx.font = "28px monospace";
         const msg = connectionError || "Connection error.";
@@ -469,7 +463,7 @@ socket.on("match.reconnected", (payload) => {
         ctx.fillStyle = "#cdd6f4";
         ctx.font = "28px monospace";
         const msg =
-          uiPhase === "searching"
+          phase === "searching"
             ? "Searching for opponent..."
             : "Waiting for game...";
         const w = ctx.measureText(msg).width;
@@ -568,7 +562,7 @@ socket.on("match.reconnected", (payload) => {
         if (snap.countdown > 0) {
           centered(snap.countdown.toString(), canvas.height / 2 + 20, 96);
           centered("Game Ready!", canvas.height / 2 - 60, 32);
-          centered(`vs ${opponent.nickname}`, canvas.height / 2 + 100, 24);
+          centered(`vs ${openentNickname}`, canvas.height / 2 + 100, 24);
         }
       }
     };
@@ -591,9 +585,7 @@ socket.on("match.reconnected", (payload) => {
       if (animationRef.current !== null)
         cancelAnimationFrame(animationRef.current);
     };
-  }, [uiPhase, opponent.nickname, side, connectionError]);
-
-  // --- UI ---
+  }, []);
 
   // Handler for finding a new match
   const handleFindMatch = () => {
@@ -615,18 +607,13 @@ socket.on("match.reconnected", (payload) => {
     }
   };
 
-  // // Handler for rematch (request rematch with same opponent)
-  // const handleRematch = () => {
-  //   // For now, just find a new match (rematch logic would need server support)
-  //   handleFindMatch();
-  // };
-
   // Handler for leaving to games page
   const handleLeave = () => {
     setShowGameOverPopup(false);
     navigate("/games");
   };
 
+  // --- UI --- //
   return (
     <div className="fixed inset-0 flex flex-col bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">
       {/* Top bar with controls */}
@@ -662,42 +649,37 @@ socket.on("match.reconnected", (payload) => {
 
       {/* Main game area with HUD */}
       <div className="flex-1 flex items-center justify-center overflow-auto">
-        {side ? (
-          <OnlinePongHUD
-            mySide={side}
-            leftPlayer={leftPlayer}
-            rightPlayer={rightPlayer}
-            leftStatus={leftStatus}
-            rightStatus={rightStatus}
-            leftStats={leftStats}
-            rightStats={rightStats}
-            loadingLeft={loadingStats}
-            loadingRight={loadingStats}
-          >
-            <canvas
-              ref={canvasRef}
-              width={GAME_WIDTH}
-              height={GAME_HEIGHT}
-              className="border-4 border-gray-700 rounded-lg shadow-2xl"
-              style={{ imageRendering: "pixelated" }}
-            />
-          </OnlinePongHUD>
-        ) : (
-          // Searching state - show canvas without HUD
-          <div className="flex flex-col items-center gap-6">
-            <canvas
-              ref={canvasRef}
-              width={GAME_WIDTH}
-              height={GAME_HEIGHT}
-              className="border-4 border-gray-700 rounded-lg shadow-2xl"
-              style={{ imageRendering: "pixelated" }}
-            />
-            <div className="flex items-center gap-3 text-gray-400">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping" />
-              <span>Waiting for an opponent to join...</span>
+        <OnlinePongHUD
+          mySide={side}
+          showPlayers={!!side}
+          leftPlayer={leftPlayer}
+          rightPlayer={rightPlayer}
+          leftStatus={leftStatus}
+          rightStatus={rightStatus}
+          leftStats={leftStats}
+          rightStats={rightStats}
+          loadingLeft={loadingStats}
+          loadingRight={loadingStats}
+        >
+          {/* CANVAS */}
+          <canvas
+            ref={canvasRef}
+            width={GAME_WIDTH}
+            height={GAME_HEIGHT}
+            className="border-4 border-gray-700 rounded-lg shadow-2xl"
+            style={{ imageRendering: "pixelated" }}
+          />
+
+          {/* Searching overlay (on top of canvas) */}
+          {!side && (
+            <div className="absolute inset-x-0 bottom-6 flex items-center justify-center pointer-events-none">
+              <div className="flex items-center gap-3 text-gray-400 bg-black/30 px-4 py-2 rounded-lg">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping" />
+                <span>Waiting for an opponent to join...</span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </OnlinePongHUD>
       </div>
 
       {/* Game Over Popup */}

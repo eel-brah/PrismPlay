@@ -30,6 +30,14 @@ export async function createUser(input: CreateUserInput) {
   });
 }
 
+export async function touchUserLastLogin(userId: number) {
+  return prisma.user.update({
+    where: { id: userId },
+    data: { lastLogin: new Date() },
+    select: safeSelect,
+  });
+}
+
 export async function findUserByEmail(email: string) {
   return prisma.user.findUnique({ where: { email } });
 }

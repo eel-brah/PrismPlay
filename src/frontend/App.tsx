@@ -26,6 +26,7 @@ import {
   getStoredToken,
   storeToken,
   clearToken,
+  apiPingMe,
 } from "./api";
 
 export default function App() {
@@ -64,6 +65,33 @@ export default function App() {
 
     localStorage.setItem("profile_data", JSON.stringify(next));
   }
+
+  useEffect(() => {
+    if (!token) return;
+
+    const ping = async () => {
+      try {
+        await apiPingMe(token);
+      } catch {
+      }
+    };
+
+    ping(); 
+
+    const id = window.setInterval(ping, 15_000); 
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") ping();
+    };
+    window.addEventListener("focus", ping);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener("focus", ping);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [token]);
 
   useEffect(() => {
     async function boot() {
@@ -552,10 +580,7 @@ export default function App() {
               <div
                 className={`relative min-h-screen overflow-y-auto bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-8 ${topPaddingClass}`}
               >
-                <OnlinePong
-                  token={token}
-                  onReturn={handleReturn}
-                />
+                <OnlinePong token={token} onReturn={handleReturn} />
               </div>
             ) : (
               <Navigate to="/login/form" replace />
