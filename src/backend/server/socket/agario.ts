@@ -1,11 +1,12 @@
 import { Server as SocketIOServer } from "socket.io";
 import { agarioEngine } from "./agarioEngine";
-import { agarioHandlers } from "./agarioHanders";
+import { activePlayers, agarioHandlers } from "./agarioHanders";
 import { FastifyInstance } from "fastify";
 import { createGuestDb } from "src/backend/modules/agario/agario_service.ts";
 import { socketAuthSchema } from "src/backend/modules/agario/agario_schema.ts";
 import { World } from "src/shared/agario/types";
 import { JwtPayload } from "src/backend/modules/user/user_controller";
+import { getIdentity, identityKey } from "./agarioUtils";
 
 export const worldByRoom = new Map<string, World>();
 
@@ -43,7 +44,8 @@ export function init_agario(io: SocketIOServer, fastify: FastifyInstance) {
       try {
         await createGuestDb(guestId);
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Unknown error";
+        const errorMessage =
+          err instanceof Error ? err.message : "Unknown error";
         fastify.log.error({ id: socket.id }, errorMessage);
         return next(new Error("Guest creation failed"));
       }
@@ -56,6 +58,18 @@ export function init_agario(io: SocketIOServer, fastify: FastifyInstance) {
   agarioEngine(fastify.log, agario);
   agario.on("connection", async (socket) => {
     fastify.log.info({ id: socket.id }, "socket connected");
+    //TODO: test this
+    const ap = activePlayers.get(identityKey(getIdentity(socket)));
+
+    if (socket.recovered) {
+      fastify.log.info({ id: socket.id }, "socket recovered");
+      if (ap?.timeoutId) {
+        clearTimeout(ap.timeoutId);
+        ap.timeoutId = undefined;
+        ap.disconnectedAt = undefined;
+      }
+      return;
+    }
     await agarioHandlers(socket, fastify);
   });
 }

@@ -41,6 +41,9 @@ export async function createRoomDb(meta: RoomMeta) {
         maxPlayers: meta.maxPlayers,
         createdById: meta.hostId === -1 ? null : meta.hostId,
         visibility: meta.visibility,
+        ...(meta.endAt !== undefined && {
+          endedAt: new Date(meta.endAt),
+        }),
       },
     });
   });
@@ -153,7 +156,7 @@ export async function listRoomsHistoryDb(
 ) {
   const rooms = await prisma.room.findMany({
     where: onlyEnded ? { endedAt: { not: null } } : undefined,
-    orderBy: [{ startedAt: "desc" }], 
+    orderBy: [{ startedAt: "desc" }],
     take,
     skip,
     include: {

@@ -44,17 +44,20 @@ export const MIN_SECOND_TO_STORE = 3;
 
 async function startRoom(world: World) {
   if (world.meta.status === "started") return;
-  world.meta.status = "started";
+
   world.meta.startedAt = Date.now();
   world.meta.endAt = world.meta.startedAt + world.meta.durationMin * 60000;
+
+  const roomDb = await createRoomDb(world.meta);
+  world.meta.roomId = roomDb.id;
+
+  world.meta.status = "started";
 
   for (const s of Object.values(world.players)) {
     s.input = null;
     s.splitRequested = false;
     s.ejectRequested = false;
   }
-  const roomDb = await createRoomDb(world.meta);
-  world.meta.roomId = roomDb.id;
 }
 
 function getCtx(socket: Socket) {
@@ -612,8 +615,8 @@ async function deletePlayer(
       let leaderboard = undefined;
       try {
         if (world.meta.roomId) {
-          leaderboard = await getRoomLeaderboard(world.meta.roomId);
           await finalizeRoomResultsDb(world.meta.roomId);
+          leaderboard = await getRoomLeaderboard(world.meta.roomId);
         } else logger.info("Room id is missing");
       } catch (err) {
         logger.error(

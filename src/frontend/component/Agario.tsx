@@ -68,7 +68,7 @@ const Agario = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [finalLeaderboard, setFinalLeaderboard] = useState<FinalLeaderboardEntry[]>([]);
   const [finalStatus, setFinalStatus] = useState<FinalStatus | null>(null);
-  const isEmptyLeaderboard  = useRef<boolean>(true);
+  const isEmptyLeaderboard = useRef<boolean>(true);
 
   const [alert, setAlert] = useState<{
     type: AlertType;
@@ -111,7 +111,8 @@ const Agario = () => {
         sessionId,
         token: authToken ?? undefined,
         guestId: authToken ? undefined : getOrCreateGuestId(),
-      }
+      },
+      transports: ["websocket"],
     });
     socketRef.current = socket;
 

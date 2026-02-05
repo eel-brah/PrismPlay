@@ -5,26 +5,21 @@ import { init_agario } from "./agario";
 import { init_pong } from "./pong";
 import { init_chat } from "./init_chat";
 
-
 export default fp(async function socketPlugin(fastify: FastifyInstance) {
   const io = new SocketIOServer(fastify.server, {
     connectionStateRecovery: {
-      // the backup duration of the sessions and the packets
-      maxDisconnectionDuration: 2 * 60 * 1000,
-      // whether to skip middlewares upon successful recovery
+      maxDisconnectionDuration: 10000,
       skipMiddlewares: true,
     },
     cors: {
       origin: "*", //TODO:
     },
-    //   transports: ["websocket"],
-    // allowUpgrades: false,
+    transports: ["websocket"],
   });
 
   init_agario(io, fastify);
   init_pong(io, fastify);
   init_chat(io, fastify);
-
 
   fastify.decorate("io", io);
 });
@@ -35,8 +30,7 @@ declare module "fastify" {
   }
 }
 
-
-/// (1 2) 
+/// (1 2)
 // 3
 /// 3 4
 // a b c
