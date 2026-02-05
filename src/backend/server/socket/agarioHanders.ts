@@ -40,6 +40,7 @@ import {
 import { InputSchema } from "src/backend/modules/agario/agario_schema";
 
 export const activePlayers = new Map<string, ActivePlayer>();
+export const MIN_SECOND_TO_STORE = 3;
 
 async function startRoom(world: World) {
   if (world.meta.status === "started") return;
@@ -159,9 +160,11 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
         if (client) sendRoomInfo(client, world);
       }
     } catch (err) {
-      let errorMessage = err instanceof Error ? err.message : "Unknown error";
-      fastify.log.error({ id: socket.id }, errorMessage);
-      socket.emit("agario:error", errorMessage);
+      fastify.log.error(
+        { id: socket.id },
+        err instanceof Error ? err.message : "Unknown error",
+      );
+      socket.emit("agario:error", "Internal server error");
     }
   });
 
@@ -290,23 +293,21 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
 
     await joinRoom(socket, world, roomName, payload.name, payload.spectator);
 
-    if (roomName === DEFAULT_ROOM) return;
-
-    const afterJoinCount = Object.keys(world.players).length;
-    if (
-      world.meta.status === "waiting" &&
-      afterJoinCount == world.meta.maxPlayers
-    ) {
-      try {
-        await startRoom(world);
-        socket.nsp.to(roomName).emit("agario:room-status", {
-          status: world.meta.status,
-          startedAt: world.meta.startedAt,
-        });
-      } catch (err) {
-        let errorMessage = err instanceof Error ? err.message : "Unknown error";
-        fastify.log.error({ id: socket.id }, errorMessage);
-        socket.emit("agario:error", errorMessage);
+    if (world.meta.status === "waiting") {
+      if (Object.keys(world.players).length === world.meta.maxPlayers) {
+        try {
+          await startRoom(world);
+          socket.nsp.to(roomName).emit("agario:room-status", {
+            status: world.meta.status,
+            startedAt: world.meta.startedAt,
+          });
+        } catch (err) {
+          fastify.log.error(
+            { id: socket.id },
+            err instanceof Error ? err.message : "Unknown error",
+          );
+          socket.emit("agario:error", "Internal server error");
+        }
       }
     }
   });
@@ -487,9 +488,11 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
         socket.emit("agario:leaderboard", leaderboard);
       } else fastify.log.info("Room id is missing");
     } catch (err) {
-      let errorMessage = err instanceof Error ? err.message : "Unknown error";
-      fastify.log.error({ id: socket.id }, errorMessage);
-      socket.emit("agario:error", errorMessage);
+      fastify.log.error(
+        { id: socket.id },
+        err instanceof Error ? err.message : "Unknown error",
+      );
+      socket.emit("agario:error", "Internal server error");
     }
   });
 
@@ -559,19 +562,26 @@ async function deletePlayer(
     state = world.players[socket.id];
     if (world.meta.status == "started") {
       state.endTime = Date.now();
-      try {
-        await createPlayerHistoryDb(
-          world.meta.roomId!,
-          state.endTime! - state.startTime,
-          state.maxMass,
-          state.kills,
-          state.player.name,
-          socket.data.userId,
-          socket.data.guestId,
-        );
-      } catch (err) {
-        logger.error({ id: socket.id }, err instanceof Error ? err.message : "Unknown error");
-        if (!disconnected) socket.emit("agario:error", "Internal server error");
+      const duration = state.endTime - state.startTime;
+      if (duration / 1000 > MIN_SECOND_TO_STORE) {
+        try {
+          await createPlayerHistoryDb(
+            world.meta.roomId!,
+            duration,
+            state.maxMass,
+            state.kills,
+            state.player.name,
+            socket.data.userId,
+            socket.data.guestId,
+          );
+        } catch (err) {
+          if (!disconnected)
+            socket.emit("agario:error", "Internal server error");
+          logger.error(
+            { id: socket.id },
+            err instanceof Error ? err.message : "Unknown error",
+          );
+        }
       }
     }
 
@@ -606,9 +616,11 @@ async function deletePlayer(
           await finalizeRoomResultsDb(world.meta.roomId);
         } else logger.info("Room id is missing");
       } catch (err) {
-        let errorMessage = err instanceof Error ? err.message : "Unknown error";
-        logger.error({ id: socket.id }, errorMessage);
-        if (!disconnected) socket.emit("agario:error", errorMessage);
+        logger.error(
+          { id: socket.id },
+          err instanceof Error ? err.message : "Unknown error",
+        );
+        socket.emit("agario:error", "Internal server error");
       }
       if (leaderboard)
         socket.nsp.to(roomName).emit("agario:leaderboard", leaderboard);

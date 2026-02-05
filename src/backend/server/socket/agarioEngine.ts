@@ -37,7 +37,7 @@ import {
   finalizeRoomResultsDb,
   getRoomLeaderboard,
 } from "src/backend/modules/agario/agario_service";
-import { broadcastPlayers, sendRoomInfo } from "./agarioHanders";
+import { broadcastPlayers, MIN_SECOND_TO_STORE, sendRoomInfo } from "./agarioHanders";
 import { FastifyBaseLogger } from "fastify";
 import { removeActivePlayer } from "./agarioUtils";
 
@@ -300,23 +300,26 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
     for (const death of deaths) {
       const state = death.state;
       const socket = io.sockets.get(death.socketId);
-      try {
-        await createPlayerHistoryDb(
-          world.meta.roomId!,
-          state.endTime! - state.startTime,
-          state.maxMass,
-          state.kills,
-          state.player.name,
-          state.userId,
-          state.guestId,
-        );
-      } catch (err) {
-        if (socket) {
-          logger.error(
-            { id: socket.id },
-            err instanceof Error ? err.message : "Unknown error",
+      const duration = state.endTime - state.startTime;
+      if (duration / 1000 > MIN_SECOND_TO_STORE) {
+        try {
+          await createPlayerHistoryDb(
+            world.meta.roomId!,
+            duration,
+            state.maxMass,
+            state.kills,
+            state.player.name,
+            state.userId,
+            state.guestId,
           );
-          socket.emit("agario:error", "Internal server error");
+        } catch (err) {
+          if (socket) {
+            logger.error(
+              { id: socket.id },
+              err instanceof Error ? err.message : "Unknown error",
+            );
+            socket.emit("agario:error", "Internal server error");
+          }
         }
       }
 

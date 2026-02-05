@@ -68,6 +68,7 @@ const Agario = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [finalLeaderboard, setFinalLeaderboard] = useState<FinalLeaderboardEntry[]>([]);
   const [finalStatus, setFinalStatus] = useState<FinalStatus | null>(null);
+  const isEmptyLeaderboard  = useRef<boolean>(true);
 
   const [alert, setAlert] = useState<{
     type: AlertType;
@@ -96,6 +97,12 @@ const Agario = () => {
   const goProfile = () => {
     navigate("/profile");
   };
+
+  function clearAlert() {
+    setTimeout(() => {
+      setAlert({ type: "", message: "" });
+    }, 3000);
+  }
 
   useEffect(() => {
     const socket = io("/agario", {
@@ -167,7 +174,7 @@ const Agario = () => {
     socket.on("agario:room-status", (data: { status: "waiting" | "started", startedAt: number | undefined }) => {
       setRoomInfo((prev) => (prev ? { ...prev, status: data.status, startedAt: data.startedAt } : prev));
       roomStatusRef.current = data.status;
-      if (data.status === "started") setAlert({ type: "", message: "" });
+      if (data.status === "started") clearAlert();
     });
 
     socket.on("agario:rooms", (list: RoomSummary[]) => {
@@ -186,11 +193,15 @@ const Agario = () => {
 
     socket.on("agario:leaderboard", (leaderboard: FinalLeaderboardEntry[]) => {
       setFinalLeaderboard(leaderboard)
+      isEmptyLeaderboard.current = leaderboard.length === 0;
     });
     // socket.on("leaderboard:final", setLeaderboard);
 
     socket.on("agario:left-room", () => {
-      clearing(Object.keys(enemiesRef.current).length === 0 && roomNameRef.current != DEFAULT_ROOM ? "leaderboard" : HOME_PAGE);
+      clearing(Object.keys(enemiesRef.current).length === 0
+        && roomNameRef.current != DEFAULT_ROOM
+        && !isEmptyLeaderboard.current
+        ? "leaderboard" : HOME_PAGE);
     });
 
     socket.on("agario:final-status", (status: FinalStatus) => {
@@ -215,7 +226,7 @@ const Agario = () => {
       isDeadRef.current = false;
       setMenuMode(roomNameRef.current);
       setHasJoined(true);
-      setAlert({ type: "", message: "" });
+      clearAlert();
 
       enemiesRef.current = {};
       orbsRef.current = [];
@@ -535,7 +546,7 @@ const Agario = () => {
   }
 
   function backToMainMenu(leave: boolean = false) {
-    if (leave) socketRef.current?.emit("agario:leave-room");
+    if (leave) leaveRoom();
     clearing();
   }
 
@@ -556,8 +567,7 @@ const Agario = () => {
     roomNameRef.current = "";
     setJoinKey("");
     setCreatedKey("");
-    setAlert({ type: "", message: "" });
-
+    clearAlert();
   }
 
   return (
@@ -599,7 +609,7 @@ const Agario = () => {
           <div className="flex gap-3">
             <button
               onClick={() => {
-                setAlert({ type: "", message: "" });
+                clearAlert();
                 setMenuMode(HOME_PAGE);
                 setRoomName(DEFAULT_ROOM);
                 roomNameRef.current = DEFAULT_ROOM;
@@ -612,7 +622,7 @@ const Agario = () => {
 
             <button
               onClick={() => {
-                setAlert({ type: "", message: "" });
+                clearAlert();
                 setMenuMode(menuMode != "join" ? "join" : HOME_PAGE);
               }}
               className="px-6 py-3 bg-zinc-800 text-white rounded-md text-xl hover:bg-zinc-700 transition"
@@ -622,7 +632,7 @@ const Agario = () => {
 
             <button
               onClick={() => {
-                setAlert({ type: "", message: "" });
+                clearAlert();
                 setMenuMode(menuMode != "create" ? "create" : HOME_PAGE);
               }}
               className="px-6 py-3 bg-zinc-800 text-white rounded-md text-xl hover:bg-zinc-700 transition"
@@ -775,7 +785,7 @@ const Agario = () => {
                       setRoomName("");
                       roomNameRef.current = "";
                       setJoinKey("");
-                      setAlert({ type: "", message: "" });
+                      clearAlert();
                     }}
                     className="px-6 py-3 bg-zinc-700 text-white rounded-md text-xl hover:bg-zinc-600 transition"
                   >
@@ -912,7 +922,7 @@ const Agario = () => {
                     roomNameRef.current = "";
                     setJoinKey("");
                     setCreatedKey("");
-                    setAlert({ type: "", message: "" });
+                    clearAlert();
                   }}
                   className="px-6 py-3 bg-zinc-700 text-white rounded-md text-xl hover:bg-zinc-600 transition"
                 >
@@ -1036,7 +1046,7 @@ const Agario = () => {
                       if (socketRef.current) {
                         socketRef.current.emit("agario:start-room")
                       }
-                      setAlert({ type: "", message: "" });
+                      clearAlert();
                     }}
                     className="px-5 py-3 bg-green-600 text-white rounded hover:bg-green-700"
                   >

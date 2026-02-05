@@ -64,7 +64,7 @@ export interface Camera {
 export interface PlayerState {
   player: Player;
   startTime: number;
-  endTime?: number;
+  endTime: number;
   maxMass: number;
   kills: number;
   userId?: number;
