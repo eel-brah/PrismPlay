@@ -12,7 +12,6 @@ import {
   Ban,
   LockKeyholeOpen,
   LockKeyhole,
-  GamePad,
 } from "lucide-react";
 import { io, type Socket } from "socket.io-client";
 import {
@@ -159,6 +158,11 @@ export default function SocialHub() {
   const activeTabRef = useRef<TabKey>("friends"); // New
   const chatModeRef = useRef<string>("channel");  // New
 
+
+  // Game Invite State
+  const [incomingInvite, setIncomingInvite] = useState<{ fromId: number; username: string; avatarUrl: string } | null>(null);
+  const [pendingInviteId, setPendingInviteId] = useState<number | null>(null); // ID of person I invited
+
   useEffect(() => { selectedFriendIdRef.current = selectedFriendId; }, [selectedFriendId]);
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
   useEffect(() => { chatModeRef.current = chatMode; }, [chatMode]); 
@@ -194,6 +198,48 @@ export default function SocialHub() {
     })));
   };
 
+  const sendGameInvite = () => {
+    if (!selectedFriendId || !myUserId || !socketRef.current) return;
+    
+    const targetId = Number(selectedFriendId);
+    
+    // Optimistic UI update
+    setPendingInviteId(targetId);
+    
+    socketRef.current.emit("send_game_invite", { 
+      myId: myUserId, 
+      otherId: targetId 
+    });
+  };
+
+  const cancelGameInvite = () => {
+    if (!pendingInviteId || !myUserId || !socketRef.current) return;
+    
+    socketRef.current.emit("cancel_game_invite", { 
+      myId: myUserId, 
+      otherId: pendingInviteId 
+    });
+    setPendingInviteId(null);
+  };
+
+  const acceptInvite = () => {
+    if (!incomingInvite || !myUserId || !socketRef.current) return;
+    
+    socketRef.current.emit("accept_game_invite", { 
+      myId: myUserId, 
+      otherId: incomingInvite.fromId 
+    });
+  };
+
+  const declineInvite = () => {
+    if (!incomingInvite || !myUserId || !socketRef.current) return;
+    
+    socketRef.current.emit("decline_game_invite", { 
+      myId: myUserId, 
+      otherId: incomingInvite.fromId 
+    });
+    setIncomingInvite(null);
+  };
   // Main Effect: Connects Socket and sets up Listeners
   useEffect(() => {
     const init = async () => {
@@ -346,6 +392,40 @@ export default function SocialHub() {
                   };
                 });
              }
+          });
+          s.on("game_invite_received", (data: any) => {
+            setIncomingInvite({
+              fromId: data.fromId,
+              username: data.username || "Unknown",
+              avatarUrl: data.avatarUrl,
+            });
+          });
+
+          // LISTENER: Invite expired
+          s.on("invite_expired", () => {
+            setIncomingInvite(null);
+            setPendingInviteId(null);
+            alert("Game invite expired.");
+          });
+
+          // LISTENER: Invite declined
+          s.on("invite_declined", () => {
+            setPendingInviteId(null);
+            alert("User declined your invitation.");
+          });
+
+          // LISTENER: Invite canceled by sender
+          s.on("invite_canceled_by_sender", () => {
+            setIncomingInvite(null);
+          });
+
+          // LISTENER: Game Start!
+          s.on("game_start_redirect", (data: { gameId: string }) => {
+            // Clean up state
+            setIncomingInvite(null);
+            setPendingInviteId(null);
+            // Navigate to the game
+            navigate(`/game/${data.gameId}`);
           });
         }
       } catch (e) {
@@ -1054,13 +1134,25 @@ setBlockStatus(prev => ({ ...prev, byMe: false }));    }
                 </button>
                 <button
                   onClick={() => {
-                    console.log("");
+                    if (pendingInviteId === Number(selectedFriendId)) {
+                      cancelGameInvite();
+                    } else {
+                      sendGameInvite();
+                    }
                   }}
-                  className="p-2 rounded-md bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
+                  className={`p-2 rounded-md transition-colors text-white disabled:opacity-50 ${
+                    pendingInviteId === Number(selectedFriendId) 
+                      ? "bg-red-500 hover:bg-red-600 animate-pulse" // Cancel State
+                      : "bg-orange-600 hover:bg-orange-700" // Invite State
+                  }`}
                   disabled={chatMode !== "dm" || !selectedFriendId || isChatLocked}
-                  title="Invite to Game"
+                  title={pendingInviteId === Number(selectedFriendId) ? "Cancel Invite" : "Invite to Game"}
                 >
-                  <Gamepad2 className="w-4 h-4" />
+                  {pendingInviteId === Number(selectedFriendId) ? (
+                     <span className="text-xs font-bold px-1">X</span>
+                  ) : (
+                     <Gamepad2 className="w-4 h-4" />
+                  )}
                 </button>
               </div>
               </div>
@@ -1123,6 +1215,38 @@ setBlockStatus(prev => ({ ...prev, byMe: false }));    }
           </div>
         )}
       </div>
+      {/* Incoming Game Invite Modal */}
+      {incomingInvite && (
+        <div className="absolute top-4 right-4 z-50 bg-gray-900 border border-purple-500 rounded-xl p-4 shadow-2xl animate-bounce-in w-80">
+          <div className="flex items-center gap-3 mb-3">
+            {incomingInvite.avatarUrl ? (
+              <img src={incomingInvite.avatarUrl} alt="avatar" className="w-12 h-12 rounded-full border-2 border-purple-500" />
+            ) : (
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center font-bold text-lg">
+                {incomingInvite.username[0]?.toUpperCase()}
+              </div>
+            )}
+            <div>
+              <div className="font-bold text-white text-lg">{incomingInvite.username}</div>
+              <div className="text-xs text-purple-300 font-medium">Invited you to play Pong!</div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button 
+              onClick={acceptInvite}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm font-bold transition-all transform hover:scale-105 shadow-lg shadow-green-900/50"
+            >
+              ACCEPT
+            </button>
+            <button 
+              onClick={declineInvite}
+              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg text-sm font-bold transition-all hover:bg-red-600/80"
+            >
+              DECLINE
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

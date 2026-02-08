@@ -7,6 +7,7 @@ import LoginForm from "./component/LoginForm";
 import RegisterForm from "./component/RegisterForm";
 import HomePage from "./component/HomePage";
 import SocialHub from "./component/SocialHub";
+import GamePage from "./component/GamePage";
 import PlayerProfile, { PublicPlayerProfile } from "./component/PlayerProfile";
 import {
   Route,
@@ -587,6 +588,7 @@ export default function App() {
             )
           }
         />
+        <Route path="/game/:gameId" element={<GamePage />} />
       </Routes>
     </>
   );

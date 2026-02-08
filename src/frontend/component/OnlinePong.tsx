@@ -20,6 +20,7 @@ import { GameOverPopup, WinReason } from "./GameOverPopup";
 
 export interface OnlinePongProps {
   token: string;
+  inviteId?: string;
   onReturn?: () => void;
 }
 
@@ -35,7 +36,7 @@ const UNKNOWN_PLAYER: OnlinePlayerLite = {
   avatarUrl: null,
 };
 
-const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
+const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) => {
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const socketRef = useRef<Socket<
@@ -118,11 +119,11 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
 
   // --- Setup socket & matchmaking ---
   useEffect(() => {
-    console.log("Connecting to /pong namespace");
-    console.log("Token being used:", token ? "present" : "MISSING");
-    console.log("Token value:", token?.substring(0, 20) + "...");
+   const namespace = inviteId ? "/pong-private" : "/pong"; 
+    console.log(`Connecting to ${namespace} namespace`);
+
     const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
-      "/pong",
+      namespace, // <--- Use variable instead of string "/pong"
       {
         path: "/socket.io",
         auth: { token },
@@ -134,10 +135,17 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      console.log("[pong] connected", socket.id);
+      console.log(`[${namespace}] connected`, socket.id);
       setMyStatus("connected");
       setConnectionError(null);
-      socket.emit("match.join");
+      
+      // 👇 Check for inviteId before joining
+      if (inviteId) {
+        // @ts-expect-error: Custom payload for private match
+        socket.emit("match.join", { inviteId });
+      } else {
+        socket.emit("match.join");
+      }
     });
 
     socket.on("disconnect", () => {
@@ -693,7 +701,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
           opponentNickname={opponent.nickname}
           mySide={side}
           winReason={gameOverData.winReason}
-          onFindMatch={handleFindMatch}
+          onFindMatch={inviteId ? undefined : handleFindMatch}
           onLeave={handleLeave}
         />
       )}
