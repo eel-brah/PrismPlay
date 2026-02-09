@@ -10,13 +10,13 @@ import {
   getUserAchievements,
   touchUserLastLogin,
   updateUserById,
-} from "./user_service.ts";
+} from "./user_service";
 import type {
   CreateUserInput,
   LoginInput,
   UpdateUserBody,
-} from "./user_schema.ts";
-import { verifyPassword } from "../../utils/hash.ts";
+} from "./user_schema";
+import { verifyPassword } from "../../utils/hash";
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";

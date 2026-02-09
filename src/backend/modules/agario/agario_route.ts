@@ -5,7 +5,7 @@ import {
     listRoomsHistoryDb,
     // getRoomMetaDb,
     getRoomLeaderboard
-} from './agario_service.ts'
+} from './agario_service'
 
 
 export async function agario_routes(server: FastifyInstance){

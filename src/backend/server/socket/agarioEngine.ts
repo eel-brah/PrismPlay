@@ -13,7 +13,7 @@ import {
   VIRUS_EAT_THRESHOLD,
   VIRUS_MAX_FEED,
   VIRUS_PENALTY_WINDOW_MS,
-} from "src/shared/agario/config";
+} from "../../../shared/agario/config";
 import {
   BlobData,
   Eject,
@@ -23,20 +23,20 @@ import {
   PlayerState,
   Virus,
   World,
-} from "src/shared/agario/types";
+} from "../../../shared/agario/types";
 import {
   radiusFromMass,
   randomId,
   randomOrb,
   randomViruses,
-} from "src/shared/agario/utils";
+} from "../../../shared/agario/utils";
 import type { Namespace } from "socket.io";
 import { worldByRoom } from "./agario";
 import {
   createPlayerHistoryDb,
   finalizeRoomResultsDb,
   getRoomLeaderboard,
-} from "src/backend/modules/agario/agario_service";
+} from "../../modules/agario/agario_service";
 import { broadcastPlayers, MIN_SECOND_TO_STORE, sendRoomInfo } from "./agarioHanders";
 import { FastifyBaseLogger } from "fastify";
 import { removeActivePlayer } from "./agarioUtils";

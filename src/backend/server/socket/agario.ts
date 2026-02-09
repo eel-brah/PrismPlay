@@ -2,10 +2,10 @@ import { Server as SocketIOServer } from "socket.io";
 import { agarioEngine } from "./agarioEngine";
 import { activePlayers, agarioHandlers } from "./agarioHanders";
 import { FastifyInstance } from "fastify";
-import { createGuestDb } from "src/backend/modules/agario/agario_service.ts";
-import { socketAuthSchema } from "src/backend/modules/agario/agario_schema.ts";
-import { World } from "src/shared/agario/types";
-import { JwtPayload } from "src/backend/modules/user/user_controller";
+import { createGuestDb } from "../../modules/agario/agario_service";
+import { socketAuthSchema } from "../../modules/agario/agario_schema";
+import { World } from "../../../shared/agario/types";
+import { JwtPayload } from "../../modules/user/user_controller";
 import { getIdentity, identityKey } from "./agarioUtils";
 
 export const worldByRoom = new Map<string, World>();

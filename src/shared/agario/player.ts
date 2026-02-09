@@ -5,14 +5,14 @@ import {
   PlayerData,
   BlobData,
   Eject,
-} from "@/../shared/agario/types";
+} from "../../shared/agario/types";
 import {
   computeMergeCooldown,
   darkenHex,
   isInView,
   radiusFromMass,
   randomId,
-} from "@/../shared/agario/utils";
+} from "../../shared/agario/utils";
 import {
   MAP_WIDTH,
   MAP_HEIGHT,
@@ -27,7 +27,7 @@ import {
   MASS,
   MAX_BLOBS_PER_PLAYER,
   VIRUS_SPLIT_FORCE,
-} from "@/../shared/agario/config";
+} from "../../shared/agario/config";
 
 const MIN_SPLIT_MASS = INIT_MASS * 4;
 const SPLIT_LAUNCH_SPEED = 700;
@@ -386,31 +386,31 @@ export class Player {
     return [eatenOrbs, eatenEjects];
   }
 
-  draw(ctx: CanvasRenderingContext2D, camera: Camera) {
-    for (const blob of this._blobs) {
-      const r = radiusFromMass(blob.mass);
-      if (!isInView(blob.x, blob.y, r, camera)) continue;
-
-      const screenX = blob.x - camera.x;
-      const screenY = blob.y - camera.y;
-
-      ctx.beginPath();
-      ctx.arc(screenX, screenY, r, 0, Math.PI * 2);
-
-      ctx.fillStyle = this._color;
-      ctx.fill();
-
-      ctx.strokeStyle = darkenHex(this._color);
-      ctx.lineWidth = 7 + r * 0.05;
-      ctx.stroke();
-
-      ctx.fillStyle = "black";
-      ctx.font = `bold ${r * 0.5}px Market, "Helvetica Neue", Arial, sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(this._name, screenX, screenY);
-    }
-  }
+  // draw(ctx: CanvasRenderingContext2D, camera: Camera) {
+  //   for (const blob of this._blobs) {
+  //     const r = radiusFromMass(blob.mass);
+  //     if (!isInView(blob.x, blob.y, r, camera)) continue;
+  //
+  //     const screenX = blob.x - camera.x;
+  //     const screenY = blob.y - camera.y;
+  //
+  //     ctx.beginPath();
+  //     ctx.arc(screenX, screenY, r, 0, Math.PI * 2);
+  //
+  //     ctx.fillStyle = this._color;
+  //     ctx.fill();
+  //
+  //     ctx.strokeStyle = darkenHex(this._color);
+  //     ctx.lineWidth = 7 + r * 0.05;
+  //     ctx.stroke();
+  //
+  //     ctx.fillStyle = "black";
+  //     ctx.font = `bold ${r * 0.5}px Market, "Helvetica Neue", Arial, sans-serif`;
+  //     ctx.textAlign = "center";
+  //     ctx.textBaseline = "middle";
+  //     ctx.fillText(this._name, screenX, screenY);
+  //   }
+  // }
 
   split(mouse: Mouse) {
     if (this._blobs.length >= MAX_BLOBS_PER_PLAYER) return;

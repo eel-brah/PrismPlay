@@ -5,11 +5,15 @@
   "main": "webpack.dev.js",
   "type": "module",
   "scripts": {
-    "dev:client": "vite --host",
     "build:client": "vite build",
-    "build": "pnpm build:client ",
+    "build:server": "tsc -p tsconfig.server.json",
+    "build": "pnpm build:client && pnpm build:server",
+    "start": "NODE_ENV=production node dist/backend/server/index.js",
+
+    "dev:client": "vite --host",
     "dev:server": "nodemon",
     "dev": "concurrently \"pnpm dev:server\" \"pnpm dev:client\"",
+
     "deploy": "git subtree push --prefix dist origin gh-pages",
     "benchmark": "concurrently -k -s first \"NODE_ENV=production ts-node src/backend/server/index.ts\" \"pnpm autocannon -c 100 -d 10 https://localhost:9443/healthcheck\""
   },

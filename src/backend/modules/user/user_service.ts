@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
-import { hashPassword } from "../../utils/hash.ts";
-import prisma from "../../utils/prisma.ts";
-import type { UpdateUserBody, CreateUserInput } from "./user_schema.ts";
+import { hashPassword } from "../../utils/hash";
+import prisma from "../../utils/prisma";
+import type { UpdateUserBody, CreateUserInput } from "./user_schema";
 
 const safeSelect = {
   id: true,

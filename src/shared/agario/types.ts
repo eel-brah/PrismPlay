@@ -1,4 +1,4 @@
-import { InputState } from "src/backend/modules/agario/agario_schema";
+import { InputState } from "../../backend/modules/agario/agario_schema";
 import { Player } from "./player";
 
 export interface Orb {

@@ -1,5 +1,5 @@
 import { Socket, Namespace } from "socket.io";
-import prisma from "src/backend/utils/prisma"; 
+import prisma from "../../utils/prisma"; 
 
 // ============================================================================
 // 1. TYPES & INTERFACES

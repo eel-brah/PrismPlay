@@ -20,6 +20,8 @@ const logger = {
     },
   },
 };
+
+
 //TODO:
 if (!SSL_KEY_PATH || !SSL_CERT_PATH) {
   throw new Error("Missing SSL_KEY_PATH or SSL_CERT_PATH environment variable");
@@ -38,6 +40,17 @@ export const http_server = Fastify({
   logger: NODE_ENV === "development" ? logger : false,
   disableRequestLogging: true,
 });
+
+if (NODE_ENV === "production") {
+  server.register(fastifyStatic, {
+    root: path.join(process.cwd(), "dist/frontend"),
+    prefix: "/",
+  });
+
+  server.setNotFoundHandler((req, reply) => {
+    reply.sendFile("index.html");
+  });
+}
 
 // Attach Zod validator/serializer
 server.setValidatorCompiler(validatorCompiler);

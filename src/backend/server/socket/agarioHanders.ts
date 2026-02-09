@@ -1,7 +1,7 @@
 import { FastifyBaseLogger, FastifyInstance } from "fastify";
 import { Namespace, Socket } from "socket.io";
-import { Player } from "src/shared/agario/player";
-import { randomColor } from "src/shared/agario/utils";
+import { Player } from "../../../shared/agario/player";
+import { randomColor } from "../../../shared/agario/utils";
 import {
   ActivePlayer,
   CreateRoomPayload,
@@ -11,7 +11,7 @@ import {
   RoomSummary,
   RoomVisibility,
   World,
-} from "src/shared/agario/types";
+} from "../../../shared/agario/types";
 import {
   DEFAULT_ROOM,
   INIT_MASS,
@@ -21,13 +21,13 @@ import {
   MAX_SPECTATORS_PER_ROOM,
   MIN_MINUTES,
   MIN_PLAYERS_PER_ROOM,
-} from "src/shared/agario/config";
+} from "../../../shared/agario/config";
 import {
   createPlayerHistoryDb,
   createRoomDb,
   finalizeRoomResultsDb,
   getRoomLeaderboard,
-} from "src/backend/modules/agario/agario_service";
+} from "../../modules/agario/agario_service";
 import { worldByRoom } from "./agario";
 import {
   clampInt,
@@ -37,7 +37,7 @@ import {
   makeKey,
   removeActivePlayer,
 } from "./agarioUtils";
-import { InputSchema } from "src/backend/modules/agario/agario_schema";
+import { InputSchema } from "../../modules/agario/agario_schema";
 
 export const activePlayers = new Map<string, ActivePlayer>();
 export const MIN_SECOND_TO_STORE = 3;

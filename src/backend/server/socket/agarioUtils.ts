@@ -5,9 +5,9 @@ import { worldByRoom } from "./agario";
 import {
   DEFAULT_ROOM,
   DEFAULT_ROOM_MAX_PLAYERS,
-} from "src/shared/agario/config";
-import { createRoomDb } from "src/backend/modules/agario/agario_service";
-import { Identity, World } from "src/shared/agario/types";
+} from "../../../shared/agario/config";
+import { createRoomDb } from "../../modules/agario/agario_service";
+import { Identity, World } from "../../../shared/agario/types";
 
 export function removeActivePlayer(socket: Socket) {
   const key = identityKey(getIdentity(socket));

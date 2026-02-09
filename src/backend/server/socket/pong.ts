@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { Server as SocketIOServer, Socket } from "socket.io";
 import type { Namespace } from "socket.io";
-import prisma from "src/backend/utils/prisma";
+import prisma from "../../utils/prisma";
 
 import {
   createInitialState,
