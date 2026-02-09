@@ -33,10 +33,10 @@ model User {
   pongMatchesAsRight PongMatch[] @relation("RightPlayer")
   pongMatchesWon     PongMatch[] @relation("MatchWinner")
 
-  messagesSent  Message[] @relation("messagesSent")
+  messagesSent     Message[]         @relation("messagesSent")
   chatParticipants ChatParticipant[]
-  blocksSent     Block[] @relation("blocksSent")
-  blocksReceived Block[] @relation("blocksReceived")
+  blocksSent       Block[]           @relation("blocksSent")
+  blocksReceived   Block[]           @relation("blocksReceived")
 }
 
 model FriendRequest {
@@ -98,7 +98,7 @@ model PlayerHistory {
   roomId  Int
   userId  Int?
   guestId String?
-  name    String @default("")
+  name    String  @default("")
 
   durationMs Int
   maxMass    Float
@@ -141,7 +141,7 @@ model PongMatch {
   // Result
   winnerId Int
   winner   User   @relation("MatchWinner", fields: [winnerId], references: [id])
-  reason   String // "score", "surrender", "disconnect"
+  reason   String
 
   // Metadata
   duration  Int?
@@ -149,16 +149,16 @@ model PongMatch {
 }
 
 model Chat {
-  id           Int                @id @default(autoincrement())
-  isGroup      Boolean            @default(false)
+  id           Int               @id @default(autoincrement())
+  isGroup      Boolean           @default(false)
   title        String?
   participants ChatParticipant[]
   messages     Message[]
 }
 
 model ChatParticipant {
-  chatId   Int
-  userId   Int
+  chatId Int
+  userId Int
 
   chat Chat @relation(fields: [chatId], references: [id])
   user User @relation(fields: [userId], references: [id])
@@ -168,14 +168,14 @@ model ChatParticipant {
 }
 
 model Message {
-  id        Int      @id @default(autoincrement())
-  
-  chatId    Int?
-  channel   String?  
+  id Int @id @default(autoincrement())
+
+  chatId  Int?
+  channel String?
 
   senderId  Int
   content   String
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   readAt    DateTime?
 
   chat   Chat? @relation(fields: [chatId], references: [id])
@@ -191,8 +191,8 @@ model Block {
   blockedId Int
   createdAt DateTime @default(now())
 
-  blocker   User     @relation("blocksSent", fields: [blockerId], references: [id])
-  blocked   User     @relation("blocksReceived", fields: [blockedId], references: [id])
+  blocker User @relation("blocksSent", fields: [blockerId], references: [id])
+  blocked User @relation("blocksReceived", fields: [blockedId], references: [id])
 
   @@unique([blockerId, blockedId])
 }

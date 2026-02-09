@@ -151,10 +151,6 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
     };
   }
 
-  // function createParticles(x: number, y: number, count: number, color: string) {
-  //   for (let i = 0; i < count; i++) particles.push(new Particle(x, y, color));
-  // }
-
   function createPaddle(
     x: number,
     y: number,

@@ -29,9 +29,9 @@ export interface Ball {
 }
 
 export interface DifficultyPreset {
-  ballSpeed: number; // pixels per second
-  paddleSpeed: number; // pixels per second
-  aiReactionDelayMs: number; // how fast the bot follows
+  ballSpeed: number;
+  paddleSpeed: number;
+  aiReactionDelayMs: number;
   paddleHeight: number;
 }
 
