@@ -192,7 +192,12 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
       setUiPhase("inMatch");
     });
 
-    socket.on("game.state", (snapshot) => (snapshotRef.current = snapshot));
+    // socket.on("game.state", (snapshot) => (snapshotRef.current = snapshot));
+    socket.on("game.state", (snapshot) => {
+      snapshotRef.current = snapshot;
+
+      setOpponentStatus((prev) => (prev === "disconnected" ? "connected" : prev));
+    });
 
     socket.on("game.over", (payload) => {
       snapshotRef.current = {
@@ -324,6 +329,11 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
       setMyStats(undefined);
       setOpponentStats(undefined);
       setLoadingStats(true);
+    });
+
+    socket.on("match.error", (data: { message: string }) => {
+      console.warn("Match error:", data.message);
+      navigate("/social");
     });
 
     socket.on("match.surrendered", (payload) => {
@@ -623,8 +633,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
 
   // --- UI --- //
   return (
-    <div className="fixed inset-0 flex flex-col bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">
-      {/* Top bar with controls */}
+    <div className="fixed inset-0 z-[9999] flex flex-col bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">      {/* Top bar with controls */}
       <div className="flex items-center justify-end px-4 py-2 mb-4">
         {/* Action buttons */}
         <div className="flex items-center gap-2">

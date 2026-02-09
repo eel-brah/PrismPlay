@@ -163,6 +163,13 @@ export default function SocialHub() {
   const [incomingInvite, setIncomingInvite] = useState<{ fromId: number; username: string; avatarUrl: string } | null>(null);
   const [pendingInviteId, setPendingInviteId] = useState<number | null>(null); // ID of person I invited
 
+  const [notification, setNotification] = useState<string | null>(null);
+  
+  const showNotification = (message: string) => {
+  setNotification(message);
+  setTimeout(() => setNotification(null), 3000);
+};
+
   useEffect(() => { selectedFriendIdRef.current = selectedFriendId; }, [selectedFriendId]);
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
   useEffect(() => { chatModeRef.current = chatMode; }, [chatMode]); 
@@ -405,13 +412,13 @@ export default function SocialHub() {
           s.on("invite_expired", () => {
             setIncomingInvite(null);
             setPendingInviteId(null);
-            alert("Game invite expired.");
+            showNotification("Game invite expired.");
           });
 
           // LISTENER: Invite declined
           s.on("invite_declined", () => {
             setPendingInviteId(null);
-            alert("User declined your invitation.");
+            showNotification("User declined your invitation.");
           });
 
           // LISTENER: Invite canceled by sender
@@ -701,6 +708,19 @@ setBlockStatus(prev => ({ ...prev, byMe: false }));    }
   return (
     <div className="w-full h-full text-white flex flex-col">
       {/* Header Section */}
+      {notification && (
+      <div className="absolute top-28 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
+        <div className="bg-red-600 text-white px-6 py-3 rounded-full shadow-lg border border-red-400 flex items-center gap-3">
+          <span className="font-bold text-sm">{notification}</span>
+          <button 
+            onClick={() => setNotification(null)}
+            className="hover:bg-red-700 rounded-full p-1"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    )}
       <div className="max-w-6xl mx-auto px-6 pt-8 pb-4">
         <div className="text-center">
           <h2 className="text-2xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
@@ -814,9 +834,27 @@ setBlockStatus(prev => ({ ...prev, byMe: false }));    }
                           <button onClick={() => handleStartDirectMessage(f.id)} className="px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white">
                             Chat
                           </button>
-                          <button className="px-4 py-2 rounded-md bg-gray-800/80 hover:bg-gray-800 text-gray-200 flex items-center gap-2">
-                            <Gamepad2 className="w-4 h-4" />
-                            <span>Play</span>
+                          <button
+                            onClick={() => {
+                              if (pendingInviteId === Number(selectedFriendId)) {
+                                cancelGameInvite();
+                              } else {
+                                sendGameInvite();
+                              }
+                            }}
+                            className={`p-2 rounded-md transition-colors text-white disabled:opacity-50 ${
+                              pendingInviteId === Number(selectedFriendId) 
+                                ? "bg-red-500 hover:bg-red-600 animate-pulse" // Cancel State
+                                : "bg-orange-600 hover:bg-orange-700" // Invite State
+                            }`}
+                            // disabled={chatMode !== "dm" || !selectedFriendId || isChatLocked}
+                            title={pendingInviteId === Number(selectedFriendId) ? "Cancel Invite" : "Invite to Game"}
+                          >
+                            {pendingInviteId === Number(selectedFriendId) ? (
+                              <span className="text-xs font-bold px-1">X</span>
+                            ) : (
+                              <Gamepad2 className="w-4 h-4" />
+                            )}
                           </button>
                           <button onClick={() => removeFriend(f.id)} className="ml-auto p-2 rounded-md bg-gray-800/60 hover:bg-gray-800 text-gray-300">
                             <UserMinus className="w-4 h-4" />
@@ -1217,7 +1255,7 @@ setBlockStatus(prev => ({ ...prev, byMe: false }));    }
       </div>
       {/* Incoming Game Invite Modal */}
       {incomingInvite && (
-        <div className="absolute top-4 right-4 z-50 bg-gray-900 border border-purple-500 rounded-xl p-4 shadow-2xl animate-bounce-in w-80">
+        <div className="absolute top-28 right-4 z-50 bg-gray-900 border border-purple-500 rounded-xl p-4 shadow-2xl animate-bounce-in w-80">
           <div className="flex items-center gap-3 mb-3">
             {incomingInvite.avatarUrl ? (
               <img src={incomingInvite.avatarUrl} alt="avatar" className="w-12 h-12 rounded-full border-2 border-purple-500" />

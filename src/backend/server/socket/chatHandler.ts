@@ -1,34 +1,42 @@
 import { Socket, Namespace } from "socket.io";
 import prisma from "src/backend/utils/prisma";
-import { v4 as uuidv4 } from 'uuid'; // Make sure to run: npm install uuid @types/uuid
+import { v4 as uuidv4 } from 'uuid'; 
 
 // ============================================================================
 // 1. TYPES & GLOBAL STATE
 // ============================================================================
+
+// Payload for joining a Direct Message room
 interface DMPayload {
   myId: number;
   otherUserId: number;
 }
 
+// Payload for sending a standard chat message
 interface MessagePayload {
   chatId: number;
   senderId: number;
   content: string;
 }
 
+// Structure for storing pending game invites in memory
 interface PendingInvite {
   senderId: number;
   receiverId: number;
   timeout: NodeJS.Timeout;
 }
 
-// Global Map to store active invites in memory
+// Global Map to store active invites.
+// Key format: "senderId_receiverId" (e.g., "5_12")
 const activeInvites = new Map<string, PendingInvite>();
 
 // ============================================================================
 // 2. HELPER FUNCTIONS
 // ============================================================================
+
+// Retrieves an existing private chat or creates a new one if it doesn't exist.
 async function getOrCreateDMChat(userId1: number, userId2: number) {
+  // Attempt to find an existing chat with exactly these two participants
   const existingChat = await prisma.chat.findFirst({
     where: {
       isGroup: false,
@@ -48,6 +56,7 @@ async function getOrCreateDMChat(userId1: number, userId2: number) {
 
   if (existingChat) return existingChat;
 
+  // Create a new chat if none exists
   const newChat = await prisma.chat.create({
     data: {
       isGroup: false,
@@ -63,28 +72,36 @@ async function getOrCreateDMChat(userId1: number, userId2: number) {
 // ============================================================================
 // 3. MAIN HANDLER REGISTRATION
 // ============================================================================
+
 export function registerChatHandlers(io: Namespace, socket: Socket) {
   
-  // FIX: Define userId at the top so 'disconnect' can see it
+  // Extract User ID from the connection handshake query
   const userId = Number(socket.handshake.query.userId);
 
+  // Automatically join the user to their personal room (e.g., "user_5")
+  // This is crucial for receiving targeted events like game invites.
   if (userId) {
     socket.join(`user_${userId}`);
-    console.log(`User ${userId} joined room: user_${userId}`); // Optional: for debugging
+    // console.log(`User ${userId} joined room: user_${userId}`); 
   }
 
   // ========================================================================
   // ZONE A: GENERAL / CHANNEL CHAT
   // ========================================================================
+  
+  // Handle joining a public channel (e.g., "general")
   socket.on("join_channel", async (channelName: string) => {
     socket.join(channelName);
     try {
+      // Fetch recent history for the channel
       const history = await prisma.message.findMany({
         where: { channel: channelName },
         take: 50,
         orderBy: { createdAt: "asc" },
         include: { sender: { select: { username: true, avatarUrl: true } } }
       });
+      
+      // Send history to the user
       socket.emit("channel_history", {
         channel: channelName,
         messages: history.map(m => ({
@@ -98,6 +115,7 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
     } catch (e) { console.error("Error loading history:", e); }
   });
 
+  // Handle sending a message to a public channel
   socket.on("send_channel_message", async (payload) => {
     try {
       const sender = await prisma.user.findUnique({
@@ -114,6 +132,7 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
         },
       });
 
+      // Broadcast message to everyone in the channel
       io.to(payload.channel).emit("channel_message", {
         id: String(savedMessage.id),
         channel: payload.channel,
@@ -128,6 +147,8 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
   // ========================================================================
   // ZONE B: DIRECT MESSAGES
   // ========================================================================
+  
+  // Handle joining a private DM room
   socket.on("join_dm", async (data: DMPayload) => {
     try {
       const chat = await getOrCreateDMChat(data.myId, data.otherUserId);
@@ -137,9 +158,10 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
     } catch (e) { console.error("Error joining DM:", e); }
   });
 
+  // Handle sending a private message
   socket.on("send_message", async (payload: MessagePayload) => {
     try {
-      // Check Block Status
+      // Security Check: Ensure users are not blocked
       const chat = await prisma.chat.findUnique({
         where: { id: payload.chatId },
         include: { participants: true },
@@ -155,10 +177,11 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
               ],
             },
           });
-          if (isBlocked) return; 
+          if (isBlocked) return; // Stop if blocked
         }
       }
 
+      // Save and broadcast message
       const savedMessage = await prisma.message.create({
         data: {
           chatId: payload.chatId,
@@ -174,15 +197,17 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
   // ========================================================================
   // ZONE C: BLOCKING
   // ========================================================================
+  
+  // Block a user
   socket.on("block_user", async (data) => {
     try {
       await prisma.block.create({
         data: { blockerId: data.myId, blockedId: data.otherId },
       });
-      // socket.emit("block_success", { blockedId: data.otherId });
     } catch (e) { console.error("Block failed", e); }
   });
 
+  // Unblock a user
   socket.on("unblock_user", async (data) => {
     try {
       await prisma.block.deleteMany({
@@ -191,6 +216,7 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
     } catch (e) { console.error("Unblock failed", e); }
   });
 
+  // Check if two users have a blocking relationship
   socket.on("check_block_status", async (payload, callback) => {
     try {
       const blockByMe = await prisma.block.findFirst({
@@ -204,8 +230,10 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
   });
 
   // ========================================================================
-  // ZONE D: TYPING & SEEN & UNREAD
+  // ZONE D: TYPING & SEEN & UNREAD STATUS
   // ========================================================================
+  
+  // Notify room that user is typing (unless blocked)
   socket.on("typing_start", async (payload) => {
     const isBlocked = await prisma.block.findFirst({
       where: {
@@ -231,6 +259,7 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
     });
   });
 
+  // Mark messages as read in database and notify sender
   socket.on("mark_seen", async (payload) => {
     try {
       await prisma.message.updateMany({
@@ -248,6 +277,7 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
     } catch (e) { console.error("Error marking seen:", e); }
   });
 
+  // Calculate unread message counts for the dashboard
   socket.on("request_unread", async (uid) => {
     try {
       const unreadCounts = await prisma.message.groupBy({
@@ -269,17 +299,28 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
   // ========================================================================
   // ZONE G: GAME INVITES
   // ========================================================================
+  
+  // Handle sending a game invite
   socket.on("send_game_invite", async (payload: { myId: number; otherId: number }) => {
     const { myId, otherId } = payload;
     const inviteKey = `${myId}_${otherId}`;
+    const reverseKey = `${otherId}_${myId}`;
 
     if (myId === otherId) return;
+
+    // Check 1: Prevent duplicate invites from same sender
     if (activeInvites.has(inviteKey)) {
       socket.emit("invite_error", "Invite already sent.");
       return;
     }
 
-    // Auto-cancel after 15 seconds
+    // Check 2: Prevent inviting someone who already invited you (Race Condition Fix)
+    if (activeInvites.has(reverseKey)) {
+      socket.emit("invite_error", "They already invited you! Check your requests.");
+      return;
+    }
+
+    // Auto-cancel invite after 15 seconds
     const timeout = setTimeout(() => {
       if (activeInvites.has(inviteKey)) {
         activeInvites.delete(inviteKey);
@@ -288,6 +329,7 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
       }
     }, 15000);
 
+    // Store invite in memory
     activeInvites.set(inviteKey, { senderId: myId, receiverId: otherId, timeout });
 
     const sender = await prisma.user.findUnique({
@@ -295,7 +337,7 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
       select: { username: true, avatarUrl: true }
     });
 
-    // We use the personal room "user_{id}" to target the receiver
+    // Notify the receiver via their personal room
     io.to(`user_${otherId}`).emit("game_invite_received", {
       fromId: myId,
       username: sender?.username,
@@ -303,7 +345,9 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
     });
   });
 
+  // Handle accepting an invite
   socket.on("accept_game_invite", (payload) => {
+    // If I accept, the key is "Them_Me" (e.g. 5_10 if 5 invited 10)
     const inviteKey = `${payload.otherId}_${payload.myId}`;
     const invite = activeInvites.get(inviteKey);
 
@@ -312,14 +356,17 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
       return;
     }
 
+    // Clear timeout and remove from map
     clearTimeout(invite.timeout);
     activeInvites.delete(inviteKey);
 
+    // Generate unique Game ID and redirect both players
     const gameId = uuidv4(); 
     io.to(`user_${payload.myId}`).emit("game_start_redirect", { gameId });
     io.to(`user_${payload.otherId}`).emit("game_start_redirect", { gameId });
   });
 
+  // Handle declining an invite
   socket.on("decline_game_invite", (payload) => {
     const inviteKey = `${payload.otherId}_${payload.myId}`;
     const invite = activeInvites.get(inviteKey);
@@ -330,6 +377,7 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
     }
   });
 
+  // Handle sender canceling their own invite
   socket.on("cancel_game_invite", (payload) => {
     const inviteKey = `${payload.myId}_${payload.otherId}`;
     const invite = activeInvites.get(inviteKey);
@@ -343,14 +391,17 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
   // ========================================================================
   // ZONE H: CONNECTION CLEANUP
   // ========================================================================
+  
+  // Clean up invites when a user disconnects
   socket.on("disconnect", () => {
-    // Clean up pending invites
     for (const [key, invite] of activeInvites.entries()) {
+      // Case A: Sender disconnected -> Cancel invite for Receiver
       if (invite.senderId === userId) {
         clearTimeout(invite.timeout);
         activeInvites.delete(key);
         io.to(`user_${invite.receiverId}`).emit("invite_canceled_by_sender", { byId: userId });
       }
+      // Case B: Receiver disconnected -> Decline invite automatically
       if (invite.receiverId === userId) {
         clearTimeout(invite.timeout);
         activeInvites.delete(key);
