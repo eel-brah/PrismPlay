@@ -1,4 +1,3 @@
-// import React, { use } from "react";
 import { Trophy, Frown, User, Search, LogOut, Swords } from "lucide-react";
 import type { Side } from "../../shared/pong/gameTypes";
 import { useNavigate } from "react-router";
@@ -14,7 +13,8 @@ export interface GameOverPopupProps {
   opponentNickname: string;
   mySide: Side;
   winReason?: WinReason;
-  onFindMatch: () => void;
+  // 👇 UPDATE: Make this optional
+  onFindMatch?: () => void;
   onLeave: () => void;
 }
 
@@ -48,7 +48,6 @@ function getWinReasonIcon(reason: WinReason | undefined) {
       return <Swords className="w-5 h-5" />;
   }
 }
-
 
 export function GameOverPopup({
   isOpen,
@@ -157,16 +156,19 @@ export function GameOverPopup({
 
             {/* Action buttons */}
             <div className="space-y-3">
-              {/* Find new match */}
-              <button
-                onClick={onFindMatch}
-                className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30"
-              >
-                <Search className="w-5 h-5" />
-                <span>Find New Match</span>
-              </button>
+              
+              {/* 👇 UPDATE: Conditionally render based on prop existence */}
+              {onFindMatch && (
+                <button
+                  onClick={onFindMatch}
+                  className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30"
+                >
+                  <Search className="w-5 h-5" />
+                  <span>Find New Match</span>
+                </button>
+              )}
 
-              {/* visite profile */}
+              {/* Visit profile */}
               <button
                 onClick={()=>{
                   navigate('/profile/'+opponentNickname);

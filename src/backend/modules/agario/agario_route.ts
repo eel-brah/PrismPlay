@@ -3,15 +3,29 @@ import {
     listPlayerHistoryDb,
     getRoomHistoryDb,
     listRoomsHistoryDb,
-    // getRoomMetaDb,
     getRoomLeaderboard
 } from './agario_service'
 
+ type PlayersHistoryQuery = {
+    userId: number,
+    take?:number,
+    skip?:number
+ }
+
+ type RoomsHistoryQuery = {
+  take?: number;
+  skip?: number;
+  onlyEnded?: boolean;
+};
+
+type RoomParams = {
+  roomId: string;
+};
+
 
 export async function agario_routes(server: FastifyInstance){
-    server.get("/history/players", { preHandler: [server.auth]}, async (req) => {
+    server.get<{Querystring: PlayersHistoryQuery}>("/history/players", { preHandler: [server.auth]}, async (req) => {
         const q = req.query;
-      //TODO: userId must exist
       if (!q.userId) {
         throw new Error("userId is required");
       }
@@ -21,15 +35,15 @@ export async function agario_routes(server: FastifyInstance){
             q.skip
         );
     });
-    server.get("/history/rooms/:roomId", {preHandler: [server.auth]}, async (req, res) => {
-        const {roomId} = req.params as any;
+    server.get<{Params: RoomParams}>("/history/rooms/:roomId", {preHandler: [server.auth]}, async (req, res) => {
+        const {roomId} = req.params;
         const room = await getRoomHistoryDb(Number(roomId));
         if (!room) 
             return res.code(404).send({message: "Room Not Found"});
         return room;
     });
-    server.get("/history/rooms", {preHandler: [server.auth]}, async (req, res) => {
-        const q = req.query as any;
+    server.get<{Querystring: RoomsHistoryQuery}>("/history/rooms", {preHandler: [server.auth]}, async (req) => {
+        const q = req.query;
         return listRoomsHistoryDb(
             q.take,
             q.skip,
@@ -37,7 +51,7 @@ export async function agario_routes(server: FastifyInstance){
         );
     });
     server.get("/history/rooms/:roomId/leaderboard", {preHandler: [server.auth]}, async (req, reply) => {
-        const params = req.params as { roomId: string };
+        const params = req.params as { roomId: string }; 
         const roomId = Number(params.roomId);
 
         if (!Number.isFinite(roomId))

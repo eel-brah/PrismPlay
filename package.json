@@ -47,6 +47,8 @@
     "@fastify/swagger": "^9.6.1",
     "@prisma/client": "^6.19.0",
     "@tailwindcss/vite": "^4.1.17",
+    "@types/uuid": "^11.0.0",
+    "axios": "^1.13.5",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.2.3",
     "fastify": "^5.6.2",
@@ -63,6 +65,7 @@
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "tailwindcss": "^4.1.17",
+    "uuid": "^13.0.0",
     "zod": "^4.1.13"
   }
 }

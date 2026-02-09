@@ -20,6 +20,7 @@ import { GameOverPopup, WinReason } from "./GameOverPopup";
 
 export interface OnlinePongProps {
   token: string;
+  inviteId?: string;
   onReturn?: () => void;
 }
 
@@ -35,7 +36,7 @@ const UNKNOWN_PLAYER: OnlinePlayerLite = {
   avatarUrl: null,
 };
 
-const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
+const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) => {
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const socketRef = useRef<Socket<
@@ -118,11 +119,11 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
 
   // --- Setup socket & matchmaking ---
   useEffect(() => {
-    console.log("Connecting to /pong namespace");
-    console.log("Token being used:", token ? "present" : "MISSING");
-    console.log("Token value:", token?.substring(0, 20) + "...");
+   const namespace = inviteId ? "/pong-private" : "/pong"; 
+    console.log(`Connecting to ${namespace} namespace`);
+
     const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
-      "/pong",
+      namespace, // <--- Use variable instead of string "/pong"
       {
         path: "/socket.io",
         auth: { token },
@@ -134,10 +135,17 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      console.log("[pong] connected", socket.id);
+      console.log(`[${namespace}] connected`, socket.id);
       setMyStatus("connected");
       setConnectionError(null);
-      socket.emit("match.join");
+      
+      // 👇 Check for inviteId before joining
+      if (inviteId) {
+        // @ts-expect-error: Custom payload for private match
+        socket.emit("match.join", { inviteId });
+      } else {
+        socket.emit("match.join");
+      }
     });
 
     socket.on("disconnect", () => {
@@ -184,7 +192,12 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
       setUiPhase("inMatch");
     });
 
-    socket.on("game.state", (snapshot) => (snapshotRef.current = snapshot));
+    // socket.on("game.state", (snapshot) => (snapshotRef.current = snapshot));
+    socket.on("game.state", (snapshot) => {
+      snapshotRef.current = snapshot;
+
+      setOpponentStatus((prev) => (prev === "disconnected" ? "connected" : prev));
+    });
 
     socket.on("game.over", (payload) => {
       snapshotRef.current = {
@@ -316,6 +329,11 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
       setMyStats(undefined);
       setOpponentStats(undefined);
       setLoadingStats(true);
+    });
+
+    socket.on("match.error", (data: { message: string }) => {
+      console.warn("Match error:", data.message);
+      navigate("/social");
     });
 
     socket.on("match.surrendered", (payload) => {
@@ -615,8 +633,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
 
   // --- UI --- //
   return (
-    <div className="fixed inset-0 flex flex-col bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">
-      {/* Top bar with controls */}
+    <div className="fixed inset-0 z-[9999] flex flex-col bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">      {/* Top bar with controls */}
       <div className="flex items-center justify-end px-4 py-2 mb-4">
         {/* Action buttons */}
         <div className="flex items-center gap-2">
@@ -693,7 +710,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, onReturn }) => {
           opponentNickname={opponent.nickname}
           mySide={side}
           winReason={gameOverData.winReason}
-          onFindMatch={handleFindMatch}
+          onFindMatch={inviteId ? undefined : handleFindMatch}
           onLeave={handleLeave}
         />
       )}

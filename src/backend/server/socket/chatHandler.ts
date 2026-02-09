@@ -1,25 +1,42 @@
 import { Socket, Namespace } from "socket.io";
 import prisma from "../../utils/prisma"; 
+import { v4 as uuidv4 } from 'uuid'; 
 
 // ============================================================================
-// 1. TYPES & INTERFACES
+// 1. TYPES & GLOBAL STATE
 // ============================================================================
+
+// Payload for joining a Direct Message room
 interface DMPayload {
   myId: number;
   otherUserId: number;
 }
 
+// Payload for sending a standard chat message
 interface MessagePayload {
   chatId: number;
   senderId: number;
   content: string;
 }
 
+// Structure for storing pending game invites in memory
+interface PendingInvite {
+  senderId: number;
+  receiverId: number;
+  timeout: NodeJS.Timeout;
+}
+
+// Global Map to store active invites.
+// Key format: "senderId_receiverId" (e.g., "5_12")
+const activeInvites = new Map<string, PendingInvite>();
+
 // ============================================================================
 // 2. HELPER FUNCTIONS
 // ============================================================================
+
+// Retrieves an existing private chat or creates a new one if it doesn't exist.
 async function getOrCreateDMChat(userId1: number, userId2: number) {
-  // Try to find an existing private chat between these two users
+  // Attempt to find an existing chat with exactly these two participants
   const existingChat = await prisma.chat.findFirst({
     where: {
       isGroup: false,
@@ -37,19 +54,14 @@ async function getOrCreateDMChat(userId1: number, userId2: number) {
     },
   });
 
-  if (existingChat) {
-    return existingChat;
-  }
+  if (existingChat) return existingChat;
 
-  // If none exists, create a new one
+  // Create a new chat if none exists
   const newChat = await prisma.chat.create({
     data: {
       isGroup: false,
       participants: {
-        create: [
-          { userId: userId1 },
-          { userId: userId2 },
-        ],
+        create: [{ userId: userId1 }, { userId: userId2 }],
       },
     },
   });
@@ -60,29 +72,36 @@ async function getOrCreateDMChat(userId1: number, userId2: number) {
 // ============================================================================
 // 3. MAIN HANDLER REGISTRATION
 // ============================================================================
+
 export function registerChatHandlers(io: Namespace, socket: Socket) {
   
+  // Extract User ID from the connection handshake query
+  const userId = Number(socket.handshake.query.userId);
+
+  // Automatically join the user to their personal room (e.g., "user_5")
+  // This is crucial for receiving targeted events like game invites.
+  if (userId) {
+    socket.join(`user_${userId}`);
+    // console.log(`User ${userId} joined room: user_${userId}`); 
+  }
+
   // ========================================================================
-  // ZONE A: GENERAL / CHANNEL CHAT (Public)
+  // ZONE A: GENERAL / CHANNEL CHAT
   // ========================================================================
   
-  // 1. Join a Channel (and load history)
-  // 1. Join Chat Room & Load History
+  // Handle joining a public channel (e.g., "general")
   socket.on("join_channel", async (channelName: string) => {
     socket.join(channelName);
-
     try {
-      // Fetch last 50 messages for this channel
+      // Fetch recent history for the channel
       const history = await prisma.message.findMany({
         where: { channel: channelName },
         take: 50,
         orderBy: { createdAt: "asc" },
-        include: { 
-          sender: { select: { username: true, avatarUrl: true } } 
-        }
+        include: { sender: { select: { username: true, avatarUrl: true } } }
       });
-
-      // Send the history list to the user who just joined
+      
+      // Send history to the user
       socket.emit("channel_history", {
         channel: channelName,
         messages: history.map(m => ({
@@ -93,99 +112,76 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
           senderId: m.senderId
         }))
       });
-    } catch (e) {
-      console.error("Error loading channel history:", e);
-    }
+    } catch (e) { console.error("Error loading history:", e); }
   });
 
-  // 2. Send Channel Message (Saved to DB + Real Username)
-  socket.on("send_channel_message", async (payload: { channel: string; content: string; senderId: number }) => {
+  // Handle sending a message to a public channel
+  socket.on("send_channel_message", async (payload) => {
     try {
-      // A. Fetch the Real Sender (Fixes the "User 1" display issue)
       const sender = await prisma.user.findUnique({
         where: { id: payload.senderId },
         select: { username: true, avatarUrl: true } 
       });
-
       if (!sender) return;
 
-      // B. Save to Database
       const savedMessage = await prisma.message.create({
         data: {
           content: payload.content,
           senderId: payload.senderId,
-          channel: payload.channel, // "general", "lobby", etc.
+          channel: payload.channel,
         },
       });
 
-      // C. Broadcast to everyone in the channel (including sender)
+      // Broadcast message to everyone in the channel
       io.to(payload.channel).emit("channel_message", {
         id: String(savedMessage.id),
         channel: payload.channel,
         content: savedMessage.content,
         senderId: payload.senderId,
         createdAt: savedMessage.createdAt,
-        sender: { 
-            username: sender.username, 
-            avatarUrl: sender.avatarUrl 
-        } 
+        sender: { username: sender.username, avatarUrl: sender.avatarUrl } 
       });
-    } catch (e) {
-      console.error("General chat error:", e);
-    }
+    } catch (e) { console.error("General chat error:", e); }
   });
 
-
   // ========================================================================
-  // ZONE B: DIRECT MESSAGES (Private)
+  // ZONE B: DIRECT MESSAGES
   // ========================================================================
-
-  // 3. Join DM Room
+  
+  // Handle joining a private DM room
   socket.on("join_dm", async (data: DMPayload) => {
     try {
       const chat = await getOrCreateDMChat(data.myId, data.otherUserId);
       const roomName = `chat_${chat.id}`;
       await socket.join(roomName);
-
-      socket.emit("dm_joined", {
-        chatId: chat.id,
-        messages: chat.messages
-      });
-    } catch (e) {
-      console.error("Error joining DM:", e);
-    }
+      socket.emit("dm_joined", { chatId: chat.id, messages: chat.messages });
+    } catch (e) { console.error("Error joining DM:", e); }
   });
 
-  // 4. Send DM (With Block Check)
+  // Handle sending a private message
   socket.on("send_message", async (payload: MessagePayload) => {
     try {
-      // A. Check for Blocks before sending
-      // Find the participants of this chat to know who the "other" person is
+      // Security Check: Ensure users are not blocked
       const chat = await prisma.chat.findUnique({
         where: { id: payload.chatId },
         include: { participants: true },
       });
-
       if (chat) {
         const otherParticipant = chat.participants.find((p) => p.userId !== payload.senderId);
         if (otherParticipant) {
-          // Check if block exists in EITHER direction
           const isBlocked = await prisma.block.findFirst({
             where: {
               OR: [
-                { blockerId: payload.senderId, blockedId: otherParticipant.userId }, // I blocked them
-                { blockerId: otherParticipant.userId, blockedId: payload.senderId }, // They blocked me
+                { blockerId: payload.senderId, blockedId: otherParticipant.userId },
+                { blockerId: otherParticipant.userId, blockedId: payload.senderId },
               ],
             },
           });
-          // isBlocked = 0; // TEMP DISABLE BLOCKS FOR TESTING
-          if (isBlocked) {
-            return; 
-          }
+          if (isBlocked) return; // Stop if blocked
         }
       }
 
-      // B. Save Message to DB
+      // Save and broadcast message
       const savedMessage = await prisma.message.create({
         data: {
           chatId: payload.chatId,
@@ -194,73 +190,60 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
         },
         include: { sender: { select: { username: true } } }
       });
-
-      // C. Broadcast to the room
       io.to(`chat_${payload.chatId}`).emit("new_message", savedMessage);
-
-    } catch (error) {
-      console.error("Failed to send message", error);
-    }
+    } catch (error) { console.error("Failed to send message", error); }
   });
 
-
   // ========================================================================
-  // ZONE C: BLOCKING SYSTEM
+  // ZONE C: BLOCKING
   // ========================================================================
   
-  socket.on("block_user", async (data: { myId: number; otherId: number }) => {
-   const isBlocked = await prisma.block.findFirst({
-            where: {
-              OR: [
-                { blockerId: data.myId, blockedId: data.otherId }, // I blocked them
-                // { blockerId: data.otherId, blockedId: data.myId }, // They blocked me
-              ],
-            },
-          });
-          // isBlocked = 0; // TEMP DISABLE BLOCKS FOR TESTING
-          if (isBlocked) {
-            return; 
-          }
+  // Block a user
+  socket.on("block_user", async (data) => {
     try {
       await prisma.block.create({
-        data: { blockerId: data.myId, blockedId: data.otherId , },
+        data: { blockerId: data.myId, blockedId: data.otherId },
       });
-      socket.emit("block_success", { blockedId: data.otherId });
-    } catch (e) {
-      console.error("Block failed", e);
-    }
+    } catch (e) { console.error("Block failed", e); }
   });
 
-  socket.on("unblock_user", async (data: { myId: number; otherId: number }) => {
+  // Unblock a user
+  socket.on("unblock_user", async (data) => {
     try {
       await prisma.block.deleteMany({
         where: { blockerId: data.myId, blockedId: data.otherId },
       });
-    } catch (e) {
-      console.error("Unblock failed", e);
-    }
+    } catch (e) { console.error("Unblock failed", e); }
   });
 
+  // Check if two users have a blocking relationship
+  socket.on("check_block_status", async (payload, callback) => {
+    try {
+      const blockByMe = await prisma.block.findFirst({
+        where: { blockerId: payload.myId, blockedId: payload.otherId },
+      });
+      const blockByThem = await prisma.block.findFirst({
+        where: { blockerId: payload.otherId, blockedId: payload.myId },
+      });
+      callback({ blockedByMe: !!blockByMe, blockedByThem: !!blockByThem }); 
+    } catch (e) { callback({ blockedByMe: false, blockedByThem: false }); }
+  });
 
   // ========================================================================
-  // ZONE D: EPHEMERAL EVENTS (Typing)
+  // ZONE D: TYPING & SEEN & UNREAD STATUS
   // ========================================================================
   
-  socket.on("typing_start", async (payload: { chatId: number; userId: number; otherParticipantID: number }) => {
+  // Notify room that user is typing (unless blocked)
+  socket.on("typing_start", async (payload) => {
     const isBlocked = await prisma.block.findFirst({
-    where: {
-    OR: [
-    { blockerId: payload.userId, blockedId: payload.otherParticipantID}, // I blocked them
-          { blockerId: payload.otherParticipantID , blockedId: payload.userId }, // They blocked me
+      where: {
+        OR: [
+          { blockerId: payload.userId, blockedId: payload.otherParticipantID},
+          { blockerId: payload.otherParticipantID , blockedId: payload.userId },
         ],
       },
     });
-    // isBlocked = 0; // TEMP DISABLE BLOCKS FOR TESTING
-    if (isBlocked) {
-      return; 
-    }
-    
-    // Broadcast to everyone in the room EXCEPT the sender
+    if (isBlocked) return; 
     socket.to(`chat_${payload.chatId}`).emit("user_typing", {
       chatId: payload.chatId,
       userId: payload.userId,
@@ -268,7 +251,7 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
     });
   });
 
-  socket.on("typing_stop", (payload: { chatId: number; userId: number }) => {
+  socket.on("typing_stop", (payload) => {
     socket.to(`chat_${payload.chatId}`).emit("user_typing", {
       chatId: payload.chatId,
       userId: payload.userId,
@@ -276,111 +259,154 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
     });
   });
 
-
-  // ========================================================================
-  // ZONE E: STATUS EVENTS (Seen)
-  // ========================================================================
-  
-  socket.on("mark_seen", async (payload: { chatId: number; userId: number }) => {
+  // Mark messages as read in database and notify sender
+  socket.on("mark_seen", async (payload) => {
     try {
-      // A. Update DB: Mark all messages in this chat NOT sent by me as read
       await prisma.message.updateMany({
         where: {
           chatId: payload.chatId,
-          senderId: { not: payload.userId }, // Messages sent by the OTHER person
-          readAt: null // Only update if not already read
+          senderId: { not: payload.userId },
+          readAt: null
         },
-        data: {
-          readAt: new Date()
-        }
+        data: { readAt: new Date() }
       });
-
-      // B. Notify the sender that I saw their messages
       io.to(`chat_${payload.chatId}`).emit("messages_seen", {
         chatId: payload.chatId,
         seenByUserId: payload.userId
       });
-
-    } catch (e) {
-      console.error("Error marking seen:", e);
-    }
+    } catch (e) { console.error("Error marking seen:", e); }
   });
-  // ========================================================================
-  // ZONE F: INITIALIZATION DATA
-  // ========================================================================
-  
-  socket.on("request_unread", async (userId: number) => {
+
+  // Calculate unread message counts for the dashboard
+  socket.on("request_unread", async (uid) => {
     try {
-      // Count unread messages grouped by Sender
-      // Logic: Messages in DMs (chatId != null), NOT sent by me, and NOT read yet
       const unreadCounts = await prisma.message.groupBy({
         by: ['senderId'],
         where: {
-          chatId: { not: null },             // Ignore General Chat
-          senderId: { not: userId },         // Not my own messages
-          readAt: null,                      // Unread
-          chat: {
-            participants: { some: { userId: userId } } // Chats I belong to
-          }
+          chatId: { not: null },
+          senderId: { not: uid },
+          readAt: null,
+          chat: { participants: { some: { userId: uid } } }
         },
-        _count: {
-          id: true
-        }
+        _count: { id: true }
       });
-
-      // Transform array into Map: { "senderId": count }
       const payload: Record<number, number> = {};
-      unreadCounts.forEach((item) => {
-        payload[item.senderId] = item._count.id;
-      });
-
+      unreadCounts.forEach((item) => { payload[item.senderId] = item._count.id; });
       socket.emit("unread_counts", payload);
-    } catch (e) {
-      console.error("Error fetching unread counts:", e);
+    } catch (e) { console.error("Error fetching unread counts:", e); }
+  });
+
+  // ========================================================================
+  // ZONE G: GAME INVITES
+  // ========================================================================
+  
+  // Handle sending a game invite
+  socket.on("send_game_invite", async (payload: { myId: number; otherId: number }) => {
+    const { myId, otherId } = payload;
+    const inviteKey = `${myId}_${otherId}`;
+    const reverseKey = `${otherId}_${myId}`;
+
+    if (myId === otherId) return;
+
+    // Check 1: Prevent duplicate invites from same sender
+    if (activeInvites.has(inviteKey)) {
+      socket.emit("invite_error", "Invite already sent.");
+      return;
+    }
+
+    // Check 2: Prevent inviting someone who already invited you (Race Condition Fix)
+    if (activeInvites.has(reverseKey)) {
+      socket.emit("invite_error", "They already invited you! Check your requests.");
+      return;
+    }
+
+    // Auto-cancel invite after 15 seconds
+    const timeout = setTimeout(() => {
+      if (activeInvites.has(inviteKey)) {
+        activeInvites.delete(inviteKey);
+        io.to(`user_${myId}`).emit("invite_expired", { otherId });
+        io.to(`user_${otherId}`).emit("invite_expired", { otherId: myId });
+      }
+    }, 15000);
+
+    // Store invite in memory
+    activeInvites.set(inviteKey, { senderId: myId, receiverId: otherId, timeout });
+
+    const sender = await prisma.user.findUnique({
+      where: { id: myId },
+      select: { username: true, avatarUrl: true }
+    });
+
+    // Notify the receiver via their personal room
+    io.to(`user_${otherId}`).emit("game_invite_received", {
+      fromId: myId,
+      username: sender?.username,
+      avatarUrl: sender?.avatarUrl
+    });
+  });
+
+  // Handle accepting an invite
+  socket.on("accept_game_invite", (payload) => {
+    // If I accept, the key is "Them_Me" (e.g. 5_10 if 5 invited 10)
+    const inviteKey = `${payload.otherId}_${payload.myId}`;
+    const invite = activeInvites.get(inviteKey);
+
+    if (!invite) {
+      socket.emit("invite_error", "Invite expired.");
+      return;
+    }
+
+    // Clear timeout and remove from map
+    clearTimeout(invite.timeout);
+    activeInvites.delete(inviteKey);
+
+    // Generate unique Game ID and redirect both players
+    const gameId = uuidv4(); 
+    io.to(`user_${payload.myId}`).emit("game_start_redirect", { gameId });
+    io.to(`user_${payload.otherId}`).emit("game_start_redirect", { gameId });
+  });
+
+  // Handle declining an invite
+  socket.on("decline_game_invite", (payload) => {
+    const inviteKey = `${payload.otherId}_${payload.myId}`;
+    const invite = activeInvites.get(inviteKey);
+    if (invite) {
+      clearTimeout(invite.timeout);
+      activeInvites.delete(inviteKey);
+      io.to(`user_${payload.otherId}`).emit("invite_declined", { byId: payload.myId });
     }
   });
 
-// // Update the handler to accept a callback function as the second argument
-//   socket.on("is_user_blocked", async (payload: { senderId: number, userId: number }, callback) => {
-//     try {
-//       const isBlocked = await prisma.block.findFirst({
-//         where: {
-//           OR: [
-//             { blockerId: payload.senderId, blockedId: payload.userId },
-//             { blockerId: payload.userId, blockedId: payload.senderId },
-//           ],
-//         },
-//       });
+  // Handle sender canceling their own invite
+  socket.on("cancel_game_invite", (payload) => {
+    const inviteKey = `${payload.myId}_${payload.otherId}`;
+    const invite = activeInvites.get(inviteKey);
+    if (invite) {
+      clearTimeout(invite.timeout);
+      activeInvites.delete(inviteKey);
+      io.to(`user_${payload.otherId}`).emit("invite_canceled_by_sender", { byId: payload.myId });
+    }
+  });
 
-//       // Send the response back to the specific client who asked
-//       if (callback) {
-//         callback(!!isBlocked); // !! converts object/null to boolean true/false
-//       }
-//     } catch (e) {
-//       console.error("Error checking block status:", e);
-//       if (callback) callback(false); // Default to false on error
-//     }
-//   });
-
-
-socket.on("check_block_status", async (payload: { myId: number, otherId: number }, callback) => {
-  try {
-    const blockByMe = await prisma.block.findFirst({
-      where: { blockerId: payload.myId, blockedId: payload.otherId },
-    });
-
-    const blockByThem = await prisma.block.findFirst({
-      where: { blockerId: payload.otherId, blockedId: payload.myId },
-    });
-
-    callback({ 
-      blockedByMe: !!blockByMe, 
-      blockedByThem: !!blockByThem 
-    }); 
-  } catch (e) {
-    console.error("Error checking block status:", e);
-    callback({ blockedByMe: false, blockedByThem: false });
-  }
-});
-
+  // ========================================================================
+  // ZONE H: CONNECTION CLEANUP
+  // ========================================================================
+  
+  // Clean up invites when a user disconnects
+  socket.on("disconnect", () => {
+    for (const [key, invite] of activeInvites.entries()) {
+      // Case A: Sender disconnected -> Cancel invite for Receiver
+      if (invite.senderId === userId) {
+        clearTimeout(invite.timeout);
+        activeInvites.delete(key);
+        io.to(`user_${invite.receiverId}`).emit("invite_canceled_by_sender", { byId: userId });
+      }
+      // Case B: Receiver disconnected -> Decline invite automatically
+      if (invite.receiverId === userId) {
+        clearTimeout(invite.timeout);
+        activeInvites.delete(key);
+        io.to(`user_${invite.senderId}`).emit("invite_declined", { byId: userId });
+      }
+    }
+  });
 }
