@@ -8,6 +8,7 @@ import RegisterForm from "./component/RegisterForm";
 import HomePage from "./component/HomePage";
 import SocialHub from "./component/SocialHub";
 import GamePage from "./component/GamePage";
+import axios from "axios";
 import PlayerProfile, { PublicPlayerProfile } from "./component/PlayerProfile";
 import {
   Route,
@@ -73,13 +74,12 @@ export default function App() {
     const ping = async () => {
       try {
         await apiPingMe(token);
-      } catch {
-      }
+      } catch {}
     };
 
-    ping(); 
+    ping();
 
-    const id = window.setInterval(ping, 15_000); 
+    const id = window.setInterval(ping, 15_000);
 
     const onVisibility = () => {
       if (document.visibilityState === "visible") ping();
@@ -104,17 +104,22 @@ export default function App() {
       }
 
       try {
-        const me = await apiGetMe(saved); // protected request
+        const me = await apiGetMe(saved);
         setToken(saved);
-        // setSessionMode("user");
         setUser(me); // Store user data
         saveProfileDataForPlayerProfile(me);
       } catch (e: any) {
         // token expired/invalid
-        clearToken();
-        console.log("has been caled ", e);
+        const status = axios.isAxiosError(e) ? e.response?.status : undefined;
+        if (status === 401 || status === 403) {
+          clearToken();
+          setToken(null);
+          setUser(null);
+        }
+        // clearToken();
+        // setToken(null);
+        // console.log("has been caled ", e);
 
-        setToken(null);
         // setSessionMode("guest");
       } finally {
         setBootingAuth(false);
