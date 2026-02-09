@@ -103,7 +103,7 @@ export async function logoutHandler(req: FastifyRequest, rep: FastifyReply) {
 export async function getMeHandler(req: FastifyRequest, rep: FastifyReply) {
   const userId = req.user.id;
   const user = await findUserById(userId);
-  console.log(Object.keys(user ?? {}), user);
+  // console.log(Object.keys(user ?? {}), user);
   if (!user) return rep.code(404).send({ message: "User not found" });
 
   return rep.send(user);
@@ -231,7 +231,8 @@ export async function uploadAvatar(req: FastifyRequest, res: FastifyReply) {
   await updateUserById(req.user.id, {
     avatarUrl: avatarUrl,
   });
-  console.log("filename is ", filepath);
+
+
   return res.send({
     avatarUrl: `/uploads/avatars/${filename}`,
   });
