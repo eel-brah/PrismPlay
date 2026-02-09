@@ -205,14 +205,14 @@ export default function SocialHub() {
     })));
   };
 
-  const sendGameInvite = () => {
-    if (!selectedFriendId || !myUserId || !socketRef.current) return;
+const sendGameInvite = (friendId?: string) => {
+    const target = friendId || selectedFriendId;
     
-    const targetId = Number(selectedFriendId);
+    if (!target || !myUserId || !socketRef.current) return;
     
-    // Optimistic UI update
+    const targetId = Number(target);
+    
     setPendingInviteId(targetId);
-    
     socketRef.current.emit("send_game_invite", { 
       myId: myUserId, 
       otherId: targetId 
@@ -834,23 +834,25 @@ setBlockStatus(prev => ({ ...prev, byMe: false }));    }
                           <button onClick={() => handleStartDirectMessage(f.id)} className="px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white">
                             Chat
                           </button>
-                          <button
+<button
                             onClick={() => {
-                              if (pendingInviteId === Number(selectedFriendId)) {
+                              // Check if we are inviting THIS specific friend
+                              if (pendingInviteId === Number(f.id)) {
                                 cancelGameInvite();
                               } else {
-                                sendGameInvite();
+                                sendGameInvite(f.id); // Pass the ID directly
                               }
                             }}
                             className={`p-2 rounded-md transition-colors text-white disabled:opacity-50 ${
-                              pendingInviteId === Number(selectedFriendId) 
-                                ? "bg-red-500 hover:bg-red-600 animate-pulse" // Cancel State
-                                : "bg-orange-600 hover:bg-orange-700" // Invite State
+                              pendingInviteId === Number(f.id) 
+                                ? "bg-red-500 hover:bg-red-600 animate-pulse" 
+                                : "bg-orange-600 hover:bg-orange-700" 
                             }`}
-                            // disabled={chatMode !== "dm" || !selectedFriendId || isChatLocked}
-                            title={pendingInviteId === Number(selectedFriendId) ? "Cancel Invite" : "Invite to Game"}
+                            // Only disable if we are busy inviting SOMEONE ELSE
+                            disabled={pendingInviteId !== null && pendingInviteId !== Number(f.id)}
+                            title={pendingInviteId === Number(f.id) ? "Cancel Invite" : "Invite to Game"}
                           >
-                            {pendingInviteId === Number(selectedFriendId) ? (
+                            {pendingInviteId === Number(f.id) ? (
                               <span className="text-xs font-bold px-1">X</span>
                             ) : (
                               <Gamepad2 className="w-4 h-4" />
