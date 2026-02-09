@@ -4,7 +4,6 @@ export type Phase = "waiting" | "countdown" | "playing" | "gameover";
 export interface PlayerProfile {
   id: number;
   nickname: string;
-  // email: string;
   avatarUrl?: string;
 }
 
@@ -54,33 +53,6 @@ export interface MatchResultPayload {
   rightScore: number;
 }
 
-// export interface ServerToClientEvents {
-//   "match.waiting": () => void;
-//   "match.found": (payload: MatchFoundPayload) => void;
-//   "match.cancelled": () => void;
-//   "match.reconnected": (payload: {
-//     matchId: string;
-//     side: Side;
-//     snapshot: GameSnapshot;
-//     opponent: PlayerProfile;
-//   }) => void;
-//   "match.surrendered": (payload: { matchId: string }) => void;
-//   "game.state": (snapshot: GameSnapshot) => void;
-//   "game.over": (payload: {
-//     matchId: string;
-//     winnerSide: Side;
-//     leftScore: number;
-//     rightScore: number;
-//     reason?: "score" | "surrender" | "disconnect";
-//   }) => void;
-//   "opponent.disconnected": () => void;
-//   "opponent.connectionLost": (payload: { timeout: number }) => void;
-//   "opponent.reconnected": () => void;
-//   "opponent.surrendered": () => void;
-//   "opponent.left": () => void;
-//   "match.error": (payload: { message: string }) => void;
-// }
-
 export interface MatchReconnectedPayload {
   matchId: string;
   side: Side;
@@ -97,10 +69,7 @@ export interface ServerToClientEvents {
   "match.waiting": () => void;
   "match.found": (payload: MatchFoundPayload) => void;
   "match.cancelled": () => void;
-
-  // ✅ update this
   "match.reconnected": (payload: MatchReconnectedPayload) => void;
-
   "match.surrendered": (payload: { matchId: string }) => void;
   "game.state": (snapshot: GameSnapshot) => void;
   "game.over": (payload: {
@@ -110,7 +79,6 @@ export interface ServerToClientEvents {
     rightScore: number;
     reason?: "score" | "surrender" | "disconnect";
   }) => void;
-
   "opponent.disconnected": () => void;
   "opponent.connectionLost": (payload: { timeout: number }) => void;
   "opponent.reconnected": () => void;
@@ -119,11 +87,9 @@ export interface ServerToClientEvents {
   "match.error": (payload: { message: string }) => void;
 }
 
-
 export interface ClientToServerEvents {
   "match.join": () => void;
   "match.leave": () => void;
   "match.surrender": () => void;
   "input.update": (payload: { up: boolean; down: boolean }) => void;
-
 }

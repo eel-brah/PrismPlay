@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const AC =
   typeof window !== "undefined" &&
   ((window as any).AudioContext || (window as any).webkitAudioContext);
@@ -6,18 +7,21 @@ let sharedAudioCtx: AudioContext | null = null;
 
 export function ensureAudioContext(): AudioContext | null {
   if (!AC) return null;
-  if (!sharedAudioCtx) sharedAudioCtx = new AC();
-  if (sharedAudioCtx.state === "suspended") {
-    sharedAudioCtx.resume().catch(() => {});
+
+  const ctx = sharedAudioCtx ?? (sharedAudioCtx = new AC());
+
+  if (ctx.state === "suspended") {
+    void ctx.resume().catch(() => {});
   }
-  return sharedAudioCtx;
+
+  return ctx;
 }
 
 export function beepSound(
   enabled: boolean,
   freq = 440, // A4
   dur = 0.08, // seconds
-  vol = 0.25 // 0..1
+  vol = 0.25, // 0..1
 ): void {
   if (!enabled) return;
   const ctx = ensureAudioContext();
