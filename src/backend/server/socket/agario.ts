@@ -1,12 +1,12 @@
 import { Server as SocketIOServer } from "socket.io";
-import { agarioEngine } from "./agarioEngine";
-import { activePlayers, agarioHandlers } from "./agarioHanders";
+import { agarioEngine } from "./agarioEngine.js";
+import { activePlayers, agarioHandlers } from "./agarioHanders.js";
 import { FastifyInstance } from "fastify";
-import { createGuestDb } from "src/backend/modules/agario/agario_service.ts";
-import { socketAuthSchema } from "src/backend/modules/agario/agario_schema.ts";
-import { World } from "src/shared/agario/types";
-import { JwtPayload } from "src/backend/modules/user/user_controller";
-import { getIdentity, identityKey } from "./agarioUtils";
+import { createGuestDb } from "../../modules/agario/agario_service.js";
+import { socketAuthSchema } from "../../modules/agario/agario_schema.js";
+import { World } from "../../../shared/agario/types.js";
+import { JwtPayload } from "../../modules/user/user_controller.js";
+import { getIdentity, identityKey } from "./agarioUtils.js";
 
 export const worldByRoom = new Map<string, World>();
 

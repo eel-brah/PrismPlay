@@ -1,7 +1,7 @@
 import { FastifyBaseLogger, FastifyInstance } from "fastify";
 import { Namespace, Socket } from "socket.io";
-import { Player } from "src/shared/agario/player";
-import { randomColor } from "src/shared/agario/utils";
+import { Player } from "../../../shared/agario/player.js";
+import { randomColor } from "../../../shared/agario/utils.js";
 import {
   ActivePlayer,
   CreateRoomPayload,
@@ -11,7 +11,7 @@ import {
   RoomSummary,
   RoomVisibility,
   World,
-} from "src/shared/agario/types";
+} from "../../../shared/agario/types.js";
 import {
   DEFAULT_ROOM,
   INIT_MASS,
@@ -21,14 +21,14 @@ import {
   MAX_SPECTATORS_PER_ROOM,
   MIN_MINUTES,
   MIN_PLAYERS_PER_ROOM,
-} from "src/shared/agario/config";
+} from "../../../shared/agario/config.js";
 import {
   createPlayerHistoryDb,
   createRoomDb,
   finalizeRoomResultsDb,
   getRoomLeaderboard,
-} from "src/backend/modules/agario/agario_service";
-import { worldByRoom } from "./agario";
+} from "../../modules/agario/agario_service.js";
+import { worldByRoom } from "./agario.js";
 import {
   clampInt,
   ensureDefaultRoom,
@@ -36,8 +36,8 @@ import {
   identityKey,
   makeKey,
   removeActivePlayer,
-} from "./agarioUtils";
-import { InputSchema } from "src/backend/modules/agario/agario_schema";
+} from "./agarioUtils.js";
+import { InputSchema } from "../../modules/agario/agario_schema.js";
 
 export const activePlayers = new Map<string, ActivePlayer>();
 export const MIN_SECOND_TO_STORE = 3;

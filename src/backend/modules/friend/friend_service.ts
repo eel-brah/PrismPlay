@@ -1,4 +1,5 @@
-import prisma from "../../utils/prisma"; 
+import prisma from "../../utils/prisma.js";
+
 
 const publicUserSelect = {
   id: true,

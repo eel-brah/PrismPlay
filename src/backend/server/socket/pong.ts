@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { Server as SocketIOServer, Socket } from "socket.io";
 import type { Namespace } from "socket.io";
-import prisma from "src/backend/utils/prisma";
+import prisma from "../../utils/prisma.js";
 
 import {
   createInitialState,
@@ -9,14 +9,14 @@ import {
   toSnapshot,
   type MatchInputs,
   type ServerGameState,
-} from "./pongServer";
+} from "./pongServer.js";
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
   PlayerProfile,
   Side,
   GameSnapshot,
-} from "../../../shared/pong/gameTypes";
+} from "../../../shared/pong/gameTypes.js";
 
 type SocketData = {
   profile?: PlayerProfile;
@@ -140,10 +140,6 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
               ? match.leftDisconnectedAt !== null
               : match.rightDisconnectedAt !== null;
 
-          // if (isDisconnected) {
-          //   handleReconnect(socket, match, profile.id);
-          //   return;
-          // }
           if (isDisconnected) {
             await handleReconnect(socket, match, profile.id);
             return;
@@ -495,20 +491,6 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     const match = matches.get(matchId);
     if (!match || match.isEnding) return;
 
-    // const isPreStartCountdown =
-    //   match.state.phase === "countdown" && !match.hasStarted;
-
-    // if (isPreStartCountdown) {
-    //   const isLeft = socket.data.side === "left";
-    //   const opponent = isLeft ? match.right : match.left;
-
-    //   opponent?.emit("opponent.left");
-    //   opponent?.emit("match.cancelled");
-
-    //   cancelMatch(match);
-    //   return;
-    // }
-
     const side = socket.data.side!;
     const winnerSide: Side = side === "left" ? "right" : "left";
     endMatch(match, winnerSide, "surrender", { surrenderingSide: side });
@@ -623,14 +605,6 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     const dt = 1 / 60;
     stepServerGame(match.state, match.inputs, dt);
 
-    // // ✅ First time we transition countdown -> playing, mark match as started
-    // if (
-    //   !match.hasStarted &&
-    //   prevPhase === "countdown" &&
-    //   match.state.phase === "playing"
-    // ) {
-    //   match.hasStarted = true;
-    // }
     const snapshot: GameSnapshot = toSnapshot(match.state);
     match.left?.emit("game.state", snapshot);
     match.right?.emit("game.state", snapshot);

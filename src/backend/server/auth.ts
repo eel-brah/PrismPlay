@@ -1,7 +1,7 @@
 import fjwt from "@fastify/jwt";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { JWT_SECRET } from "./config";
-import { findToken } from "../modules/user/user_service";
+import { JWT_SECRET } from "./config.js";
+import { findToken } from "../modules/user/user_service.js";
 
 function extractBearerToken(authHeader: string): string | null {
   const [scheme, token] = authHeader.split(" ");

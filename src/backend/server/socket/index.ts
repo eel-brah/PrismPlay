@@ -1,10 +1,10 @@
 import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import { Server as SocketIOServer } from "socket.io";
-import { init_agario } from "./agario";
-import { init_pong } from "./pong";
-import { init_chat } from "./init_chat";
-import { init_pong_private } from "./pongPrivate.ts";
+import { init_agario } from "./agario.js";
+import { init_pong } from "./pong.js";
+import { init_chat } from "./init_chat.js";
+import { init_pong_private } from "./pongPrivate.js";
 
 export default fp(async function socketPlugin(fastify: FastifyInstance) {
   const io = new SocketIOServer(fastify.server, {

@@ -1,4 +1,4 @@
-// Theme definitions
+// Themes
 export interface GameTheme {
   id: string;
   name: string;

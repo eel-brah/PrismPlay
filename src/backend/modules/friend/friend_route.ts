@@ -8,7 +8,7 @@ import {
   messageSchema,
   pendingSchema,
   userIdParamsSchema,
-} from "./friend_schema";
+} from "./friend_schema.js";
 import {
   listFriendsHandler,
   listIncomingHandler,
@@ -17,7 +17,7 @@ import {
   declineRequestHandler,
   removeFriendHandler,
   isPendingHandler,
-} from "./friend_controller";
+} from "./friend_controller.js";
 
 export async function friendsRoutes(app: FastifyInstance) {
   app.get("/", {

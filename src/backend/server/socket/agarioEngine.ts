@@ -13,7 +13,7 @@ import {
   VIRUS_EAT_THRESHOLD,
   VIRUS_MAX_FEED,
   VIRUS_PENALTY_WINDOW_MS,
-} from "src/shared/agario/config";
+} from "../../../shared/agario/config.js";
 import {
   BlobData,
   Eject,
@@ -23,23 +23,23 @@ import {
   PlayerState,
   Virus,
   World,
-} from "src/shared/agario/types";
+} from "../../../shared/agario/types.js";
 import {
   radiusFromMass,
   randomId,
   randomOrb,
   randomViruses,
-} from "src/shared/agario/utils";
+} from "../../../shared/agario/utils.js";
 import type { Namespace } from "socket.io";
-import { worldByRoom } from "./agario";
+import { worldByRoom } from "./agario.js";
 import {
   createPlayerHistoryDb,
   finalizeRoomResultsDb,
   getRoomLeaderboard,
-} from "src/backend/modules/agario/agario_service";
-import { broadcastPlayers, MIN_SECOND_TO_STORE, sendRoomInfo } from "./agarioHanders";
+} from "../../modules/agario/agario_service.js";
+import { broadcastPlayers, MIN_SECOND_TO_STORE, sendRoomInfo } from "./agarioHanders.js";
 import { FastifyBaseLogger } from "fastify";
-import { removeActivePlayer } from "./agarioUtils";
+import { removeActivePlayer } from "./agarioUtils.js";
 
 const TICK_RATE = 50;
 const TICK_DT = 1 / TICK_RATE;

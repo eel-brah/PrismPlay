@@ -16,8 +16,8 @@ import {
   RoomSummary,
   Virus,
 } from "@/../shared/agario/types";
-import { drawEjects, drawOrbs, drawViruses, getOrCreateGuestId, randomPlayer } from "@/../shared/agario/utils";
-import { drawGrid } from "@/game/agario/utils";
+import { getOrCreateGuestId, randomPlayer } from "@/../shared/agario/utils";
+import { drawEjects, drawGrid, drawOrbs, drawPlayer, drawViruses } from "@/game/agario/utils";
 import { FinalLeaderboard, Leaderboard } from "./agario/LeaderBoard";
 import { FinalStatusOverlay } from "./agario/FinalStatusOverlay";
 import { TopStatusBar } from "./agario/RoomStatusBar";
@@ -449,10 +449,9 @@ const Agario = () => {
 
       drawOrbs(ctx, orbsRef.current, camera);
       drawEjects(ctx, ejectsRef.current, camera);
-      player.draw(ctx, camera);
-      for (const enemy of Object.values(enemiesRef.current)) {
-        enemy.draw(ctx, camera);
-      }
+      drawPlayer(ctx, player, camera);
+      for (const enemy of Object.values(enemiesRef.current))
+        drawPlayer(ctx, enemy, camera);
       drawViruses(ctx, virusesRef.current, camera);
     }
 

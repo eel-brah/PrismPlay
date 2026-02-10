@@ -1,6 +1,6 @@
 import { Server as SocketIOServer, Socket } from "socket.io";
 import { FastifyInstance } from "fastify";
-import { registerChatHandlers } from "./chatHandler";
+import { registerChatHandlers } from "./chatHandler.js";
 
 // If you have an auth schema, import it here
 
