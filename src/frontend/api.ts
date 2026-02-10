@@ -152,13 +152,31 @@ export function clearToken() {
 
 // AUTH
 export async function apiRegister(username: string, email: string, password: string) {
-  const res = await api.post<User>("/auth/sign_up", { username, email, password });
-  return res.data;
+  try{
+    const res = await api.post<User>("/auth/sign_up", { username, email, password });
+    return res.data;
+  }
+  catch(e: unknown){
+     if (axios.isAxiosError(e)){
+      const serverMsg = (e.response?.data as any)?.message;
+      throw new Error(serverMsg ?? e.message ?? "Register failed");
+     }
+     throw new Error("Register failed");
+  }
 }
 
 export async function apiLogin(email: string, password: string) {
-  const res = await api.post<LoginResponse>("/auth/login", { email, password });
-  return res.data;
+  try{
+    const res = await api.post<LoginResponse>("/auth/login", { email, password });
+    return res.data;
+  }
+  catch(e: unknown){
+     if (axios.isAxiosError(e)){
+      const serverMsg = (e.response?.data as any)?.message;
+      throw new Error(serverMsg ?? e.message ?? "Login failed");
+     }
+     throw new Error("Login failed");
+  }
 }
 
 export async function apiLogout(token: string) {
