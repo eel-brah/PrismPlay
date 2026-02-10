@@ -3,15 +3,9 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import tailwindcss from "@tailwindcss/vite";
 
-const sharedDir = path.resolve(__dirname, "src/shared");
-
 export default defineConfig({
   root: path.resolve(__dirname, "src/frontend"),
-  // define: {
-  //   __DEFINES__: {},
-  //   __HMR_CONFIG_NAME__: null,
-  // },
-  plugins: [react(), tailwindcss()],
+  plugins: [tailwindcss(), react()],
   server: {
     port: 5173,
     proxy: {

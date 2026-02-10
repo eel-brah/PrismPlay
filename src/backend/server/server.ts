@@ -33,14 +33,12 @@ const server = Fastify({
     key: fs.readFileSync(SSL_KEY_PATH),
     cert: fs.readFileSync(SSL_CERT_PATH),
   },
-  // logger: NODE_ENV === "development" ? logger : false,
-  logger,
+  logger: NODE_ENV === "development" ? logger : true,
   disableRequestLogging: true,
 }).withTypeProvider<ZodTypeProvider>();
 
 export const http_server = Fastify({
-  logger,
-  // logger: NODE_ENV === "development" ? logger : false,
+  logger: NODE_ENV === "development" ? logger : true,
   disableRequestLogging: true,
 });
 
