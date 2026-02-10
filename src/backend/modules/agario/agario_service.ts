@@ -1,6 +1,6 @@
-import prisma from "../../utils/prisma";
-import { DEFAULT_ROOM } from "../../../shared/agario/config";
-import { FinalLeaderboardEntry, RoomMeta } from "../../../shared/agario/types";
+import prisma from "../../utils/prisma.js";
+import { DEFAULT_ROOM } from "../../../shared/agario/config.js";
+import { FinalLeaderboardEntry, RoomMeta } from "../../../shared/agario/types.js";
 
 export function createGuestDb(guestId: string) {
   return prisma.guest.upsert({

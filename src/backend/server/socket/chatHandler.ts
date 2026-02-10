@@ -1,5 +1,5 @@
 import { Socket, Namespace } from "socket.io";
-import prisma from "../../utils/prisma"; 
+import prisma from "../../utils/prisma.js"; 
 import { v4 as uuidv4 } from 'uuid'; 
 
 // ============================================================================

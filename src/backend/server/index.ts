@@ -1,10 +1,10 @@
-import server, { http_server } from "./server";
-import { setGlobalErrorHandler } from "./errorHandler";
-import { registerRoutes } from "./routes";
-import { setupAuth } from "./auth";
-import { PORT, HTTP_PORT, IP } from "./config";
-import loggingHook from "./loggingHook";
-import socketPlugin from "./socket/index"
+import server, { http_server } from "./server.js";
+import { setGlobalErrorHandler } from "./errorHandler.js";
+import { registerRoutes } from "./routes.js";
+import { setupAuth } from "./auth.js";
+import { PORT, HTTP_PORT, IP } from "./config.js";
+import loggingHook from "./loggingHook.js";
+import socketPlugin from "./socket/index.js"
 // import socketPlugin from "./socket"
 
 // Set up error handling

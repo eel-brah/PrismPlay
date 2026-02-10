@@ -10,7 +10,7 @@ import {
   updateMeHandler,
   uploadAvatar,
   pingMeHandler,
-} from "./user_controller";
+} from "./user_controller.js";
 import {
   achievementsResponseSchema,
   createResponseSchema,
@@ -22,7 +22,7 @@ import {
   publicUserResponseSchema,
   updateUserSchema,
   userResponseSchema,
-} from "./user_schema";
+} from "./user_schema.js";
 
 export async function authRoutes(server: FastifyInstance) {
   server.post("/login", {

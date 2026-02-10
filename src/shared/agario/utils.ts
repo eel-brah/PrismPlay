@@ -9,9 +9,9 @@ import {
   VIRUS_BASE_MASS,
   VIRUS_RADIUS,
   VIRUS_SAFE_RADIUS,
-} from "./config";
-import { Player } from "./player";
-import { Camera, Eject, Orb, Virus } from "./types";
+} from "./config.js";
+import { Player } from "./player.js";
+import { Camera, Eject, Orb, Virus } from "./types.js";
 
 export function darkenHex(color: string, amount = 0.3): string {
   let r: number, g: number, b: number;

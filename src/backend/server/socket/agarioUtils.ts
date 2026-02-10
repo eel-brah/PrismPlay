@@ -1,13 +1,13 @@
-import { activePlayers } from "./agarioHanders";
+import { activePlayers } from "./agarioHanders.js";
 import { Socket } from "socket.io";
 import crypto from "crypto";
-import { worldByRoom } from "./agario";
+import { worldByRoom } from "./agario.js";
 import {
   DEFAULT_ROOM,
   DEFAULT_ROOM_MAX_PLAYERS,
-} from "../../../shared/agario/config";
-import { createRoomDb } from "../../modules/agario/agario_service";
-import { Identity, World } from "../../../shared/agario/types";
+} from "../../../shared/agario/config.js";
+import { createRoomDb } from "../../modules/agario/agario_service.js";
+import { Identity, World } from "../../../shared/agario/types.js";
 
 export function removeActivePlayer(socket: Socket) {
   const key = identityKey(getIdentity(socket));

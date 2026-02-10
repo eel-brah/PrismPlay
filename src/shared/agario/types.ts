@@ -1,5 +1,5 @@
-import { InputState } from "../../backend/modules/agario/agario_schema";
-import { Player } from "./player";
+import { InputState } from "../../backend/modules/agario/agario_schema.js";
+import { Player } from "./player.js";
 
 export interface Orb {
   id: string;

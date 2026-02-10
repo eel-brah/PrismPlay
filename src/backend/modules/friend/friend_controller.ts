@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { FastifyReply, FastifyRequest } from "fastify";
 import {
   listFriends,
@@ -8,7 +7,7 @@ import {
   declineFriendRequest,
   removeFriend,
   IsFrienddPending,
-} from "./friend_service";
+} from "./friend_service.js";
 
 type AuthedReq = FastifyRequest & { user: { id: number } };
 

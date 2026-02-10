@@ -5,10 +5,11 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from "fastify-type-provider-zod";
-import { NODE_ENV, SSL_CERT_PATH, SSL_KEY_PATH } from "./config";
+import { NODE_ENV, SSL_CERT_PATH, SSL_KEY_PATH } from "./config.js";
 import multipart from "@fastify/multipart";
 import fastifyStatic from "@fastify/static";
 import path from "node:path";
+import staticPlugin from "./static.js";
 
 const logger = {
   transport: {
@@ -32,25 +33,18 @@ const server = Fastify({
     key: fs.readFileSync(SSL_KEY_PATH),
     cert: fs.readFileSync(SSL_CERT_PATH),
   },
-  logger: NODE_ENV === "development" ? logger : false,
+  // logger: NODE_ENV === "development" ? logger : false,
+  logger,
   disableRequestLogging: true,
 }).withTypeProvider<ZodTypeProvider>();
 
 export const http_server = Fastify({
-  logger: NODE_ENV === "development" ? logger : false,
+  logger,
+  // logger: NODE_ENV === "development" ? logger : false,
   disableRequestLogging: true,
 });
 
-if (NODE_ENV === "production") {
-  server.register(fastifyStatic, {
-    root: path.join(process.cwd(), "dist/frontend"),
-    prefix: "/",
-  });
-
-  server.setNotFoundHandler((req, reply) => {
-    reply.sendFile("index.html");
-  });
-}
+await server.register(staticPlugin);
 
 // Attach Zod validator/serializer
 server.setValidatorCompiler(validatorCompiler);
@@ -61,11 +55,6 @@ server.register(multipart, {
     files: 1,
     fileSize: 2 * 1024 * 1024,
   },
-});
-
-server.register(fastifyStatic, {
-  root: path.join(process.cwd(), "uploads"),
-  prefix: "/uploads/",
 });
 
 export default server;

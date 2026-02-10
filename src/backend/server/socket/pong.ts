@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { Server as SocketIOServer, Socket } from "socket.io";
 import type { Namespace } from "socket.io";
-import prisma from "../../utils/prisma";
+import prisma from "../../utils/prisma.js";
 
 import {
   createInitialState,
@@ -9,14 +9,14 @@ import {
   toSnapshot,
   type MatchInputs,
   type ServerGameState,
-} from "./pongServer";
+} from "./pongServer.js";
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
   PlayerProfile,
   Side,
   GameSnapshot,
-} from "../../../shared/pong/gameTypes";
+} from "../../../shared/pong/gameTypes.js";
 
 type SocketData = {
   profile?: PlayerProfile;

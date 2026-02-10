@@ -1,4 +1,4 @@
-import type { GameSnapshot, Side } from "../../../shared/pong/gameTypes";
+import type { GameSnapshot, Side } from "../../../shared/pong/gameTypes.js";
 
 export const GAME_WIDTH = 810;
 export const GAME_HEIGHT = 600;

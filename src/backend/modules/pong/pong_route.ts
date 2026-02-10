@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { Prisma } from "@prisma/client";
-import prisma from "../../utils/prisma";
+import prisma from "../../utils/prisma.js";
 
 export default async function pongRoute(server: FastifyInstance) {
   server.get<{ Params: { playerId: string } }>(

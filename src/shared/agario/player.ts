@@ -5,14 +5,14 @@ import {
   PlayerData,
   BlobData,
   Eject,
-} from "../../shared/agario/types";
+} from "../../shared/agario/types.js";
 import {
   computeMergeCooldown,
   darkenHex,
   isInView,
   radiusFromMass,
   randomId,
-} from "../../shared/agario/utils";
+} from "../../shared/agario/utils.js";
 import {
   MAP_WIDTH,
   MAP_HEIGHT,
@@ -27,7 +27,7 @@ import {
   MASS,
   MAX_BLOBS_PER_PLAYER,
   VIRUS_SPLIT_FORCE,
-} from "../../shared/agario/config";
+} from "../../shared/agario/config.js";
 
 const MIN_SPLIT_MASS = INIT_MASS * 4;
 const SPLIT_LAUNCH_SPEED = 700;
