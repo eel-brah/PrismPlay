@@ -1,6 +1,11 @@
-import { Player } from "src/shared/agario/player";
-import { Camera, Eject, Orb, Virus } from "../../../shared/agario/types";
-import { darkenHex, isInView, radiusFromMass } from "../../../shared/agario/utils";
+import { Player } from "../../../shared/agario/player";
+import { Eject, Orb, Virus } from "../../../shared/agario/types";
+import {
+  radiusFromMass,
+  randomColor,
+  randomId,
+} from "../../../shared/agario/utils";
+import { Camera } from "./type";
 
 export function drawGrid(ctx: CanvasRenderingContext2D, camera: Camera) {
   const gridSize = 50;
@@ -109,28 +114,96 @@ export function drawViruses(
   }
 }
 
-export function drawPlayer(ctx: CanvasRenderingContext2D, player: Player, camera: Camera) {
-    for (const blob of player.blobs) {
-      const r = radiusFromMass(blob.mass);
-      if (!isInView(blob.x, blob.y, r, camera)) continue;
+export function drawPlayer(
+  ctx: CanvasRenderingContext2D,
+  player: Player,
+  camera: Camera,
+) {
+  for (const blob of player.blobs) {
+    const r = radiusFromMass(blob.mass);
+    if (!isInView(blob.x, blob.y, r, camera)) continue;
 
-      const screenX = blob.x - camera.x;
-      const screenY = blob.y - camera.y;
+    const screenX = blob.x - camera.x;
+    const screenY = blob.y - camera.y;
 
-      ctx.beginPath();
-      ctx.arc(screenX, screenY, r, 0, Math.PI * 2);
+    ctx.beginPath();
+    ctx.arc(screenX, screenY, r, 0, Math.PI * 2);
 
-      ctx.fillStyle = player.color;
-      ctx.fill();
+    ctx.fillStyle = player.color;
+    ctx.fill();
 
-      ctx.strokeStyle = darkenHex(player.color);
-      ctx.lineWidth = 7 + r * 0.05;
-      ctx.stroke();
+    ctx.strokeStyle = darkenHex(player.color);
+    ctx.lineWidth = 7 + r * 0.05;
+    ctx.stroke();
 
-      ctx.fillStyle = "black";
-      ctx.font = `bold ${r * 0.5}px Market, "Helvetica Neue", Arial, sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(player.name, screenX, screenY);
-    }
+    ctx.fillStyle = "black";
+    ctx.font = `bold ${r * 0.5}px Market, "Helvetica Neue", Arial, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(player.name, screenX, screenY);
   }
+}
+
+export function darkenHex(color: string, amount = 0.3): string {
+  let r: number, g: number, b: number;
+
+  if (color.startsWith("#")) {
+    const hex = color.slice(1);
+    const num = parseInt(hex, 16);
+
+    r = (num >> 16) & 255;
+    g = (num >> 8) & 255;
+    b = num & 255;
+  } else {
+    [r, g, b] = color.match(/\d+/g)!.map(Number);
+  }
+
+  r = Math.floor(r * (1 - amount));
+  g = Math.floor(g * (1 - amount));
+  b = Math.floor(b * (1 - amount));
+
+  r = Math.max(0, r);
+  g = Math.max(0, g);
+  b = Math.max(0, b);
+
+  return (
+    "#" +
+    r.toString(16).padStart(2, "0") +
+    g.toString(16).padStart(2, "0") +
+    b.toString(16).padStart(2, "0")
+  );
+}
+
+export function isInView(
+  x: number,
+  y: number,
+  radius: number,
+  camera: Camera,
+): boolean {
+  const sx = x - camera.x;
+  const sy = y - camera.y;
+
+  const padding = 50;
+
+  if (
+    sx + radius < -padding ||
+    sx - radius > camera.width + padding ||
+    sy + radius < -padding ||
+    sy - radius > camera.height + padding
+  ) {
+    return false;
+  }
+  return true;
+}
+
+export function randomPlayer(): Player {
+  return new Player(randomId(), " ", randomColor());
+}
+
+export function getOrCreateGuestId(): string {
+  let id = localStorage.getItem("guestId");
+  if (!id) {
+    ((id = randomId()), localStorage.setItem("guestId", id));
+  }
+  return id;
+}

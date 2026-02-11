@@ -1,18 +1,11 @@
 import {
-  Camera,
   Mouse,
   Orb,
   PlayerData,
   BlobData,
   Eject,
 } from "../../shared/agario/types.js";
-import {
-  computeMergeCooldown,
-  darkenHex,
-  isInView,
-  radiusFromMass,
-  randomId,
-} from "../../shared/agario/utils.js";
+import { radiusFromMass, randomId } from "../../shared/agario/utils.js";
 import {
   MAP_WIDTH,
   MAP_HEIGHT,
@@ -27,11 +20,16 @@ import {
   MASS,
   MAX_BLOBS_PER_PLAYER,
   VIRUS_SPLIT_FORCE,
+  SPLIT_LAUNCH_SPEED,
+  SPLIT_FRICTION,
+  MIN_SPLIT_MASS,
+  MERGE_BASE_TIME,
+  MERGE_FACTOR,
 } from "../../shared/agario/config.js";
 
-const MIN_SPLIT_MASS = INIT_MASS * 4;
-const SPLIT_LAUNCH_SPEED = 700;
-const SPLIT_FRICTION = 3;
+function computeMergeCooldown(mass: number): number {
+  return MERGE_BASE_TIME + mass * MERGE_FACTOR;
+}
 
 export class Player {
   private _id: string;
@@ -386,32 +384,6 @@ export class Player {
     return [eatenOrbs, eatenEjects];
   }
 
-  // draw(ctx: CanvasRenderingContext2D, camera: Camera) {
-  //   for (const blob of this._blobs) {
-  //     const r = radiusFromMass(blob.mass);
-  //     if (!isInView(blob.x, blob.y, r, camera)) continue;
-  //
-  //     const screenX = blob.x - camera.x;
-  //     const screenY = blob.y - camera.y;
-  //
-  //     ctx.beginPath();
-  //     ctx.arc(screenX, screenY, r, 0, Math.PI * 2);
-  //
-  //     ctx.fillStyle = this._color;
-  //     ctx.fill();
-  //
-  //     ctx.strokeStyle = darkenHex(this._color);
-  //     ctx.lineWidth = 7 + r * 0.05;
-  //     ctx.stroke();
-  //
-  //     ctx.fillStyle = "black";
-  //     ctx.font = `bold ${r * 0.5}px Market, "Helvetica Neue", Arial, sans-serif`;
-  //     ctx.textAlign = "center";
-  //     ctx.textBaseline = "middle";
-  //     ctx.fillText(this._name, screenX, screenY);
-  //   }
-  // }
-
   split(mouse: Mouse) {
     if (this._blobs.length >= MAX_BLOBS_PER_PLAYER) return;
     if (this._blobs.length === 0) return;
@@ -491,7 +463,6 @@ export class Player {
       let dirX = dx / dist;
       let dirY = dy / dist;
 
-      // console.log(dist, "==", blobR);
       if (dist < blobR / 4) {
         dirX = 0;
         dirY = 0;

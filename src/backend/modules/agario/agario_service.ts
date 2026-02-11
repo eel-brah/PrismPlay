@@ -1,6 +1,9 @@
 import prisma from "../../utils/prisma.js";
 import { DEFAULT_ROOM } from "../../../shared/agario/config.js";
-import { FinalLeaderboardEntry, RoomMeta } from "../../../shared/agario/types.js";
+import {
+  FinalLeaderboardEntry,
+  RoomMeta,
+} from "../../../shared/agario/types.js";
 
 export function createGuestDb(guestId: string) {
   return prisma.guest.upsert({
@@ -49,15 +52,6 @@ export async function createRoomDb(meta: RoomMeta) {
   });
 }
 
-// export function endRoomDb(roomId: number) {
-//   return prisma.room.update({
-//     where: { id: roomId },
-//     data: {
-//       endedAt: new Date(),
-//     },
-//   });
-// }
-
 export function createPlayerHistoryDb(
   roomId: number,
   durationMs: number,
@@ -84,17 +78,10 @@ export function createPlayerHistoryDb(
 }
 
 export async function finalizeRoomResultsDb(roomId: number) {
-  // const room = prisma.playerHistory.findFirst({
-  //   where: { roomId },
-  // });
-  // if (room.room.name === DEFAULT_ROOM)
-  //   throw new Error("Default room cannot have a duration");
-  // }
-
   return prisma.$transaction(async (tx) => {
     const players = await tx.playerHistory.findMany({
       where: { roomId },
-      orderBy: [{ kills: "desc" }, { maxMass: "desc" }, { durationMs: "desc" }],
+      orderBy: [{ maxMass: "desc" }, { kills: "desc" }, { durationMs: "desc" }],
     });
 
     if (players.length === 0) {
@@ -133,14 +120,13 @@ export async function getRoomLeaderboard(
       user: true,
       guest: true,
     },
-    orderBy: [{ kills: "desc" }, { maxMass: "desc" }, { durationMs: "desc" }],
+    orderBy: [{ maxMass: "desc" }, { kills: "desc" }, { durationMs: "desc" }],
   });
 
   return players.map((p, index) => {
-    const isUser = !!p.user;
 
     return {
-      id: isUser ? `user-${p.userId}` : `guest-${p.guestId}`,
+      id: p.userId ? p.userId: p.guestId!,
       name: p.name,
       rank: p.rank ?? index + 1,
       kills: p.kills,
@@ -166,7 +152,7 @@ export async function listRoomsHistoryDb(
           user: { select: { id: true, username: true, avatarUrl: true } },
           guest: { select: { id: true } },
         },
-        orderBy: [{ rank: "asc" }, { kills: "desc" }, { maxMass: "desc" }],
+        orderBy: [{ rank: "asc" }, { maxMass: "desc" }, { kills: "desc" }],
       },
     },
   });
@@ -283,8 +269,8 @@ export async function getRoomHistoryDb(roomId: number) {
     isDefault: room.isDefault,
     startedAt: room.startedAt,
     endedAt: room.endedAt,
-    // maxPlayers: room.maxPlayers,
-    // maxDurationMin: room.maxDurationMin,
+    maxPlayers: room.maxPlayers,
+    maxDurationMin: room.maxDurationMin,
     createdBy: room.createdBy,
     leaderboard,
   };

@@ -47,42 +47,12 @@ export interface Mouse {
   y: number;
 }
 
-export interface Camera {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
 // export interface InputState {
 //   mouseX: number;
 //   mouseY: number;
 //   // seq: number;
 //   dt: number;
 // }
-
-export interface PlayerState {
-  player: Player;
-  startTime: number;
-  endTime: number;
-  maxMass: number;
-  kills: number;
-  userId?: number;
-  guestId?: string;
-  input: InputState | null;
-  splitRequested: boolean;
-  ejectRequested: boolean;
-  virusEatTimes: number[];
-}
-
-export type LeaderboardEntry = {
-  id: string;
-  name: string;
-  totalMass: number;
-  rank: number;
-  isMe: boolean;
-  decayMultiplier: number;
-};
 
 export interface Virus {
   id: string;
@@ -94,21 +64,7 @@ export interface Virus {
   fedCount: number;
 }
 
-export type RoomInfo = {
-  room: string;
-  visibility: "public" | "private";
-  status: "waiting" | "started";
-  maxPlayers: number;
-  durationMin: number | undefined;
-  startedAt: number | undefined;
-  hostId: string;
-  youAreHost: boolean;
-  key?: string;
-  players: LobbyPlayer[];
-  spectatorCount: number;
-};
-
-export type RoomSummary = {
+export interface RoomSummary {
   room: string;
   visibility: "public" | "private";
   status: "waiting" | "started";
@@ -118,29 +74,27 @@ export type RoomSummary = {
   timeLeftSec: number | null;
   allowSpectators: boolean;
   spectatorCount: number;
-};
+}
 
-export type LobbyPlayer = { id: string; name: string };
-
-export type FinalLeaderboardEntry = {
-  id: string;
+export interface FinalLeaderboardEntry {
+  id: string | number;
   name: string;
   rank: number;
   kills: number;
   maxMass: number;
-};
+}
 
-export type FinalStatus = {
+export interface FinalStatus {
   id: string;
   name: string;
   kills: number;
   maxMass: number;
-};
+}
 
 export type RoomVisibility = "public" | "private";
 export type RoomStatus = "waiting" | "started";
 
-export type RoomMeta = {
+export interface RoomMeta {
   roomId?: number;
   room: string;
   visibility: RoomVisibility;
@@ -157,51 +111,31 @@ export type RoomMeta = {
 
   allowSpectators: boolean;
   spectators: Set<string>;
-};
-
-export type WorldHistory = {
-  playerName: string;
-  maxMass: number;
-  kills: number;
-  durationMs: number;
-};
-
-export type World = {
+}
+export interface World {
   players: Record<string, PlayerState>;
   orbs: Orb[];
   ejects: Eject[];
   viruses: Virus[];
   meta: RoomMeta;
-};
+}
 
-export type CreateRoomPayload = {
-  room: string;
-  name: string;
-  visibility: RoomVisibility;
-  maxPlayers: number;
-  durationMin: number;
-  allowSpectators: boolean;
-};
-
-export type JoinRoomPayload = {
-  room: string;
-  name: string;
-  key?: string;
-  spectator: boolean;
-};
-
-export type Identity = {
-  type: string;
+export interface PlayerState {
+  player: Player;
+  startTime: number;
+  endTime: number;
+  maxMass: number;
+  kills: number;
   userId?: number;
   guestId?: string;
-};
-
-export type ActivePlayer = {
-  identity: Identity;
-  roomName: string;
-
-  socketId: string;
-  sessionId: string;
-  disconnectedAt?: number;
-  timeoutId?: NodeJS.Timeout;
-};
+  input: InputState | null;
+  splitRequested: boolean;
+  ejectRequested: boolean;
+  virusEatTimes: number[];
+}
+// export itnerface  WorldHistory {
+//   playerName: string;
+//   maxMass: number;
+//   kills: number;
+//   durationMs: number;
+// };

@@ -1,4 +1,5 @@
-import { FinalLeaderboardEntry, LeaderboardEntry } from "src/shared/agario/types";
+import { LeaderboardEntry } from "@/game/agario/type";
+import { FinalLeaderboardEntry, } from "src/shared/agario/types";
 
 type DecayIndicatorProps = {
   multiplier: number;

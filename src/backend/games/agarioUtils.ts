@@ -1,13 +1,20 @@
-import { activePlayers } from "./agarioHanders.js";
+import { activePlayers, worldByRoom } from "./agarioHanders.js";
 import { Socket } from "socket.io";
 import crypto from "crypto";
-import { worldByRoom } from "./agario.js";
 import {
   DEFAULT_ROOM,
   DEFAULT_ROOM_MAX_PLAYERS,
-} from "../../../shared/agario/config.js";
-import { createRoomDb } from "../../modules/agario/agario_service.js";
-import { Identity, World } from "../../../shared/agario/types.js";
+  MAP_HEIGHT,
+  MAP_WIDTH,
+  ORB_MIN_MASS,
+  ORB_RADIUS,
+  VIRUS_BASE_MASS,
+  VIRUS_SAFE_RADIUS,
+} from "../../shared/agario/config.js";
+import { createRoomDb } from "../modules/agario/agario_service.js";
+import { Orb, Virus, World } from "../../shared/agario/types.js";
+import { randomColor, randomId } from "../../shared/agario/utils.js";
+import { Identity } from "./agarioTypes.js";
 
 export function removeActivePlayer(socket: Socket) {
   const key = identityKey(getIdentity(socket));
@@ -77,4 +84,26 @@ export async function ensureDefaultRoom() {
   }
 
   await defaultRoomInit;
+}
+
+export function randomOrb(): Orb {
+  return {
+    id: randomId(),
+    x: ORB_RADIUS + Math.random() * (MAP_WIDTH - ORB_RADIUS * 2),
+    y: ORB_RADIUS + Math.random() * (MAP_HEIGHT - ORB_RADIUS * 2),
+    mass: ORB_MIN_MASS,
+    color: randomColor(),
+  };
+}
+
+export function randomViruses(): Virus {
+  return {
+    id: randomId(),
+    x: VIRUS_SAFE_RADIUS + Math.random() * (MAP_WIDTH - VIRUS_SAFE_RADIUS * 2),
+    y: VIRUS_SAFE_RADIUS + Math.random() * (MAP_HEIGHT - VIRUS_SAFE_RADIUS * 2),
+    mass: VIRUS_BASE_MASS,
+    vx: 0,
+    vy: 0,
+    fedCount: 0,
+  };
 }

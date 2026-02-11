@@ -1,14 +1,13 @@
 import { Server as SocketIOServer } from "socket.io";
-import { agarioEngine } from "./agarioEngine.js";
-import { activePlayers, agarioHandlers } from "./agarioHanders.js";
 import { FastifyInstance } from "fastify";
 import { createGuestDb } from "../../modules/agario/agario_service.js";
 import { socketAuthSchema } from "../../modules/agario/agario_schema.js";
 import { World } from "../../../shared/agario/types.js";
 import { JwtPayload } from "../../modules/user/user_controller.js";
-import { getIdentity, identityKey } from "./agarioUtils.js";
+import { agarioEngine } from "../../games/agarioEngine.js";
+import { activePlayers, agarioHandlers } from "../../games/agarioHanders.js";
+import { getIdentity, identityKey } from "../../games/agarioUtils.js";
 
-export const worldByRoom = new Map<string, World>();
 
 export function init_agario(io: SocketIOServer, fastify: FastifyInstance) {
   const agario = io.of("/agario");

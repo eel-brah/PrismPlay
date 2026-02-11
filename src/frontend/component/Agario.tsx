@@ -3,21 +3,16 @@ import { io } from "socket.io-client";
 import { DEFAULT_ROOM, MAP_HEIGHT, MAP_WIDTH, MAX_MINUTES, MAX_PLAYERS_PER_ROOM, MIN_MINUTES, MIN_PLAYERS_PER_ROOM } from "@/../shared/agario/config";
 import { Player } from "@/../shared/agario/player";
 import {
-  Camera,
   Eject,
   FinalLeaderboardEntry,
   FinalStatus,
-  LeaderboardEntry,
-  LobbyPlayer,
   Mouse,
   Orb,
   PlayerData,
-  RoomInfo,
   RoomSummary,
   Virus,
 } from "@/../shared/agario/types";
-import { getOrCreateGuestId, randomPlayer } from "@/../shared/agario/utils";
-import { drawEjects, drawGrid, drawOrbs, drawPlayer, drawViruses } from "@/game/agario/utils";
+import { drawEjects, drawGrid, drawOrbs, drawPlayer, drawViruses, getOrCreateGuestId, randomPlayer } from "@/game/agario/utils";
 import { FinalLeaderboard, Leaderboard } from "./agario/LeaderBoard";
 import { FinalStatusOverlay } from "./agario/FinalStatusOverlay";
 import { TopStatusBar } from "./agario/RoomStatusBar";
@@ -25,8 +20,8 @@ import { nanoid } from "nanoid"
 import { TOKEN_KEY } from "@/api";
 import { InputState } from "src/backend/modules/agario/agario_schema";
 import { useNavigate } from "react-router-dom";
+import { AlertType, Camera, LeaderboardEntry, LobbyPlayer, RoomInfo } from "@/game/agario/type";
 
-type AlertType = "error" | "warning" | "info" | "";
 const alertStyles: Record<Exclude<AlertType, "">, string> = {
   error: "bg-red-100 border-red-300 text-red-700",
   warning: "bg-yellow-100 border-yellow-300 text-yellow-800",
@@ -35,7 +30,6 @@ const alertStyles: Record<Exclude<AlertType, "">, string> = {
 
 const HOME_PAGE = "home"
 
-// localStorage.setItem("access_token", token);
 const authToken = localStorage.getItem(TOKEN_KEY);
 const sessionId = nanoid();
 

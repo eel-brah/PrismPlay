@@ -1,5 +1,5 @@
-import { RoomInfo } from "@/../shared/agario/types";
 import { DEFAULT_ROOM } from "@/../shared/agario/config";
+import { RoomInfo } from "@/game/agario/type";
 
 type Props = {
   roomInfo: RoomInfo;
