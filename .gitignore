@@ -2,5 +2,6 @@ node_modules
 dist
 mytodo.txt
 prisma/dev.db
-uploads
 .vscode
+data/dev.db
+uploads/*

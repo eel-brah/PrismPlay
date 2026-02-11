@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Trophy, Gamepad2, BarChart3 } from "lucide-react";
+import NotFound from "./NotFound";
 import {
   apiGetAchievements,
   apiGetAgarioPlayerHistory,
@@ -1258,6 +1259,7 @@ export function PublicPlayerProfile() {
   const [user, setUser] = useState<PublicUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [notFound, setNotFound] = useState(false);
   const [stats, setStats] = useState<PlayerStats | null>(null);
   const [statsError, setStatsError] = useState("");
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -1350,6 +1352,7 @@ export function PublicPlayerProfile() {
     let cancelled = false;
     const loadProfile = async () => {
       setLoading(true);
+      setNotFound(false);
       setError("");
       setStatsError("");
       setStats(null);
@@ -1398,7 +1401,15 @@ export function PublicPlayerProfile() {
         }
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Failed to load profile");
+          const status = e?.response?.status; // axios puts status here
+          if (status === 404) {
+            setNotFound(true);
+            setError("");
+            setUser(null);
+          } else {
+            setError(e instanceof Error ? e.message : "Failed to load profile");
+          }
+          // setError(e instanceof Error ? e.message : "Failed to load profile");
         }
       }
 
@@ -1655,8 +1666,9 @@ export function PublicPlayerProfile() {
   }, [user]);
 
   if (loading) return <div>Loading...</div>;
+  if (notFound) return <NotFound message={`User "${username ?? ""}" was not found.`} />;
   if (error) return <div>{error}</div>;
-  if (!user) return null;
+  if (!user) return <NotFound message={`User "${username ?? ""}" was not found.`} />;
 
   const gamesPlayed = stats?.totalGames ?? 0;
   const wins = stats?.wins ?? 0;
