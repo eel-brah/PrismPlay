@@ -1,0 +1,17 @@
+services:
+  ft_transcendence:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ft_transcendence
+    ports:
+      - "9443:9443"
+      - "9000:9000"
+    env_file:
+      - .env
+    volumes:
+      - ./config:/ft_transcendence/config:ro
+      - ./data:/ft_transcendence/prisma/data
+      - ./uploads:/ft_transcendence/uploads
+
+    restart: unless-stopped
