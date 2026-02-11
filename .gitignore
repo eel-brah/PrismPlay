@@ -5,3 +5,4 @@ prisma/dev.db
 .vscode
 data/dev.db
 uploads/*
+prisma/data/*
