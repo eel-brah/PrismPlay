@@ -183,8 +183,8 @@ export async function updateMeHandler(
 
 export async function pingMeHandler(req: FastifyRequest, rep: FastifyReply) {
   const userId = req.user.id;
-  const updated = await touchUserLastLogin(userId);
-  return rep.send({ ok: true, lastLogin: updated.lastLogin });
+  await touchUserLastLogin(userId);
+  return rep.send({ ok: true });
 }
 
 
