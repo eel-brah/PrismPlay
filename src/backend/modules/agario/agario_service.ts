@@ -56,17 +56,48 @@ export async function createRoomDb(meta: RoomMeta) {
   });
 }
 
-export function createPlayerHistoryDb(
+export async function createPlayerHistoryDb(
   roomId: number,
   durationMs: number,
   maxMass: number,
   kills: number,
   name: string,
-  userId?: number | null,
-  guestId?: string | null,
+  userId?: number,
+  guestId?: string,
 ) {
   if (!guestId && !userId)
     throw new Error("Either userId or guestId is required");
+
+  if (userId && guestId)
+    throw new Error("Player cannot be both user and guest");
+
+  if (userId) {
+    const exists = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!exists) throw new Error("Invalid userId (user no longer exists)");
+
+    return prisma.playerHistory.create({
+      data: {
+        roomId,
+        durationMs,
+        maxMass: Math.round(maxMass),
+        kills,
+        name,
+        userId,
+        guestId: null,
+      },
+    });
+  }
+
+  const exists = await prisma.guest.findUnique({
+    where: { id: guestId! },
+    select: { id: true },
+  });
+
+  if (!exists) throw new Error("Invalid guestId");
 
   return prisma.playerHistory.create({
     data: {
@@ -74,9 +105,9 @@ export function createPlayerHistoryDb(
       durationMs,
       maxMass: Math.round(maxMass),
       kills,
-      userId,
-      guestId,
       name,
+      guestId,
+      userId: null,
     },
   });
 }
