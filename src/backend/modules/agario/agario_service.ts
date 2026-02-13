@@ -72,7 +72,7 @@ export function createPlayerHistoryDb(
     data: {
       roomId,
       durationMs,
-      maxMass,
+      maxMass: Math.round(maxMass),
       kills,
       userId,
       guestId,

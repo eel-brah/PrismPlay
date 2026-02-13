@@ -47,6 +47,11 @@ export async function createUser(input: CreateUserInput) {
             guestId: null,
           },
         });
+        await tx.guest.delete({
+          where: {
+            id: guestId,
+          },
+        });
       }
     }
 
