@@ -6,3 +6,4 @@ data
 certs
 .DS_Store
 .vscode
+.env

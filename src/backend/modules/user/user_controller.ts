@@ -8,7 +8,6 @@ import {
   findUserPublicById,
   findUserPublicByUsername,
   getUserAchievements,
-  touchUserLastLogin,
   updateUserById,
 } from "./user_service.js";
 import type {
@@ -69,7 +68,6 @@ export async function loginHandler(
   const accessToken = await rep.jwtSign(payload, {
     sign: { expiresIn: "1d" },
   });
-  await touchUserLastLogin(user.id);
   return rep.send({
     accessToken,
     user: {
@@ -180,14 +178,6 @@ export async function updateMeHandler(
     return rep.code(400).send({ message: "Error updating user" });
   }
 }
-
-export async function pingMeHandler(req: FastifyRequest, rep: FastifyReply) {
-  const userId = req.user.id;
-  await touchUserLastLogin(userId);
-  return rep.send({ ok: true });
-}
-
-
 
 const ALLOWED = new Set(["image/png", "image/jpeg", "image/webp"]);
 
