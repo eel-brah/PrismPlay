@@ -517,11 +517,12 @@ const Agario = () => {
     if (mode === "join") {
       socket.emit("agario:join-room", { name, room, key: joinKey.trim() || undefined, spectator });
     } else {
+      console.log("olayerL: ", maxPlayers)
       socket.emit("agario:create-room", {
         name,
         room,
         visibility,
-        maxPlayers,
+        players: maxPlayers,
         durationMin,
         allowSpectators
       });

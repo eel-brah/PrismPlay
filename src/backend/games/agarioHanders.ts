@@ -2,11 +2,7 @@ import { FastifyBaseLogger, FastifyInstance } from "fastify";
 import { Namespace, Socket } from "socket.io";
 import { Player } from "../../shared/agario/player.js";
 import { isValidRoomName, randomColor } from "../../shared/agario/utils.js";
-import {
-  ActivePlayer,
-  CreateRoomPayload,
-  JoinRoomPayload,
-} from "./agarioTypes.js";
+import { ActivePlayer } from "./agarioTypes.js";
 import {
   DEFAULT_ROOM,
   INIT_MASS,
@@ -31,7 +27,14 @@ import {
   makeKey,
   removeActivePlayer,
 } from "./agarioUtils.js";
-import { InputSchema } from "../modules/agario/agario_schema.js";
+import {
+  CreateRoomPayload,
+  createRoomSchema,
+  inputSchema,
+  InputState,
+  JoinRoomPayload,
+  joinRoomSchema,
+} from "../modules/agario/agario_schema.js";
 import {
   FinalStatus,
   PlayerState,
@@ -206,8 +209,15 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       socket.emit("agario:error", "You must be logged in to create a room");
       return;
     }
+    const parsed = createRoomSchema.safeParse(payload);
+    if (!parsed.success) {
+    console.log(parsed.error.issues);
+      socket.emit("agario:error", "Invalid input");
+      return;
+    }
+    const data = parsed.data;
 
-    const roomName = payload.room.trim();
+    const roomName = data.room.trim();
     if (!isValidRoomName(roomName) || roomName === DEFAULT_ROOM) {
       socket.emit("agario:error", "Invalid room name");
       return;
@@ -218,14 +228,14 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
     }
 
     const visibility: RoomVisibility =
-      payload.visibility === "private" ? "private" : "public";
+      data.visibility === "private" ? "private" : "public";
 
     const maxPlayers = clampInt(
-      payload.maxPlayers,
+      data.players,
       MIN_PLAYERS_PER_ROOM,
       MAX_PLAYERS_PER_ROOM,
     );
-    const durationMin = clampInt(payload.durationMin, MIN_MINUTES, MAX_MINUTES);
+    const durationMin = clampInt(data.durationMin, MIN_MINUTES, MAX_MINUTES);
 
     const key = visibility === "private" ? makeKey() : undefined;
 
@@ -243,7 +253,7 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
         status: "waiting",
         createdAt: Date.now(),
         hostId: socket.data.userId,
-        allowSpectators: payload.allowSpectators,
+        allowSpectators: data.allowSpectators,
         spectators: new Set(),
       },
     };
@@ -251,7 +261,7 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
 
     const identity = getIdentity(socket);
     socket.data.identity = identity;
-    await joinRoom(socket, world, roomName, payload.name, false, true);
+    await joinRoom(socket, world, roomName, data.name, false, true);
 
     socket.emit("agario:room-created", {
       key,
@@ -268,8 +278,15 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
   }
 
   socket.on("agario:join-room", async (payload: JoinRoomPayload) => {
+    const parsed = joinRoomSchema.safeParse(payload);
+    if (!parsed.success) {
+      socket.emit("agario:error", "Invalid input");
+      return;
+    }
+    const data = parsed.data;
+
     const roomName =
-      payload.room.trim().length > 0 ? payload.room.trim() : DEFAULT_ROOM;
+      data.room.trim().length > 0 ? data.room.trim() : DEFAULT_ROOM;
     if (roomName !== DEFAULT_ROOM && !isValidRoomName(roomName)) {
       socket.emit("agario:error", "Invalid room name (use A-Z, 0-9, _ or -)");
       return;
@@ -282,7 +299,7 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
     }
 
     if (world.meta.visibility === "private") {
-      if (!payload.key || payload.key !== world.meta.key) {
+      if (!data.key || data.key !== world.meta.key) {
         socket.emit("agario:error", "Invalid room key");
         return;
       }
@@ -291,7 +308,7 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
     const identity = getIdentity(socket);
     socket.data.identity = identity;
 
-    await joinRoom(socket, world, roomName, payload.name, payload.spectator);
+    await joinRoom(socket, world, roomName, data.name, data.spectator);
 
     if (world.meta.status === "waiting") {
       if (Object.keys(world.players).length === world.meta.maxPlayers) {
@@ -437,13 +454,13 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
     broadcastPlayers(socket.nsp, room, world);
   }
 
-  socket.on("input", (input) => {
+  socket.on("input", (input: InputState) => {
     const ctx = getCtx(socket);
     if (!ctx) return;
     if (ctx.world.meta.spectators.has(socket.id)) return;
     if (ctx.world.meta.status !== "started") return;
 
-    const parsed = InputSchema.safeParse(input);
+    const parsed = inputSchema.safeParse(input);
     if (!parsed.success) return;
     ctx.state.input = parsed.data;
   });
@@ -479,6 +496,9 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
   });
 
   socket.on("agario:request-leaderboard", async ({ room }) => {
+    if (typeof room !== "string")
+      socket.emit("agario:error", "Invalid room name");
+
     const world = worldByRoom.get(room);
     if (!world) return;
 
