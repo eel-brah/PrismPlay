@@ -69,16 +69,16 @@ export async function loginHandler(
   const accessToken = await rep.jwtSign(payload, {
     sign: { expiresIn: "1d" },
   });
-  const update = await touchUserLastLogin(user.id);
+  await touchUserLastLogin(user.id);
   return rep.send({
     accessToken,
     user: {
-      id: update.id,
-      username: update.username,
-      email: update.email,
-      createdAt: update.createdAt,
-      lastLogin: update.lastLogin,
-      avatarUrl: update.avatarUrl,
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      createdAt: user.createdAt,
+      lastLogin: user.lastLogin,
+      avatarUrl: user.avatarUrl,
     },
   });
 }
