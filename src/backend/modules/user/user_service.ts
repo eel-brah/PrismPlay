@@ -60,10 +60,9 @@ export async function createUser(input: CreateUserInput) {
 }
 
 export async function touchUserLastLogin(userId: number) {
-  return prisma.user.update({
+  return prisma.user.updateMany({
     where: { id: userId },
     data: { lastLogin: new Date() },
-    select: safeSelect,
   });
 }
 

@@ -34,7 +34,7 @@ COPY src ./src
 
 COPY --from=builder /ft_transcendence/dist ./dist
 
-RUN mkdir -p uploads data
+RUN mkdir -p uploads
 
 EXPOSE 9443 9000
 

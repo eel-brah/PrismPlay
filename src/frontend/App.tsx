@@ -8,7 +8,7 @@ import RegisterForm from "./component/RegisterForm";
 import HomePage from "./component/HomePage";
 import SocialHub from "./component/SocialHub";
 import GamePage from "./component/GamePage";
-import NotFound from "./component/NotFound";
+import ErrorPage from "./component/ErrorPage";
 import axios from "axios";
 import PlayerProfile, { PublicPlayerProfile } from "./component/PlayerProfile";
 import {
@@ -598,7 +598,7 @@ export default function App() {
         <Route path="/game/:gameId" element={<GamePage />} />
         <Route
           path="*"
-          element={<NotFound message="That page doesn't exist." />}
+          element={<ErrorPage code = {404} title="Not Found" message="That page doesn't exist." />}
         />
       </Routes>
     </>

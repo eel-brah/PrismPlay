@@ -1,4 +1,20 @@
 services:
+  mariadb:
+    image: mariadb:11
+    container_name: mariadb
+    env_file:
+      - .env.docker
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   ft_transcendence:
     build:
       context: .
@@ -8,10 +24,17 @@ services:
       - "9443:9443"
       - "9000:9000"
     env_file:
-      - .env
+      - .env.docker
     volumes:
       - ./config:/ft_transcendence/config:ro
-      - ./data:/ft_transcendence/prisma/data
       - ./uploads:/ft_transcendence/uploads
-
+    depends_on:
+      mariadb:
+        condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  db_data:
+
+networks:
+  default:

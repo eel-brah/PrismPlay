@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Trophy, Gamepad2, BarChart3 } from "lucide-react";
-import NotFound from "./NotFound";
+import ErrorPage from "./ErrorPage";
 import {
   apiGetAchievements,
   apiGetAgarioPlayerHistory,
@@ -28,7 +28,13 @@ import {
   apiAcceptFriend,
   apiDeclineFriend,
 } from "../api";
-import { FinalLeaderboardEntry, GetRoomHistoryDbReturn, PlayerHistoryWithRoom, RoomHistoryItem, RoomLeaderboardEntry } from "src/shared/agario/types";
+import {
+  FinalLeaderboardEntry,
+  GetRoomHistoryDbReturn,
+  PlayerHistoryWithRoom,
+  RoomHistoryItem,
+  RoomLeaderboardEntry,
+} from "src/shared/agario/types";
 
 type Tab = "profile" | "history";
 
@@ -75,7 +81,6 @@ function mapAgarPlayerRows(
 function mapRoomHistoryToSummary(
   room: GetRoomHistoryDbReturn,
 ): RoomHistoryItem {
-
   // id: number | string;
   // type: "user" | "guest";
   // trueName: string | null;
@@ -120,15 +125,15 @@ function mapRoomHistoryToSummary(
     createdBy: room.createdBy,
     winner: winner
       ? {
-        id: winner.id,
-        type: winner.type,
-        name: winner.name,
-        trueName: winner.trueName,
-        kills: winner.kills,
-        maxMass: winner.maxMass,
-        durationMs: winner.durationMs,
-        rank: winner.rank,
-      }
+          id: winner.id,
+          type: winner.type,
+          name: winner.name,
+          trueName: winner.trueName,
+          kills: winner.kills,
+          maxMass: winner.maxMass,
+          durationMs: winner.durationMs,
+          rank: winner.rank,
+        }
       : null,
     leaderboard,
   };
@@ -138,30 +143,31 @@ function mapLeaderboardEntries(
   entries: FinalLeaderboardEntry[],
   roomLeaderboard?: RoomHistoryItem["leaderboard"],
 ): RoomLeaderboardEntry[] {
-
   return entries.flatMap((entry) => {
     const rawId = entry.id;
-    const match = roomLeaderboard?.find(p => String(p.id) === String(rawId));
+    const match = roomLeaderboard?.find((p) => String(p.id) === String(rawId));
 
     if (!match) return [];
 
-    return [{
-      id: rawId,
-      type: match.type,
-      trueName: match.trueName,
-      name: entry.name,
+    return [
+      {
+        id: rawId,
+        type: match.type,
+        trueName: match.trueName,
+        name: entry.name,
 
-      rank: entry.rank,
-      kills: entry.kills,
-      maxMass: entry.maxMass,
-      durationMs: match.durationMs ?? 0,
-      isWinner: match.isWinner ?? false,
+        rank: entry.rank,
+        kills: entry.kills,
+        maxMass: entry.maxMass,
+        durationMs: match.durationMs ?? 0,
+        isWinner: match.isWinner ?? false,
 
-      user: match.user ?? null,
-      guest: match.guest ?? null,
+        user: match.user ?? null,
+        guest: match.guest ?? null,
 
-      createdAt: match.createdAt,
-    }];
+        createdAt: match.createdAt,
+      },
+    ];
   });
 }
 
@@ -619,10 +625,11 @@ export default function PlayerProfile() {
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`px-4 py-1 rounded-full text-sm transition-colors ${tab === t
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-300 hover:bg-gray-800"
-                  }`}
+                className={`px-4 py-1 rounded-full text-sm transition-colors ${
+                  tab === t
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-300 hover:bg-gray-800"
+                }`}
               >
                 {t[0].toUpperCase() + t.slice(1)}
               </button>
@@ -870,19 +877,21 @@ export default function PlayerProfile() {
               <div className="inline-flex rounded-full bg-gray-800/60 p-1">
                 <button
                   onClick={() => setHistoryMode("pong")}
-                  className={`px-4 py-1 rounded-full text-sm transition-colors ${historyMode === "pong"
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-300 hover:bg-gray-800"
-                    }`}
+                  className={`px-4 py-1 rounded-full text-sm transition-colors ${
+                    historyMode === "pong"
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-300 hover:bg-gray-800"
+                  }`}
                 >
                   Pong
                 </button>
                 <button
                   onClick={() => setHistoryMode("agario")}
-                  className={`px-4 py-1 rounded-full text-sm transition-colors ${historyMode === "agario"
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-300 hover:bg-gray-800"
-                    }`}
+                  className={`px-4 py-1 rounded-full text-sm transition-colors ${
+                    historyMode === "agario"
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-300 hover:bg-gray-800"
+                  }`}
                 >
                   Agar.io
                 </button>
@@ -1132,7 +1141,7 @@ export default function PlayerProfile() {
                                                   </td>
                                                   <td className="px-3 py-2">
                                                     {selectedAgarRoom.maxDurationMin ===
-                                                      null
+                                                    null
                                                       ? "—"
                                                       : `${selectedAgarRoom.maxDurationMin}m`}
                                                   </td>
@@ -1662,9 +1671,11 @@ export function PublicPlayerProfile() {
   }, [user]);
 
   if (loading) return <div>Loading...</div>;
-  if (notFound) return <NotFound message={`User "${username ?? ""}" was not found.`} />;
+  if (notFound)
+    return <ErrorPage code = {404} title="Not Found" message={`User "${username ?? ""}" was not found.`} />;
   if (error) return <div>{error}</div>;
-  if (!user) return <NotFound message={`User "${username ?? ""}" was not found.`} />;
+  if (!user)
+    return <ErrorPage code = {404} title="Not Found" message={`User "${username ?? ""}" was not found.`} />;
 
   const gamesPlayed = stats?.totalGames ?? 0;
   const wins = stats?.wins ?? 0;
@@ -1738,10 +1749,11 @@ export function PublicPlayerProfile() {
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`px-4 py-1 rounded-full text-sm transition-colors ${tab === t
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-300 hover:bg-gray-800"
-                  }`}
+                className={`px-4 py-1 rounded-full text-sm transition-colors ${
+                  tab === t
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-300 hover:bg-gray-800"
+                }`}
               >
                 {t[0].toUpperCase() + t.slice(1)}
               </button>
@@ -1922,19 +1934,21 @@ export function PublicPlayerProfile() {
               <div className="inline-flex rounded-full bg-gray-800/60 p-1">
                 <button
                   onClick={() => setHistoryMode("pong")}
-                  className={`px-4 py-1 rounded-full text-sm transition-colors ${historyMode === "pong"
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-300 hover:bg-gray-800"
-                    }`}
+                  className={`px-4 py-1 rounded-full text-sm transition-colors ${
+                    historyMode === "pong"
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-300 hover:bg-gray-800"
+                  }`}
                 >
                   Pong
                 </button>
                 <button
                   onClick={() => setHistoryMode("agario")}
-                  className={`px-4 py-1 rounded-full text-sm transition-colors ${historyMode === "agario"
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-300 hover:bg-gray-800"
-                    }`}
+                  className={`px-4 py-1 rounded-full text-sm transition-colors ${
+                    historyMode === "agario"
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-300 hover:bg-gray-800"
+                  }`}
                 >
                   Agar.io
                 </button>
@@ -2181,7 +2195,7 @@ export function PublicPlayerProfile() {
                                                   </td>
                                                   <td className="px-3 py-2">
                                                     {selectedAgarRoom.maxDurationMin ===
-                                                      null
+                                                    null
                                                       ? "—"
                                                       : `${selectedAgarRoom.maxDurationMin}m`}
                                                   </td>
@@ -2249,7 +2263,7 @@ export function PublicPlayerProfile() {
                                                             <td className="px-3 py-2">
                                                               {p.type ===
                                                                 "user" &&
-                                                                p.trueName
+                                                              p.trueName
                                                                 ? p.trueName
                                                                 : p.name}
                                                             </td>
