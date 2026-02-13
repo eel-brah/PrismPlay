@@ -1,3 +1,4 @@
+import { GUEST_ID } from "../../../shared/agario/config";
 import { Player } from "../../../shared/agario/player";
 import { Eject, Orb, Virus } from "../../../shared/agario/types";
 import {
@@ -201,9 +202,9 @@ export function randomPlayer(): Player {
 }
 
 export function getOrCreateGuestId(): string {
-  let id = localStorage.getItem("guestId");
+  let id = localStorage.getItem(GUEST_ID);
   if (!id) {
-    ((id = randomId()), localStorage.setItem("guestId", id));
+    ((id = randomId()), localStorage.setItem(GUEST_ID, id));
   }
   return id;
 }

@@ -53,3 +53,5 @@ export const MAX_SPECTATORS_PER_ROOM = 15;
 export const MIN_SPLIT_MASS = INIT_MASS * 4;
 export const SPLIT_LAUNCH_SPEED = 700;
 export const SPLIT_FRICTION = 3;
+
+export const GUEST_ID = "guestId";

@@ -21,12 +21,36 @@ const publicSelect = {
 } as const;
 
 export async function createUser(input: CreateUserInput) {
-  const { password, ...rest } = input;
+  const { password, guestId, ...rest } = input;
   const passwordHash = await hashPassword(password);
 
-  return prisma.user.create({
-    data: { ...rest, passwordHash },
-    select: safeSelect,
+  return prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: { ...rest, passwordHash },
+      select: safeSelect,
+    });
+
+    if (guestId) {
+      const guest = await tx.guest.findUnique({
+        where: { id: guestId },
+        select: { id: true },
+      });
+
+      if (guest) {
+        await tx.playerHistory.updateMany({
+          where: {
+            guestId,
+            userId: null,
+          },
+          data: {
+            userId: user.id,
+            guestId: null,
+          },
+        });
+      }
+    }
+
+    return user;
   });
 }
 
@@ -157,8 +181,7 @@ export async function getUserAchievements(userId: number) {
   for (const match of pongRecent) {
     const isLeft = match.leftPlayerId === userId;
     const opponentScore = isLeft ? match.rightScore : match.leftScore;
-    const isPerfectWin =
-      match.winnerId === userId && opponentScore === 0;
+    const isPerfectWin = match.winnerId === userId && opponentScore === 0;
     if (!isPerfectWin) break;
     precisionCount += 1;
     if (precisionCount >= 3) break;

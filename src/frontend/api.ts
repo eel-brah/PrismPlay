@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
+import { GUEST_ID } from "../shared/agario/config";
 import {
   FinalLeaderboardEntry,
   GetRoomHistoryDbReturn,
@@ -104,11 +105,13 @@ export async function apiRegister(
   email: string,
   password: string,
 ) {
+  const guestId = localStorage.getItem(GUEST_ID);
   try {
     const res = await api.post<User>("/auth/sign_up", {
       username,
       email,
       password,
+      guestId,
     });
     return res.data;
   } catch (e: unknown) {

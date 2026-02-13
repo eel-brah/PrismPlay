@@ -38,6 +38,7 @@ const userCore = {
 export const createUserSchema = z.object({
   ...userCore,
   password: passwordSchema,
+  guestId: z.string().optional(),
 });
 const isoDateOrDate = z.union([z.iso.datetime(), z.date()]);
 // string .url is deprecated , need to change it
@@ -53,7 +54,6 @@ export const pingResponseSchema = z.object({
   ok: z.boolean(),
   lastLogin: isoDateOrDate.nullable(),
 });
-
 
 export const publicUserResponseSchema = z.object({
   id: z.number(),
