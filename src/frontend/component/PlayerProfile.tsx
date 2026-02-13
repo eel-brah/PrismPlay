@@ -21,9 +21,6 @@ import {
   apiIsFrienddPending,
   apiIncomingRequests,
   type Achievement,
-  type AgarioPlayerHistoryRecord,
-  type AgarioRoomHistory,
-  type AgarioRoomLeaderboardEntry,
   type MatchHistoryItem,
   type PlayerStats,
   type PublicUser,
@@ -31,6 +28,7 @@ import {
   apiAcceptFriend,
   apiDeclineFriend,
 } from "../api";
+import { FinalLeaderboardEntry, GetRoomHistoryDbReturn, PlayerHistoryWithRoom, RoomHistoryItem, RoomLeaderboardEntry } from "src/shared/agario/types";
 
 type Tab = "profile" | "history";
 
@@ -45,35 +43,6 @@ type AgarPlayerHistoryRow = {
   roomName: string;
 };
 
-type AgarRoomHistorySummary = {
-  id: number;
-  name: string;
-  visibility: "public" | "private";
-  isDefault: boolean;
-  maxPlayers: number | null;
-  maxDurationMin: number | null;
-  startedAt: string | null;
-  endedAt: string | null;
-  playersCount: number;
-  winner?: {
-    name: string;
-    kills: number;
-    maxMass: number;
-    durationMs: number;
-    rank: number;
-  } | null;
-  leaderboard: Array<{
-    id: string | number;
-    type: "user" | "guest";
-    trueName: string | null;
-    name: string;
-    kills: number;
-    maxMass: number;
-    durationMs: number;
-    rank: number;
-  }>;
-};
-
 function msToMinSec(ms: number) {
   const total = Math.max(0, Math.floor(ms / 1000));
   const m = Math.floor(total / 60);
@@ -81,7 +50,7 @@ function msToMinSec(ms: number) {
   return `${m}m ${s}s`;
 }
 
-function formatDate(value: string | null) {
+function formatDate(value: string | Date | null) {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
@@ -89,7 +58,7 @@ function formatDate(value: string | null) {
 }
 
 function mapAgarPlayerRows(
-  records: AgarioPlayerHistoryRecord[],
+  records: PlayerHistoryWithRoom[],
 ): AgarPlayerHistoryRow[] {
   return records.map((row) => ({
     id: row.id,
@@ -104,17 +73,37 @@ function mapAgarPlayerRows(
 }
 
 function mapRoomHistoryToSummary(
-  room: AgarioRoomHistory,
-): AgarRoomHistorySummary {
+  room: GetRoomHistoryDbReturn,
+): RoomHistoryItem {
+
+  // id: number | string;
+  // type: "user" | "guest";
+  // trueName: string | null;
+  // name: string;
+  //
+  // rank: number;
+  // kills: number;
+  // maxMass: number;
+  // durationMs: number;
+  // isWinner: boolean;
+  //
+  // user: PublicUser | null;
+  // guest: PublicGuest | null;
+  //
+  // createdAt: Date;
   const leaderboard = room.leaderboard.map((entry) => ({
     id: entry.id,
     type: entry.type,
     trueName: entry.trueName,
     name: entry.name,
+    rank: entry.rank,
     kills: entry.kills,
     maxMass: entry.maxMass,
     durationMs: entry.durationMs,
-    rank: entry.rank,
+    isWinner: entry.isWinner,
+    user: entry.user,
+    guest: entry.guest,
+    createdAt: entry.createdAt,
   }));
   const winner =
     room.leaderboard.find((entry) => entry.isWinner) ?? leaderboard[0] ?? null;
@@ -125,44 +114,54 @@ function mapRoomHistoryToSummary(
     isDefault: room.isDefault,
     maxPlayers: null,
     maxDurationMin: null,
-    startedAt: room.startedAt ?? null,
+    startedAt: room.startedAt,
     endedAt: room.endedAt ?? null,
     playersCount: leaderboard.length,
+    createdBy: room.createdBy,
     winner: winner
       ? {
-          name: winner.trueName ?? winner.name,
-          kills: winner.kills,
-          maxMass: winner.maxMass,
-          durationMs: winner.durationMs,
-          rank: winner.rank,
-        }
+        id: winner.id,
+        type: winner.type,
+        name: winner.name,
+        trueName: winner.trueName,
+        kills: winner.kills,
+        maxMass: winner.maxMass,
+        durationMs: winner.durationMs,
+        rank: winner.rank,
+      }
       : null,
     leaderboard,
   };
 }
 
 function mapLeaderboardEntries(
-  entries: AgarioRoomLeaderboardEntry[],
-  roomLeaderboard?: AgarRoomHistorySummary["leaderboard"],
-) {
-  return entries.map((entry) => {
-    const rawId =
-      entry.id.startsWith("user-") || entry.id.startsWith("guest-")
-        ? entry.id.split("-").slice(1).join("-")
-        : entry.id;
-    const match =
-      roomLeaderboard?.find((p) => String(p.id) === String(rawId)) ?? null;
-    const type = entry.id.startsWith("guest-") ? "guest" : "user";
-    return {
+  entries: FinalLeaderboardEntry[],
+  roomLeaderboard?: RoomHistoryItem["leaderboard"],
+): RoomLeaderboardEntry[] {
+
+  return entries.flatMap((entry) => {
+    const rawId = entry.id;
+    const match = roomLeaderboard?.find(p => String(p.id) === String(rawId));
+
+    if (!match) return [];
+
+    return [{
       id: rawId,
-      type: match?.type ?? type,
-      trueName: match?.trueName ?? null,
+      type: match.type,
+      trueName: match.trueName,
       name: entry.name,
+
+      rank: entry.rank,
       kills: entry.kills,
       maxMass: entry.maxMass,
-      durationMs: match?.durationMs ?? 0,
-      rank: entry.rank,
-    };
+      durationMs: match.durationMs ?? 0,
+      isWinner: match.isWinner ?? false,
+
+      user: match.user ?? null,
+      guest: match.guest ?? null,
+
+      createdAt: match.createdAt,
+    }];
   });
 }
 
@@ -210,12 +209,12 @@ export default function PlayerProfile() {
   const [agarPlayersError, setAgarPlayersError] = useState("");
   const [agarPlayersFetched, setAgarPlayersFetched] = useState(false);
   const [agarRoomsById, setAgarRoomsById] = useState<
-    Record<number, AgarRoomHistorySummary>
+    Record<number, RoomHistoryItem>
   >({});
   const [agarRoomLoading, setAgarRoomLoading] = useState(false);
   const [agarRoomError, setAgarRoomError] = useState("");
   const [agarLeaderboardByRoomId, setAgarLeaderboardByRoomId] = useState<
-    Record<number, AgarRoomHistorySummary["leaderboard"]>
+    Record<number, RoomHistoryItem["leaderboard"]>
   >({});
   const [agarLeaderboardLoading, setAgarLeaderboardLoading] = useState(false);
   const [agarLeaderboardError, setAgarLeaderboardError] = useState("");
@@ -620,11 +619,10 @@ export default function PlayerProfile() {
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`px-4 py-1 rounded-full text-sm transition-colors ${
-                  tab === t
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-300 hover:bg-gray-800"
-                }`}
+                className={`px-4 py-1 rounded-full text-sm transition-colors ${tab === t
+                  ? "bg-blue-600 text-white"
+                  : "text-gray-300 hover:bg-gray-800"
+                  }`}
               >
                 {t[0].toUpperCase() + t.slice(1)}
               </button>
@@ -872,21 +870,19 @@ export default function PlayerProfile() {
               <div className="inline-flex rounded-full bg-gray-800/60 p-1">
                 <button
                   onClick={() => setHistoryMode("pong")}
-                  className={`px-4 py-1 rounded-full text-sm transition-colors ${
-                    historyMode === "pong"
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-300 hover:bg-gray-800"
-                  }`}
+                  className={`px-4 py-1 rounded-full text-sm transition-colors ${historyMode === "pong"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-300 hover:bg-gray-800"
+                    }`}
                 >
                   Pong
                 </button>
                 <button
                   onClick={() => setHistoryMode("agario")}
-                  className={`px-4 py-1 rounded-full text-sm transition-colors ${
-                    historyMode === "agario"
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-300 hover:bg-gray-800"
-                  }`}
+                  className={`px-4 py-1 rounded-full text-sm transition-colors ${historyMode === "agario"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-300 hover:bg-gray-800"
+                    }`}
                 >
                   Agar.io
                 </button>
@@ -1136,7 +1132,7 @@ export default function PlayerProfile() {
                                                   </td>
                                                   <td className="px-3 py-2">
                                                     {selectedAgarRoom.maxDurationMin ===
-                                                    null
+                                                      null
                                                       ? "—"
                                                       : `${selectedAgarRoom.maxDurationMin}m`}
                                                   </td>
@@ -1201,7 +1197,7 @@ export default function PlayerProfile() {
                                                       {selectedAgarRoom.leaderboard.map(
                                                         (p) => (
                                                           <tr
-                                                            key={p.id}
+                                                            key={`${p.id}-${p.rank}-${p.createdAt}`}
                                                             className="text-gray-200"
                                                           >
                                                             <td className="px-3 py-2">
@@ -1274,12 +1270,12 @@ export function PublicPlayerProfile() {
   const [agarPlayersError, setAgarPlayersError] = useState("");
   const [agarPlayersFetched, setAgarPlayersFetched] = useState(false);
   const [agarRoomsById, setAgarRoomsById] = useState<
-    Record<number, AgarRoomHistorySummary>
+    Record<number, RoomHistoryItem>
   >({});
   const [agarRoomLoading, setAgarRoomLoading] = useState(false);
   const [agarRoomError, setAgarRoomError] = useState("");
   const [agarLeaderboardByRoomId, setAgarLeaderboardByRoomId] = useState<
-    Record<number, AgarRoomHistorySummary["leaderboard"]>
+    Record<number, RoomHistoryItem["leaderboard"]>
   >({});
   const [agarLeaderboardLoading, setAgarLeaderboardLoading] = useState(false);
   const [agarLeaderboardError, setAgarLeaderboardError] = useState("");
@@ -1742,11 +1738,10 @@ export function PublicPlayerProfile() {
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`px-4 py-1 rounded-full text-sm transition-colors ${
-                  tab === t
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-300 hover:bg-gray-800"
-                }`}
+                className={`px-4 py-1 rounded-full text-sm transition-colors ${tab === t
+                  ? "bg-blue-600 text-white"
+                  : "text-gray-300 hover:bg-gray-800"
+                  }`}
               >
                 {t[0].toUpperCase() + t.slice(1)}
               </button>
@@ -1927,21 +1922,19 @@ export function PublicPlayerProfile() {
               <div className="inline-flex rounded-full bg-gray-800/60 p-1">
                 <button
                   onClick={() => setHistoryMode("pong")}
-                  className={`px-4 py-1 rounded-full text-sm transition-colors ${
-                    historyMode === "pong"
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-300 hover:bg-gray-800"
-                  }`}
+                  className={`px-4 py-1 rounded-full text-sm transition-colors ${historyMode === "pong"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-300 hover:bg-gray-800"
+                    }`}
                 >
                   Pong
                 </button>
                 <button
                   onClick={() => setHistoryMode("agario")}
-                  className={`px-4 py-1 rounded-full text-sm transition-colors ${
-                    historyMode === "agario"
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-300 hover:bg-gray-800"
-                  }`}
+                  className={`px-4 py-1 rounded-full text-sm transition-colors ${historyMode === "agario"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-300 hover:bg-gray-800"
+                    }`}
                 >
                   Agar.io
                 </button>
@@ -2188,7 +2181,7 @@ export function PublicPlayerProfile() {
                                                   </td>
                                                   <td className="px-3 py-2">
                                                     {selectedAgarRoom.maxDurationMin ===
-                                                    null
+                                                      null
                                                       ? "—"
                                                       : `${selectedAgarRoom.maxDurationMin}m`}
                                                   </td>
@@ -2256,7 +2249,7 @@ export function PublicPlayerProfile() {
                                                             <td className="px-3 py-2">
                                                               {p.type ===
                                                                 "user" &&
-                                                              p.trueName
+                                                                p.trueName
                                                                 ? p.trueName
                                                                 : p.name}
                                                             </td>

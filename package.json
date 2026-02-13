@@ -9,7 +9,7 @@
     "start": "NODE_ENV=production node dist/backend/backend/server/index.js",
     "dev:client": "vite --host",
     "dev:server": "nodemon",
-    "dev": "concurrently \"pnpm dev:server\" \"pnpm dev:client\"",
+    "dev": "NODE_ENV=development  concurrently \"pnpm dev:server\" \"pnpm dev:client\"",
     "deploy": "git subtree push --prefix dist origin gh-pages",
     "benchmark": "concurrently -k -s first \"NODE_ENV=production ts-node src/backend/server/index.ts\" \"pnpm autocannon -c 100 -d 10 https://localhost:9443/healthcheck\""
   },

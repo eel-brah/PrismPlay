@@ -1,5 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
+import {
+  FinalLeaderboardEntry,
+  GetRoomHistoryDbReturn,
+  PlayerHistoryWithRoom,
+} from "src/shared/agario/types";
 
 const api = axios.create({
   baseURL: "/api",
@@ -75,66 +80,9 @@ export type AchievementsResponse = {
   achievements: Achievement[];
 };
 
-export type AgarioPlayerHistoryRecord = {
-  id: number;
-  roomId: number;
-  userId: number | null;
-  guestId: string | null;
-  name: string;
-  durationMs: number;
-  maxMass: number;
-  kills: number;
-  rank: number | null;
-  isWinner: boolean;
-  createdAt: string;
-  room: {
-    id: number;
-    name: string;
-    startedAt: string;
-    endedAt: string | null;
-    visibility: string;
-    isDefault: boolean;
-  };
-};
-
-export type AgarioRoomHistoryLeaderboardEntry = {
-  id: string | number;
-  type: "user" | "guest";
-  trueName: string | null;
-  name: string;
-  kills: number;
-  maxMass: number;
-  durationMs: number;
-  rank: number;
-  isWinner: boolean;
-};
-
-export type AgarioRoomHistory = {
-  id: number;
-  name: string;
-  visibility: string;
-  isDefault: boolean;
-  startedAt: string;
-  endedAt: string | null;
-  createdBy?: {
-    id: number;
-    username: string;
-    avatarUrl: string | null;
-  } | null;
-  leaderboard: AgarioRoomHistoryLeaderboardEntry[];
-};
-
-export type AgarioRoomLeaderboardEntry = {
-  id: string;
-  name: string;
-  rank: number;
-  kills: number;
-  maxMass: number;
-};
-
 export type AgarioRoomLeaderboardResponse = {
-  room: AgarioRoomHistory;
-  leaderboard: AgarioRoomLeaderboardEntry[];
+  room: GetRoomHistoryDbReturn;
+  leaderboard: FinalLeaderboardEntry[];
 };
 
 export function getStoredToken(): string | null {
@@ -151,36 +99,49 @@ export function clearToken() {
 }
 
 // AUTH
-export async function apiRegister(username: string, email: string, password: string) {
-  try{
-    const res = await api.post<User>("/auth/sign_up", { username, email, password });
+export async function apiRegister(
+  username: string,
+  email: string,
+  password: string,
+) {
+  try {
+    const res = await api.post<User>("/auth/sign_up", {
+      username,
+      email,
+      password,
+    });
     return res.data;
-  }
-  catch(e: unknown){
-     if (axios.isAxiosError(e)){
+  } catch (e: unknown) {
+    if (axios.isAxiosError(e)) {
       const serverMsg = (e.response?.data as any)?.message;
       throw new Error(serverMsg ?? e.message ?? "Register failed");
-     }
-     throw new Error("Register failed");
+    }
+    throw new Error("Register failed");
   }
 }
 
 export async function apiLogin(email: string, password: string) {
-  try{
-    const res = await api.post<LoginResponse>("/auth/login", { email, password });
+  try {
+    const res = await api.post<LoginResponse>("/auth/login", {
+      email,
+      password,
+    });
     return res.data;
-  }
-  catch(e: unknown){
-     if (axios.isAxiosError(e)){
+  } catch (e: unknown) {
+    if (axios.isAxiosError(e)) {
       const serverMsg = (e.response?.data as any)?.message;
       throw new Error(serverMsg ?? e.message ?? "Login failed");
-     }
-     throw new Error("Login failed");
+    }
+    throw new Error("Login failed");
   }
 }
 
 export async function apiLogout(token: string) {
-  const res = await api.post<{ message: string }>("/auth/logout", null, withAuth(token));
+  const res = await api.post<{ message: string }>(
+    "/auth/logout",
+    null,
+    withAuth(token),
+  );
   return res.data;
 }
 
@@ -221,18 +182,27 @@ export async function apiUploadAvatar(token: string, file: File) {
 
 // PONG
 export async function apiGetMatchHistory(token: string, playerId: number) {
-  const res = await api.get<MatchHistoryResponse>(`/pong/matchs/history/${playerId}`, withAuth(token));
+  const res = await api.get<MatchHistoryResponse>(
+    `/pong/matchs/history/${playerId}`,
+    withAuth(token),
+  );
   return res.data;
 }
 
 export async function apiGetPlayerStats(token: string, playerId: number) {
-  const res = await api.get<PlayerStats>(`/pong/matchs/stats/${playerId}`, withAuth(token));
+  const res = await api.get<PlayerStats>(
+    `/pong/matchs/stats/${playerId}`,
+    withAuth(token),
+  );
   return res.data;
 }
 
 // ACHIEVEMENTS
 export async function apiGetAchievements(token: string, playerId: number) {
-  const res = await api.get<AchievementsResponse>(`/users/${playerId}/achievements`, withAuth(token));
+  const res = await api.get<AchievementsResponse>(
+    `/users/${playerId}/achievements`,
+    withAuth(token),
+  );
   return res.data;
 }
 
@@ -247,7 +217,7 @@ export async function apiGetAgarioPlayerHistory(
   if (typeof take === "number") params.set("take", String(take));
   if (typeof skip === "number") params.set("skip", String(skip));
 
-  const res = await api.get<AgarioPlayerHistoryRecord[]>(
+  const res = await api.get<PlayerHistoryWithRoom[]>(
     `/agario/history/players?${params.toString()}`,
     withAuth(token),
   );
@@ -255,11 +225,17 @@ export async function apiGetAgarioPlayerHistory(
 }
 
 export async function apiGetAgarioRoomHistory(token: string, roomId: number) {
-  const res = await api.get<AgarioRoomHistory>(`/agario/history/rooms/${roomId}`, withAuth(token));
+  const res = await api.get<GetRoomHistoryDbReturn>(
+    `/agario/history/rooms/${roomId}`,
+    withAuth(token),
+  );
   return res.data;
 }
 
-export async function apiGetAgarioRoomLeaderboard(token: string, roomId: number) {
+export async function apiGetAgarioRoomLeaderboard(
+  token: string,
+  roomId: number,
+) {
   const res = await api.get<AgarioRoomLeaderboardResponse>(
     `/agario/history/rooms/${roomId}/leaderboard`,
     withAuth(token),
@@ -274,34 +250,55 @@ export async function apiListFriends(token: string) {
 }
 
 export async function apiIncomingRequests(token: string) {
-  const res = await api.get<FriendRequest[]>("/friend/requests/incoming", withAuth(token));
+  const res = await api.get<FriendRequest[]>(
+    "/friend/requests/incoming",
+    withAuth(token),
+  );
   return res.data;
 }
 
 export async function apiAcceptFriend(token: string, id: string) {
-  const res = await api.post<FriendRequest[]>(`/friend/requests/${id}/accept`, null, withAuth(token));
+  const res = await api.post<FriendRequest[]>(
+    `/friend/requests/${id}/accept`,
+    null,
+    withAuth(token),
+  );
   return res.data;
 }
 
 export async function apiDeclineFriend(token: string, id: string) {
-  const res = await api.post<FriendRequest[]>(`/friend/requests/${id}/decline`, null, withAuth(token));
+  const res = await api.post<FriendRequest[]>(
+    `/friend/requests/${id}/decline`,
+    null,
+    withAuth(token),
+  );
   return res.data;
 }
 
 export async function apiRemoveFriend(token: string, id: string) {
-  const res = await api.delete<FriendRequest[]>(`/friend/${id}`, withAuth(token));
+  const res = await api.delete<FriendRequest[]>(
+    `/friend/${id}`,
+    withAuth(token),
+  );
   return res.data;
 }
 
 type PendingResponse = { pending: boolean };
 
 export async function apiIsFrienddPending(token: string, id: number) {
-  const res = await api.get<PendingResponse>(`/friend/requests/pending/${id}`, withAuth(token));
+  const res = await api.get<PendingResponse>(
+    `/friend/requests/pending/${id}`,
+    withAuth(token),
+  );
   return !!res.data.pending;
 }
 
 export async function apiAddFriend(token: string, username: string) {
-  const res = await api.post<FriendRequest[]>("/friend/requests", { username }, withAuth(token));
+  const res = await api.post<FriendRequest[]>(
+    "/friend/requests",
+    { username },
+    withAuth(token),
+  );
   return res.data;
 }
 

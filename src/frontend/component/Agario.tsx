@@ -21,6 +21,7 @@ import { TOKEN_KEY } from "@/api";
 import { InputState } from "src/backend/modules/agario/agario_schema";
 import { useNavigate } from "react-router-dom";
 import { AlertType, Camera, LeaderboardEntry, LobbyPlayer, RoomInfo } from "@/game/agario/type";
+import { isValidRoomName } from "../../shared/agario/utils";
 
 const alertStyles: Record<Exclude<AlertType, "">, string> = {
   error: "bg-red-100 border-red-300 text-red-700",
@@ -29,9 +30,6 @@ const alertStyles: Record<Exclude<AlertType, "">, string> = {
 };
 
 const HOME_PAGE = "home"
-
-const authToken = localStorage.getItem(TOKEN_KEY);
-const sessionId = nanoid();
 
 const Agario = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -99,6 +97,9 @@ const Agario = () => {
   }
 
   useEffect(() => {
+    const authToken = localStorage.getItem(TOKEN_KEY);
+    const sessionId = nanoid();
+
     const socket = io("/agario", {
       path: "/socket.io",
       auth: {
@@ -752,6 +753,7 @@ const Agario = () => {
                       focus:outline-none focus:ring-2 focus:ring-zinc-500
                     "
                   spellCheck={false}
+                  maxLength={8}
                   placeholder="Key (only for private rooms)"
                   value={joinKey}
                   onChange={(e) => setJoinKey(e.target.value)}
@@ -762,7 +764,17 @@ const Agario = () => {
                     onClick={() => {
                       const r = roomName.trim();
                       if (!r) {
-                        setAlert({ type: "warning", message: "Room name is missing" });
+                        setAlert({
+                          type: "warning",
+                          message: "Room name is missing",
+                        });
+                        return;
+                      }
+                      if (!isValidRoomName(r)) {
+                        setAlert({
+                          type: "warning",
+                          message: "Room name is invalid",
+                        });
                         return;
                       }
                       handleJoinRoom("join", isSpectator)
@@ -859,7 +871,7 @@ const Agario = () => {
                   type="number"
                   min={MIN_PLAYERS_PER_ROOM}
                   max={MAX_PLAYERS_PER_ROOM}
-                  placeholder="Max players"
+                  placeholder="Max players 2-50"
                   value={maxPlayers}
                   onChange={(e) =>
                     setMaxPlayers(e.target.value === "" ? "" : Number(e.target.value))
@@ -878,7 +890,7 @@ const Agario = () => {
                   spellCheck={false}
                   min={MIN_MINUTES}
                   max={MAX_MINUTES}
-                  placeholder="Duration (min)"
+                  placeholder="Duration (min) 1-60"
                   value={durationMin}
                   onChange={(e) =>
                     setDurationMin(e.target.value === "" ? "" : Number(e.target.value))
@@ -896,9 +908,54 @@ const Agario = () => {
                 <button
                   onClick={() => {
                     const r = roomName.trim();
-                    if (!r || maxPlayers === 0 || durationMin === 0) {
-                      const e = !r ? "Room name is missing" : "Max players or Duration can't be 0";
-                      setAlert({ type: "warning", message: e });
+
+                    if (!r) {
+                      setAlert({
+                        type: "warning",
+                        message: "Room name is missing",
+                      });
+                      return;
+                    }
+
+                    if (!isValidRoomName(r)) {
+                      setAlert({
+                        type: "warning",
+                        message: "Room name is invalid",
+                      });
+                      return;
+                    }
+
+                    if (maxPlayers === "" || typeof maxPlayers !== "number") {
+                      setAlert({
+                        type: "warning",
+                        message: "Max players is required",
+                      });
+                      return;
+                    }
+
+                    if (
+                      maxPlayers < MIN_PLAYERS_PER_ROOM ||
+                      maxPlayers > MAX_PLAYERS_PER_ROOM
+                    ) {
+                      setAlert({
+                        type: "warning",
+                        message: `Max players must be between ${MIN_PLAYERS_PER_ROOM} and ${MAX_PLAYERS_PER_ROOM}`,
+                      });
+                      return;
+                    }
+
+                    if (durationMin === "" || typeof durationMin !== "number") {
+                      setAlert({
+                        type: "warning",
+                        message: "Duration is required",
+                      });
+                      return;
+                    }
+                    if (durationMin < MIN_MINUTES || durationMin > MAX_MINUTES) {
+                      setAlert({
+                        type: "warning",
+                        message: `Duration must be between ${MIN_MINUTES} and ${MAX_MINUTES}`,
+                      });
                       return;
                     }
 

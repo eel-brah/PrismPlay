@@ -14,3 +14,9 @@ export function randomColor(): string {
 export function radiusFromMass(mass: number): number {
   return Math.sqrt(mass / Math.PI);
 }
+
+const ROOM_RE = /^[A-Za-z0-9_-]{1,20}$/;
+export function isValidRoomName(room: string) {
+  return ROOM_RE.test(room);
+}
+

@@ -2,7 +2,11 @@ import prisma from "../../utils/prisma.js";
 import { DEFAULT_ROOM } from "../../../shared/agario/config.js";
 import {
   FinalLeaderboardEntry,
+  GetRoomHistoryDbReturn,
+  PlayerHistoryWithRoom,
+  RoomHistoryItem,
   RoomMeta,
+  UserGuest,
 } from "../../../shared/agario/types.js";
 
 export function createGuestDb(guestId: string) {
@@ -124,9 +128,8 @@ export async function getRoomLeaderboard(
   });
 
   return players.map((p, index) => {
-
     return {
-      id: p.userId ? p.userId: p.guestId!,
+      id: p.userId ? p.userId : p.guestId!,
       name: p.name,
       rank: p.rank ?? index + 1,
       kills: p.kills,
@@ -139,7 +142,7 @@ export async function listRoomsHistoryDb(
   take: number = 20,
   skip: number = 0,
   onlyEnded: boolean = false,
-) {
+): Promise<RoomHistoryItem[]> {
   const rooms = await prisma.room.findMany({
     where: onlyEnded ? { endedAt: { not: null } } : undefined,
     orderBy: [{ startedAt: "desc" }],
@@ -159,11 +162,11 @@ export async function listRoomsHistoryDb(
 
   return rooms.map((room) => {
     const leaderboard = room.players.map((p, index) => {
-      const type = p.userId ? "user" : "guest";
+      const type: UserGuest = p.userId ? "user" : "guest";
       const trueName = p.userId && p.user ? p.user.username : null;
 
       return {
-        id: p.userId ? p.userId : p.guestId,
+        id: p.userId ? p.userId : p.guestId!,
         type,
         trueName,
         name: p.name,
@@ -190,8 +193,8 @@ export async function listRoomsHistoryDb(
         : {
             id: winnerPlayer.userId
               ? winnerPlayer.userId
-              : winnerPlayer.guestId,
-            type: winnerPlayer.userId ? "user" : "guest",
+              : winnerPlayer.guestId!,
+            type: winnerPlayer.userId ? "user" : ("guest" as UserGuest),
             name: winnerPlayer.name,
             trueName:
               winnerPlayer.userId && winnerPlayer.user
@@ -224,7 +227,9 @@ export async function listRoomsHistoryDb(
   });
 }
 
-export async function getRoomHistoryDb(roomId: number) {
+export async function getRoomHistoryDb(
+  roomId: number,
+): Promise<GetRoomHistoryDbReturn | null> {
   const room = await prisma.room.findUnique({
     where: { id: roomId },
     include: {
@@ -242,12 +247,12 @@ export async function getRoomHistoryDb(roomId: number) {
   if (!room) return null;
 
   const leaderboard = room.players.map((p, index) => {
-    const type = p.userId ? "user" : "guest";
+    const type: UserGuest = p.userId ? "user" : "guest";
 
     const trueName = p.userId && p.user ? p.user.username : null;
 
     return {
-      id: p.userId ? p.userId : p.guestId,
+      id: p.userId ? p.userId : p.guestId!,
       type,
       trueName,
       name: p.name,
@@ -258,7 +263,9 @@ export async function getRoomHistoryDb(roomId: number) {
       durationMs: p.durationMs,
       isWinner: p.isWinner,
 
-      user: p.user ?? null,
+      user: p.user,
+      guest: p.guest,
+      createdAt: p.createdAt,
     };
   });
 
@@ -280,7 +287,7 @@ export async function listPlayerHistoryDb(
   userId: number,
   take: number = 20,
   skip: number = 0,
-) {
+): Promise<PlayerHistoryWithRoom[]> {
   return prisma.playerHistory.findMany({
     where: { userId: userId },
     include: {

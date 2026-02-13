@@ -1,7 +1,7 @@
 import { FastifyBaseLogger, FastifyInstance } from "fastify";
 import { Namespace, Socket } from "socket.io";
 import { Player } from "../../shared/agario/player.js";
-import { randomColor } from "../../shared/agario/utils.js";
+import { isValidRoomName, randomColor } from "../../shared/agario/utils.js";
 import {
   ActivePlayer,
   CreateRoomPayload,
@@ -70,11 +70,6 @@ function getCtx(socket: Socket) {
   const state = world.players[socket.id];
   if (!state) return null;
   return { room, world, state };
-}
-
-const ROOM_RE = /^[A-Za-z0-9_-]{1,20}$/;
-function isValidRoomName(room: string) {
-  return ROOM_RE.test(room);
 }
 
 function listPlayers(world: World) {

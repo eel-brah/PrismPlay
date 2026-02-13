@@ -139,3 +139,106 @@ export interface PlayerState {
 //   kills: number;
 //   durationMs: number;
 // };
+
+export type PublicUser = {
+  id: number;
+  username: string;
+  avatarUrl: string | null;
+};
+
+export type PublicGuest = {
+  id: string;
+};
+
+export type RoomLeaderboardEntry = {
+  id: number | string;
+  type: UserGuest;
+  trueName: string | null;
+  name: string;
+
+  rank: number;
+  kills: number;
+  maxMass: number;
+  durationMs: number;
+  isWinner: boolean;
+
+  user: PublicUser | null;
+  guest: PublicGuest | null;
+
+  createdAt: Date;
+};
+
+export type RoomWinner = {
+  id: number | string;
+  type: "user" | "guest";
+  name: string;
+  trueName: string | null;
+  kills: number;
+  rank: number;
+  durationMs: number;
+  maxMass: number;
+} | null;
+
+export type RoomHistoryItem = {
+  id: number;
+  name: string;
+  visibility: string;
+  isDefault: boolean;
+  maxPlayers: number | null;
+  maxDurationMin: number | null;
+  startedAt: Date;
+  endedAt: Date | null;
+
+  createdBy: PublicUser | null;
+
+  playersCount: number;
+
+  leaderboard: RoomLeaderboardEntry[];
+
+  winner: RoomWinner;
+};
+
+export type UserGuest = "user" | "guest";
+
+export type GetRoomHistoryDbReturn = {
+  id: number;
+  name: string;
+  visibility: string;
+  isDefault: boolean;
+  startedAt: Date;
+  endedAt: Date | null;
+  maxPlayers: number | null;
+  maxDurationMin: number | null;
+
+  createdBy: PublicUser | null;
+
+  leaderboard: RoomLeaderboardEntry[];
+};
+
+export type PlayerHistoryRoomPreview = {
+  id: number;
+  name: string;
+  startedAt: Date;
+  endedAt: Date | null;
+  visibility: string;
+  isDefault: boolean;
+};
+
+export type PlayerHistoryWithRoom = {
+  id: number;
+  roomId: number;
+  userId: number | null;
+  guestId: string | null;
+  name: string;
+
+  durationMs: number;
+  maxMass: number;
+  kills: number;
+  rank: number | null;
+  isWinner: boolean;
+
+  createdAt: Date;
+
+  room: PlayerHistoryRoomPreview;
+};
+
