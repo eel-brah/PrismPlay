@@ -4,3 +4,4 @@ mytodo.txt
 prisma/dev.db
 uploads
 .vscode
+.env
