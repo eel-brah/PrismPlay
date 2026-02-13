@@ -120,7 +120,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
   // --- Setup socket & matchmaking ---
   useEffect(() => {
    const namespace = inviteId ? "/pong-private" : "/pong"; 
-    console.log(`Connecting to ${namespace} namespace`);
+    // console.log(`Connecting to ${namespace} namespace`);
 
     const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
       namespace, // <--- Use variable instead of string "/pong"
@@ -135,7 +135,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      console.log(`[${namespace}] connected`, socket.id);
+      // console.log(`[${namespace}] connected`, socket.id);
       setMyStatus("connected");
       setConnectionError(null);
       
@@ -163,9 +163,9 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
     });
 
     socket.on("match.found", (payload: MatchFoundPayload) => {
-      console.log("[match.found] side:", payload.side);
-      console.log("[match.found] playerStats:", payload.playerStats);
-      console.log("[match.found] opponentStats:", payload.opponentStats);
+      // console.log("[match.found] side:", payload.side);
+      // console.log("[match.found] playerStats:", payload.playerStats);
+      // console.log("[match.found] opponentStats:", payload.opponentStats);
 
       setSide(payload.side);
       sideRef.current = payload.side;
@@ -214,15 +214,15 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
       const opponentScore =
         currentSide === "left" ? payload.rightScore : payload.leftScore;
 
-      console.log("[game.over] payload:", payload);
-      console.log(
-        "[game.over] currentSide:",
-        currentSide,
-        "winnerSide:",
-        payload.winnerSide,
-        "isWinner:",
-        isWinner,
-      );
+      // console.log("[game.over] payload:", payload);
+      // console.log(
+      //   "[game.over] currentSide:",
+      //   currentSide,
+      //   "winnerSide:",
+      //   payload.winnerSide,
+      //   "isWinner:",
+      //   isWinner,
+      // );
 
       setGameOverData({
         isWinner,
@@ -269,7 +269,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
     });
 
     socket.on("match.reconnected", (payload) => {
-      console.log("[match.reconnected]", payload);
+      // console.log("[match.reconnected]", payload);
 
       setSide(payload.side);
       sideRef.current = payload.side;
@@ -321,7 +321,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
     });
 
     socket.on("match.cancelled", () => {
-      console.log("[pong] match cancelled");
+      // console.log("[pong] match cancelled");
       snapshotRef.current = null;
       setUiPhase("searching");
       setOpponent(UNKNOWN_PLAYER);
@@ -337,7 +337,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
     });
 
     socket.on("match.surrendered", (payload) => {
-      console.log("[pong] you surrendered", payload);
+      console.log("[pong] you surrendered", payload.matchId);
       // You surrendered - show game over as loss
       const snap = snapshotRef.current;
       const currentSide = sideRef.current;
@@ -360,7 +360,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
     });
 
     socket.on("opponent.surrendered", () => {
-      console.log("[pong] opponent surrendered");
+      // console.log("[pong] opponent surrendered");
       setOpponentStatus("disconnected");
       // Opponent surrendered - show game over as win
       const snap = snapshotRef.current;

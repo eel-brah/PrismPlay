@@ -2,20 +2,22 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 
 interface NotFoundProps {
+  code?: number;
+  title? : string;
   message?: string;
 }
 
-export default function NotFound({ message }: NotFoundProps) {
+export default function ErrorPage({ code, title, message }: NotFoundProps) {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 px-4">
       <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-10 shadow-2xl border border-gray-700 text-center max-w-md w-full">
         <h1 className="text-8xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 select-none">
-          404
+          {code}
         </h1>
         <h2 className="mt-4 text-xl font-semibold text-white">
-          Page Not Found
+          {title || "ERROR"}
         </h2>
         <p className="mt-2 text-gray-400 text-sm">
           {message ||
