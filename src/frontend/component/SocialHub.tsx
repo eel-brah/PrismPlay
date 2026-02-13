@@ -9,7 +9,6 @@ import {
   Search,
   Clock,
   Send,
-  Ban,
   LockKeyholeOpen,
   LockKeyhole,
 } from "lucide-react";
@@ -28,7 +27,7 @@ import {
 // ============================================================================
 // 1. TYPES & CONSTANTS
 // ============================================================================
-type TabKey = "friends" | "chat" | "groups";
+type TabKey = "friends" | "chat"; // Removed "groups"
 
 type Message = { 
   id: string; 
@@ -43,142 +42,83 @@ export default function SocialHub() {
   // ============================================================================
   // 2. SYSTEM & GLOBAL STATE
   // ============================================================================
-  // Holds the ID of the logged-in user to identify "Me" vs "Them"
   const [myUserId, setMyUserId] = useState<number | null>(null);
-  
-  // Controls which main tab is visible (Friends list, Chat interface, or Groups)
   const [activeTab, setActiveTab] = useState<TabKey>("friends");
 
   // ============================================================================
   // 3. FRIENDS FEATURE STATE
   // ============================================================================
-  // Stores the list of confirmed friends
   const [friends, setFriends] = useState<{
       id: string;
       name: string;
       lastLogin: string | null;
       createdAt: string;
       avatarUrl?: string;
-      status?: string; // Added optional status for UI pills
+      status?: string; 
     }[]>([]);
   const navigate = useNavigate();
-  // Stores incoming friend requests
   const [requests, setRequests] = useState<{ id: string; name: string; avatarUrl?: string; mutualFriends?: number }[]>([]);
-  
-  // Controls the sub-tab inside the Friends section (List, Requests, or Add New)
   const [friendsSubTab, setFriendsSubTab] = useState<"friends" | "requests" | "add">("friends");
-  
-  // Search input value for filtering the friends list
   const [friendSearch, setFriendSearch] = useState("");
 
-  // 'Add Friend' inputs and status messages
   const [addUsername, setAddUsername] = useState("");
   const [addMsg, setAddMsg] = useState<string | null>(null);
   const [addErr, setAddErr] = useState<string | null>(null);
   const [addLoading, setAddLoading] = useState(false);
 
   // ============================================================================
-  // 4. CHAT FEATURE STATE
+  // 4. CHAT FEATURE STATE (Includes "General" Channel)
   // ============================================================================
-  // Determines if we are looking at a "Channel" (Global) or "DM" (Private)
   const [chatMode, setChatMode] = useState<"channel" | "dm">("channel");
-  
-  // Stores the ID of the friend we are currently privately chatting with
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
-  
-  // Search input for filtering the active chats list
   const [dmSearch, setDmSearch] = useState("");
-  
-  // Stores the text currently being typed in the chat box
   const [chatInput, setChatInput] = useState("");
   
-  // Holds all messages mapped by Channel Name (e.g., 'general')
+  // Channels (General) - KEPT AS REQUESTED
   const channels = useMemo(() => ["general"], []);
   const [selectedChannel, setSelectedChannel] = useState<string>(channels[0]);
   const [messagesByChannel, setMessagesByChannel] = useState<Record<string, Message[]>>({
     general: [{ id: "m1", author: "System", text: "Welcome to General!", ts: Date.now() - 60000 }],
-    lobby: [{ id: "m2", author: "System", text: "Chat with players in the lobby.", ts: Date.now() - 120000 }],
-    support: [{ id: "m3", author: "System", text: "Need help? Ask here.", ts: Date.now() - 240000 }],
   });
 
-  // Holds all private messages mapped by Friend ID
   const [messagesByDM, setMessagesByDM] = useState<Record<string, Message[]>>({});
-  
-  // Tracks unread message counts for each friend
   const [unreadByDM, setUnreadByDM] = useState<Record<string, number>>({});
-  
-  // Tracks if a specific friend is currently typing (mapped by friend ID)
   const [typingStatus, setTypingStatus] = useState<Record<string, boolean>>({});
 
-  // const [isBlocked, setIsBlocked] = useState(false); //  checking block status
   const [blockStatus, setBlockStatus] = useState({ byMe: false, byThem: false });
   const isChatLocked = blockStatus.byMe || blockStatus.byThem;
 
   // ============================================================================
-  // 5. GROUPS FEATURE STATE (Mock Data)
+  // 5. REFERENCES
   // ============================================================================
-  // List of groups available to join
-  const [groups, setGroups] = useState<{ id: string; name: string; members: number; joined: boolean }[]>([
-    { id: "g1", name: "Casual Players", members: 42, joined: true },
-    { id: "g2", name: "Ranked Grind", members: 18, joined: false },
-    { id: "g3", name: "Weekend Warriors", members: 27, joined: false },
-  ]);
-  
-  // ID of the currently selected group
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>("g1");
-  
-  // Messages for groups, mapped by Group ID
-  const [messagesByGroup, setMessagesByGroup] = useState<Record<string, Message[]>>({
-    g1: [{ id: "gmsg1", author: "System", text: "Welcome to Casual Players", ts: Date.now() - 180000 }],
-  });
-  
-  // Inputs for creating a group or chatting in one
-  const [newGroupName, setNewGroupName] = useState("");
-  const [groupChatInput, setGroupChatInput] = useState("");
-  const [groupSearch, setGroupSearch] = useState("");
-
-  // ============================================================================
-  // 6. REFERENCES (Non-rendering variables)
-  // ============================================================================
-  // The actual Socket.io connection instance
   const socketRef = useRef<Socket | null>(null);
-  
-  // Maps a Friend's UserID to a specific ChatRoom ID (e.g., User 5 -> Chat 102)
   const chatIdByOther = useRef<Record<string, number>>({});
-  
-  // Timer to stop the "Typing..." indicator after a few seconds of inactivity
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Scroll refs: these point to the scrollable message containers so we can auto-scroll to bottom
   const chatMessagesRef = useRef<HTMLDivElement | null>(null);
-  const groupMessagesRef = useRef<HTMLDivElement | null>(null);
   
-  // Tracks who we are currently looking at to prevent unread badges from appearing while chatting
   const selectedFriendIdRef = useRef<string | null>(null);
-  const activeTabRef = useRef<TabKey>("friends"); // New
-  const chatModeRef = useRef<string>("channel");  // New
-
+  const activeTabRef = useRef<TabKey>("friends"); 
+  const chatModeRef = useRef<string>("channel");
 
   // Game Invite State
   const [incomingInvite, setIncomingInvite] = useState<{ fromId: number; username: string; avatarUrl: string } | null>(null);
-  const [pendingInviteId, setPendingInviteId] = useState<number | null>(null); // ID of person I invited
+  const [pendingInviteId, setPendingInviteId] = useState<number | null>(null);
 
   const [notification, setNotification] = useState<string | null>(null);
   
   const showNotification = (message: string) => {
-  setNotification(message);
-  setTimeout(() => setNotification(null), 3000);
-};
+    setNotification(message);
+    setTimeout(() => setNotification(null), 3000);
+  };
 
   useEffect(() => { selectedFriendIdRef.current = selectedFriendId; }, [selectedFriendId]);
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
   useEffect(() => { chatModeRef.current = chatMode; }, [chatMode]); 
 
   // ============================================================================
-  // 7. INITIALIZATION & SOCKET LOGIC
+  // 6. INITIALIZATION & SOCKET LOGIC
   // ============================================================================
   
-  // Helper to fetch friends/requests from API
   const reload = async () => {
     const token = getStoredToken();
     if (!token) return;
@@ -194,7 +134,7 @@ export default function SocialHub() {
         lastLogin: r.friend.lastLogin,
         createdAt: r.friend.createdAt,
         avatarUrl: r.friend.avatarUrl ?? undefined,
-        status: "offline", // Default status
+        status: "offline", 
     })));
 
     setRequests(incomingRequest.map((r) => ({
@@ -205,14 +145,13 @@ export default function SocialHub() {
     })));
   };
 
-const sendGameInvite = (friendId?: string) => {
+  const sendGameInvite = (friendId?: string) => {
     const target = friendId || selectedFriendId;
-    
     if (!target || !myUserId || !socketRef.current) return;
     
     const targetId = Number(target);
-    
     setPendingInviteId(targetId);
+    
     socketRef.current.emit("send_game_invite", { 
       myId: myUserId, 
       otherId: targetId 
@@ -221,7 +160,6 @@ const sendGameInvite = (friendId?: string) => {
 
   const cancelGameInvite = () => {
     if (!pendingInviteId || !myUserId || !socketRef.current) return;
-    
     socketRef.current.emit("cancel_game_invite", { 
       myId: myUserId, 
       otherId: pendingInviteId 
@@ -231,7 +169,6 @@ const sendGameInvite = (friendId?: string) => {
 
   const acceptInvite = () => {
     if (!incomingInvite || !myUserId || !socketRef.current) return;
-    
     socketRef.current.emit("accept_game_invite", { 
       myId: myUserId, 
       otherId: incomingInvite.fromId 
@@ -240,14 +177,13 @@ const sendGameInvite = (friendId?: string) => {
 
   const declineInvite = () => {
     if (!incomingInvite || !myUserId || !socketRef.current) return;
-    
     socketRef.current.emit("decline_game_invite", { 
       myId: myUserId, 
       otherId: incomingInvite.fromId 
     });
     setIncomingInvite(null);
   };
-  // Main Effect: Connects Socket and sets up Listeners
+
   useEffect(() => {
     const init = async () => {
       const token = getStoredToken();
@@ -259,7 +195,6 @@ const sendGameInvite = (friendId?: string) => {
         await reload();
 
         if (!socketRef.current) {
-          // CONNECT TO THE /chat NAMESPACE
           const s = io("/chat", {
             path: "/socket.io",
             transports: ["websocket", "polling"],
@@ -267,21 +202,18 @@ const sendGameInvite = (friendId?: string) => {
             query: { userId: me.id },
           });
           socketRef.current = s;
-          // Join General Chat immediately
+
           s.emit("join_channel", "general");
-          // 1. Request Unread Counts (Fixes missing red badges on reload/return)
           s.emit("request_unread", me.id);
 
-          // 2. Listener for the response
           s.on("unread_counts", (counts: Record<string, number>) => {
-             // Convert keys to string just in case
              const formatted: Record<string, number> = {};
              Object.keys(counts).forEach(k => {
                 formatted[k] = counts[k as keyof typeof counts];
              });
              setUnreadByDM(formatted);
           });
-          // LISTENER: Load Channel History (Persistence Fix)
+
           s.on("channel_history", (data: any) => {
              if (data.channel && data.messages) {
                setMessagesByChannel((prev) => ({
@@ -291,7 +223,6 @@ const sendGameInvite = (friendId?: string) => {
              }
           });
 
-          // LISTENER: General/Channel Messages
           s.on("channel_message", (msg: any) => {
              if (msg.channel) {
                setMessagesByChannel((prev) => ({
@@ -310,7 +241,6 @@ const sendGameInvite = (friendId?: string) => {
              }
           });
 
-          // LISTENER: When joining a DM, load history
           s.on("dm_joined", (payload: any) => {
              const friendId = Object.keys(chatIdByOther.current).find(
                (k) => chatIdByOther.current[k] === payload.chatId
@@ -329,21 +259,17 @@ const sendGameInvite = (friendId?: string) => {
              }
           });
 
-          // LISTENER: Incoming new messages
           s.on("new_message", (msg: any) => {
-             // 1. Identify friend by Chat ID
              let friendId = Object.keys(chatIdByOther.current).find(
                (k) => chatIdByOther.current[k] == msg.chatId
              );
 
-             // 2. Fallback: Identify friend by Sender ID if chat not yet mapped
              if (!friendId && msg.senderId && String(msg.senderId) != String(me.id)) {
                  friendId = String(msg.senderId);
                  if (msg.chatId) chatIdByOther.current[friendId] = msg.chatId;
              }
 
              if (friendId) {
-               // Update Messages
                setMessagesByDM((prev) => ({
                  ...prev,
                  [friendId]: [
@@ -359,13 +285,11 @@ const sendGameInvite = (friendId?: string) => {
                  ],
                }));
 
-               // Update Notification Badge (if not currently looking at this chat)
                const isViewing = 
                  activeTabRef.current === "chat" && 
                  chatModeRef.current === "dm" && 
                  selectedFriendIdRef.current === friendId;
 
-               // If NOT viewing (or message is not from me), show red badge
                if (!isViewing && String(msg.senderId) != String(me.id)) {
                    setUnreadByDM((prev) => ({
                        ...prev,
@@ -375,7 +299,6 @@ const sendGameInvite = (friendId?: string) => {
              }
           });
 
-          // LISTENER: Typing status updates
           s.on("user_typing", (data: any) => {
              const friendId = Object.keys(chatIdByOther.current).find(
                (k) => chatIdByOther.current[k] == data.chatId
@@ -385,7 +308,6 @@ const sendGameInvite = (friendId?: string) => {
              }
           });
 
-          // LISTENER: Messages marked as seen
           s.on("messages_seen", (data: any) => {
              const friendId = Object.keys(chatIdByOther.current).find(
                (k) => chatIdByOther.current[k] == data.chatId
@@ -400,6 +322,7 @@ const sendGameInvite = (friendId?: string) => {
                 });
              }
           });
+          
           s.on("game_invite_received", (data: any) => {
             setIncomingInvite({
               fromId: data.fromId,
@@ -408,30 +331,24 @@ const sendGameInvite = (friendId?: string) => {
             });
           });
 
-          // LISTENER: Invite expired
           s.on("invite_expired", () => {
             setIncomingInvite(null);
             setPendingInviteId(null);
             showNotification("Game invite expired.");
           });
 
-          // LISTENER: Invite declined
           s.on("invite_declined", () => {
             setPendingInviteId(null);
             showNotification("User declined your invitation.");
           });
 
-          // LISTENER: Invite canceled by sender
           s.on("invite_canceled_by_sender", () => {
             setIncomingInvite(null);
           });
 
-          // LISTENER: Game Start!
           s.on("game_start_redirect", (data: { gameId: string }) => {
-            // Clean up state
             setIncomingInvite(null);
             setPendingInviteId(null);
-            // Navigate to the game
             navigate(`/game/${data.gameId}`);
           });
         }
@@ -442,7 +359,6 @@ const sendGameInvite = (friendId?: string) => {
     init();
   }, []);
 
-  // Effect: Automatically mark messages as seen when viewing a chat
   useEffect(() => {
     if (chatMode === "dm" && selectedFriendId && socketRef.current && myUserId) {
       const chatId = chatIdByOther.current[selectedFriendId];
@@ -453,7 +369,6 @@ const sendGameInvite = (friendId?: string) => {
     }
   }, [messagesByDM, selectedFriendId, chatMode, myUserId]);
 
-  // Effect: Auto-scroll chat messages to bottom when new messages arrive
   useEffect(() => {
     if (activeTab !== "chat") return;
     const container = chatMessagesRef.current;
@@ -468,40 +383,27 @@ const sendGameInvite = (friendId?: string) => {
     container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
   }, [activeTab, chatMode, selectedChannel, selectedFriendId, messagesByChannel, messagesByDM]);
 
-  // Check block status whenever the selected friend changes
-useEffect(() => {
-  if (chatMode === "dm" && selectedFriendId && myUserId && socketRef.current) {
-    // Reset state
-    setBlockStatus({ byMe: false, byThem: false });
-    
-    socketRef.current.emit(
-      "check_block_status", 
-      { myId: myUserId, otherId: Number(selectedFriendId) }, 
-      (response: { blockedByMe: boolean; blockedByThem: boolean }) => {
-         setBlockStatus({ 
-           byMe: response.blockedByMe, 
-           byThem: response.blockedByThem 
-         });
-      }
-    );
-  } else {
-    setBlockStatus({ byMe: false, byThem: false });
-  }
-}, [selectedFriendId, chatMode, myUserId]);
-
-
-  
-  // Effect: Auto-scroll group messages to bottom when new messages arrive
   useEffect(() => {
-    if (activeTab !== "groups") return;
-    const container = groupMessagesRef.current;
-    if (!container) return;
-    const messageList = selectedGroupId
-      ? messagesByGroup[selectedGroupId] || []
-      : [];
-    if (messageList.length === 0) return;
-    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
-  }, [activeTab, selectedGroupId, messagesByGroup]);
+    if (chatMode === "dm" && selectedFriendId && myUserId && socketRef.current) {
+      setBlockStatus({ byMe: false, byThem: false });
+      
+      socketRef.current.emit(
+        "check_block_status", 
+        { myId: myUserId, otherId: Number(selectedFriendId) }, 
+        (response: { blockedByMe: boolean; blockedByThem: boolean }) => {
+           setBlockStatus({ 
+             byMe: response.blockedByMe, 
+             byThem: response.blockedByThem 
+           });
+        }
+      );
+    } else {
+      setBlockStatus({ byMe: false, byThem: false });
+    }
+  }, [selectedFriendId, chatMode, myUserId]);
+
+  // ============================================================================
+  // 7. ACTIONS (Friends & Chat)
   // ============================================================================
   const sendFriendRequestByUsername = async () => {
     const token = getStoredToken();
@@ -555,9 +457,6 @@ useEffect(() => {
     } catch (e) { console.log(e); }
   };
 
-  // ============================================================================
-  // 9. CHAT HELPER FUNCTIONS
-  // ============================================================================
   const handleStartDirectMessage = (friendId: string) => {
     setSelectedFriendId(friendId);
     setChatMode("dm");
@@ -565,7 +464,6 @@ useEffect(() => {
     setUnreadByDM((prev) => ({ ...prev, [friendId]: 0 }));
 
     if (socketRef.current && myUserId) {
-      // Temporary listener to catch the Join response
       const onJoinHandler = (payload: any) => {
         if (payload.chatId) {
            chatIdByOther.current[friendId] = payload.chatId;
@@ -579,8 +477,6 @@ useEffect(() => {
            }));
 
            setMessagesByDM((prev) => ({ ...prev, [friendId]: msgs }));
-           
-           // Mark as seen immediately upon join
            socketRef.current?.emit("mark_seen", { chatId: payload.chatId, userId: myUserId });
            socketRef.current?.off("dm_joined", onJoinHandler);
         }
@@ -610,7 +506,6 @@ useEffect(() => {
     if (!text) return;
 
     if (chatMode === "channel") {
-      // Send to General Channel via Socket
       if (socketRef.current && myUserId) {
         socketRef.current.emit("send_channel_message", { 
           channel: selectedChannel, 
@@ -627,7 +522,6 @@ useEffect(() => {
           content: text 
         });
       } else {
-        // Fallback Optimistic UI
         setMessagesByDM((prev) => ({
           ...prev,
           [selectedFriendId]: [
@@ -640,99 +534,61 @@ useEffect(() => {
     setChatInput("");
   };
 
-
-///
-
   const blockUser = (friendIdToBlock: string) => {
     if (!friendIdToBlock) return;
     const fID = Number(friendIdToBlock);
-    // if (chatMode === "dm" && Number(selectedFriendId) === fID) {
-    //   setSelectedFriendId(null);
-    // }
-    if (socketRef.current && myUserId)
-    {
+    if (socketRef.current && myUserId) {
       socketRef.current.emit("block_user", { myId: myUserId, otherId: Number(fID)});
     }
-
-        if (selectedFriendId === friendIdToBlock) {
-              setBlockStatus(prev => ({ ...prev, byMe: true }));    }
+    if (selectedFriendId === friendIdToBlock) {
+      setBlockStatus(prev => ({ ...prev, byMe: true }));    
+    }
   };
 
-
-    const UnBlockUser = (friendIdToBlock: string) => {
+  const UnBlockUser = (friendIdToBlock: string) => {
     if (!friendIdToBlock) return;
     const fID = Number(friendIdToBlock);
-    if (socketRef.current && myUserId)
-    {
+    if (socketRef.current && myUserId) {
       socketRef.current.emit("unblock_user", { myId: myUserId, otherId: Number(fID)});
     }
     if (selectedFriendId === friendIdToBlock) {
-setBlockStatus(prev => ({ ...prev, byMe: false }));    }
-
-  };
-
-// const checkBlockStatus = (myId: number, friendId: number):boolean => {
-//   if (socketRef.current) {
-//     socketRef.current.emit(
-//       "is_user_blocked", 
-//       { senderId: myId, userId: friendId }, (response: { isBlocked: boolean }) => { 
-//         return response.isBlocked;
-//       }
-//     );
-//   }
-// };
-
-  // ============================================================================
-  // 10. GROUP HELPER FUNCTIONS
-  // ============================================================================
-  const createGroup = () => {
-    const name = newGroupName.trim();
-    if (!name) return;
-    const id = Math.random().toString(36).slice(2);
-    setGroups((prev) => [...prev, { id, name, members: 1, joined: true }]);
-    setMessagesByGroup((prev) => ({
-      ...prev,
-      [id]: [{ id: Math.random().toString(36).slice(2), author: "System", text: `Welcome to ${name}`, ts: Date.now() }],
-    }));
-    setSelectedGroupId(id);
-    setNewGroupName("");
-  };
-
-  const toggleJoinGroup = (id: string) => {
-    setGroups((prev) => prev.map((g) => (g.id === id ? { ...g, joined: !g.joined } : g)));
+      setBlockStatus(prev => ({ ...prev, byMe: false }));    
+    }
   };
 
   // ============================================================================
-  // 11. RENDER (UI)
+  // 8. RENDER (UI)
   // ============================================================================
   return (
     <div className="w-full h-full text-white flex flex-col">
-      {/* Header Section */}
+      {/* Toast Notification */}
       {notification && (
-      <div className="absolute top-28 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
-        <div className="bg-red-600 text-white px-6 py-3 rounded-full shadow-lg border border-red-400 flex items-center gap-3">
-          <span className="font-bold text-sm">{notification}</span>
-          <button 
-            onClick={() => setNotification(null)}
-            className="hover:bg-red-700 rounded-full p-1"
-          >
-            ✕
-          </button>
+        <div className="absolute top-28 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
+          <div className="bg-red-600 text-white px-6 py-3 rounded-full shadow-lg border border-red-400 flex items-center gap-3">
+            <span className="font-bold text-sm">{notification}</span>
+            <button 
+              onClick={() => setNotification(null)}
+              className="hover:bg-red-700 rounded-full p-1"
+            >
+              ✕
+            </button>
+          </div>
         </div>
-      </div>
-    )}
+      )}
+
+      {/* Header Section */}
       <div className="max-w-6xl mx-auto px-6 pt-8 pb-4">
         <div className="text-center">
           <h2 className="text-2xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
             Social Hub
           </h2>
-          <p className="text-sm text-gray-400 mt-1">Friends, chat, and groups</p>
+          <p className="text-sm text-gray-400 mt-1">Friends, chat, and community</p>
         </div>
         
         {/* Main Tab Navigation */}
         <div className="mt-6 flex items-center justify-center">
           <div className="inline-flex rounded-full bg-gray-800/60 p-1">
-            {(["friends", "chat", "groups"] as TabKey[]).map((key) => (
+            {(["friends", "chat"] as TabKey[]).map((key) => (
               <button
                 key={key}
                 onClick={() => {
@@ -802,7 +658,6 @@ setBlockStatus(prev => ({ ...prev, byMe: false }));    }
                             : { text: "Offline", cls: "bg-gray-600 text-white" };
                     return (
                       <div key={f.id} className="rounded-2xl border border-white/10 bg-gray-900/60 shadow-xl p-5">
-                        {/* <a href="windown." */}
                         <div className="flex items-start justify-between">
                           <button
                             type="button"
@@ -834,13 +689,12 @@ setBlockStatus(prev => ({ ...prev, byMe: false }));    }
                           <button onClick={() => handleStartDirectMessage(f.id)} className="px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white">
                             Chat
                           </button>
-<button
+                          <button
                             onClick={() => {
-                              // Check if we are inviting THIS specific friend
                               if (pendingInviteId === Number(f.id)) {
                                 cancelGameInvite();
                               } else {
-                                sendGameInvite(f.id); // Pass the ID directly
+                                sendGameInvite(f.id);
                               }
                             }}
                             className={`p-2 rounded-md transition-colors text-white disabled:opacity-50 ${
@@ -848,7 +702,6 @@ setBlockStatus(prev => ({ ...prev, byMe: false }));    }
                                 ? "bg-red-500 hover:bg-red-600 animate-pulse" 
                                 : "bg-orange-600 hover:bg-orange-700" 
                             }`}
-                            // Only disable if we are busy inviting SOMEONE ELSE
                             disabled={pendingInviteId !== null && pendingInviteId !== Number(f.id)}
                             title={pendingInviteId === Number(f.id) ? "Cancel Invite" : "Invite to Game"}
                           >
@@ -930,7 +783,7 @@ setBlockStatus(prev => ({ ...prev, byMe: false }));    }
         {activeTab === "chat" && (
           <div className="max-w-6xl mx-auto px-6 pb-10 h-full">
             <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6 h-full min-h-0">
-              {/* Chat Sidebar (List of DMs) */}
+              
               {/* Sidebar: Chat List */}
               <div className="space-y-6 h-full overflow-y-auto min-h-0 scrollbar-theme pr-2">
                 
@@ -942,11 +795,9 @@ setBlockStatus(prev => ({ ...prev, byMe: false }));    }
                       <button
                         key={c}
                         onClick={() => {
-                          // Switch to Channel Mode
                           setChatMode("channel");
                           setSelectedChannel(c);
                           setSelectedFriendId(null);
-                          // Join the room to ensure we get messages/history
                           if (socketRef.current) socketRef.current.emit("join_channel", c);
                         }}
                         className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center gap-3 ${
@@ -1020,17 +871,6 @@ setBlockStatus(prev => ({ ...prev, byMe: false }));    }
                                 <div className="text-xs text-gray-400 truncate">{last ? last.text : "No messages yet"}</div>
                               </div>
                             </button>
-                                              {/* <button
-                 onClick={() => {
-                  if (selectedFriendId) UnBlockUser(selectedFriendId);
-                }}
-                className="p-2 rounded-md bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
-                disabled={chatMode !== "dm" || !selectedFriendId}
-                title="Unblock User">
-                  <Gamepad2 className="w-4 h-4" />
-                </button> */}
-                          
-                            {/*SSSSSSSSSSS*/}
                           </li>
                         );
                       })}
@@ -1122,7 +962,7 @@ setBlockStatus(prev => ({ ...prev, byMe: false }));    }
 
                 {/* Input Area */}
               <div className="mt-4 flex items-center gap-2">
-                                <button
+                <button
                   onClick={() => {
                     if (!selectedFriendId) return;
                     if (blockStatus.byMe) {
@@ -1152,7 +992,6 @@ setBlockStatus(prev => ({ ...prev, byMe: false }));    }
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !isChatLocked) sendMessage();
                   }}
-                  // Placeholder explains WHY it is locked
                   placeholder={
                     blockStatus.byThem
                       ? "You have been blocked by this user."
@@ -1199,62 +1038,8 @@ setBlockStatus(prev => ({ ...prev, byMe: false }));    }
             </div>
           </div>
         )}
-
-        {/* --- GROUPS TAB CONTENT --- */}
-        {activeTab === "groups" && (
-          <div className="max-w-6xl mx-auto px-6 pb-10 grid grid-cols-1 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr] gap-4 h-full min-h-0">
-            <div className="rounded-2xl border border-white/10 bg-gray-900/60 flex flex-col h-full min-h-0">
-              <div className="p-3 border-b border-white/10 space-y-2">
-                <input value={groupSearch} onChange={(e) => setGroupSearch(e.target.value)} placeholder="Search groups..." className="w-full px-4 py-2 rounded-xl bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700" />
-                <div className="flex gap-2">
-                  <input value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} placeholder="Create a new group" className="flex-1 min-w-0 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none" />
-                  <button onClick={createGroup} className="px-4 py-2 rounded-md bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shrink-0 whitespace-nowrap">Create</button>
-                </div>
-              </div>
-              <div className="p-3 space-y-3 flex-1 overflow-y-auto scrollbar-theme pr-2">
-                {groups.filter((g) => g.name.toLowerCase().includes(groupSearch.toLowerCase())).map((g) => (
-                    <div key={g.id} className={`rounded-lg border border-white/10 px-3 py-3 flex items-center justify-between ${selectedGroupId === g.id ? "bg-blue-600/10" : "bg-gray-800/40"}`}>
-                      <button onClick={() => setSelectedGroupId(g.id)} className="text-left flex-1">
-                        <div className="font-medium text-gray-100">{g.name}</div>
-                        <div className="text-xs text-gray-400">{g.members} members</div>
-                      </button>
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => setSelectedGroupId(g.id)} className="px-3 py-1 rounded-md bg-gray-800/80 hover:bg-gray-800 text-gray-200">Open</button>
-                        <button onClick={() => toggleJoinGroup(g.id)} className={`px-3 py-1 rounded-md ${g.joined ? "bg-gray-800/80 hover:bg-gray-800 text-gray-200" : "bg-blue-600 hover:bg-blue-700 text-white"}`}>
-                          {g.joined ? "Leave" : "Join"}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-gray-900/60 flex flex-col h-full min-h-0">
-              <div className="px-3 py-2 text-sm font-semibold border-b border-white/10">
-                {selectedGroupId ? groups.find((g) => g.id === selectedGroupId)?.name : "Select a group"}
-              </div>
-              <div
-                ref={groupMessagesRef}
-                className="flex-1 min-h-0 p-3 space-y-2 overflow-y-auto scrollbar-theme pr-2"
-              >
-                {(selectedGroupId ? messagesByGroup[selectedGroupId] || [] : []).map((m) => (
-                  <div key={m.id} className="">
-                    <span className="text-blue-300 font-semibold mr-2">{m.author}</span>
-                    <span className="text-gray-200">{m.text}</span>
-                    <span className="text-xs text-gray-500 ml-2">{new Date(m.ts).toLocaleTimeString()}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="p-3 border-t border-white/10 flex gap-2">
-                <input value={groupChatInput} onChange={(e) => setGroupChatInput(e.target.value)} placeholder={selectedGroupId ? `Message ${groups.find((g) => g.id === selectedGroupId)?.name}` : "Select a group to chat"} className="flex-1 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none" disabled={!selectedGroupId || !groups.find((g) => g.id === selectedGroupId)?.joined} />
-                <button onClick={() => { const text = groupChatInput.trim(); if (!text || !selectedGroupId) return; setMessagesByGroup((prev) => ({ ...prev, [selectedGroupId]: [...(prev[selectedGroupId] || []), { id: Math.random().toString(36).slice(2), author: "You", text, ts: Date.now() }] })); setGroupChatInput(""); }} className="px-4 py-2 rounded-md bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 disabled:opacity-50" disabled={!selectedGroupId || !groups.find((g) => g.id === selectedGroupId)?.joined}>Send</button>
-              </div>
-              {!selectedGroupId && <div className="p-3 text-sm text-gray-400">Select a group from the list to view chat.</div>}
-              {selectedGroupId && !groups.find((g) => g.id === selectedGroupId)?.joined && <div className="p-3 text-sm text-yellow-400">Join the group to send messages.</div>}
-            </div>
-          </div>
-        )}
       </div>
+
       {/* Incoming Game Invite Modal */}
       {incomingInvite && (
         <div className="absolute top-28 right-4 z-50 bg-gray-900 border border-purple-500 rounded-xl p-4 shadow-2xl animate-bounce-in w-80">
