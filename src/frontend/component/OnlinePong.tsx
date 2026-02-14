@@ -119,7 +119,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
 
   // --- Setup socket & matchmaking ---
   useEffect(() => {
-   const namespace = inviteId ? "/pong-private" : "/pong"; 
+    const namespace = inviteId ? "/pong-private" : "/pong";
     // console.log(`Connecting to ${namespace} namespace`);
 
     const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
@@ -138,7 +138,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
       // console.log(`[${namespace}] connected`, socket.id);
       setMyStatus("connected");
       setConnectionError(null);
-      
+
       // 👇 Check for inviteId before joining
       if (inviteId) {
         // @ts-expect-error: Custom payload for private match
@@ -633,29 +633,41 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
 
   // --- UI --- //
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">      {/* Top bar with controls */}
-      <div className="flex items-center justify-end px-4 py-2 mb-4">
-        {/* Action buttons */}
+
+    <div className="fixed inset-0 z-[9999] flex flex-col p-4">
+
+      <div className="relative flex items-center justify-end px-4 py-2 mb-4">
         <div className="flex items-center gap-2">
+
           <button
             onClick={() => setSoundOn((s) => !s)}
-            className="bg-gray-800/80 hover:bg-gray-700 text-white p-2.5 rounded-lg transition-all border border-gray-700/50"
+            className="
+            p-2.5 rounded-lg
+            bg-white/[0.05] hover:bg-white/[0.08]
+            border border-white/10
+            text-gray-200 hover:text-white
+            transition-all
+          "
             title={soundOn ? "Mute" : "Unmute"}
           >
             {soundOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
           </button>
+
           {onReturn && (
             <button
               onClick={() => {
                 const socket = socketRef.current;
-                if (socket && uiPhase === "inMatch") {
-                  socket.emit("match.surrender");
-                } else if (socket) {
-                  socket.emit("match.leave");
-                }
+                if (socket && uiPhase === "inMatch") socket.emit("match.surrender");
+                else if (socket) socket.emit("match.leave");
                 onReturn();
               }}
-              className="flex items-center gap-2 bg-red-600/80 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-all border border-red-500/50"
+              className="
+              flex items-center gap-2 px-4 py-2 rounded-lg
+              bg-red-500/15 hover:bg-red-500/25
+              border border-red-400/30
+              text-red-300 hover:text-red-200
+              transition-all
+            "
             >
               <LogOut size={16} />
               <span className="text-sm font-medium">Leave</span>
@@ -664,8 +676,8 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
         </div>
       </div>
 
-      {/* Main game area with HUD */}
-      <div className="flex-1 flex items-center justify-center overflow-auto">
+      <div className="relative flex-1 flex items-center justify-center overflow-auto">
+
         <OnlinePongHUD
           mySide={side}
           showPlayers={!!side}
@@ -678,28 +690,42 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
           loadingLeft={loadingStats}
           loadingRight={loadingStats}
         >
-          {/* CANVAS */}
-          <canvas
-            ref={canvasRef}
-            width={GAME_WIDTH}
-            height={GAME_HEIGHT}
-            className="border-4 border-gray-700 rounded-lg shadow-2xl"
-            style={{ imageRendering: "pixelated" }}
-          />
 
-          {/* Searching overlay (on top of canvas) */}
+          <div className="
+          relative rounded-xl p-[6px]
+          bg-gradient-to-r from-purple-500/30 via-blue-500/30 to-purple-500/30
+        ">
+            <div className="rounded-lg bg-black/70 backdrop-blur-sm">
+
+              <canvas
+                ref={canvasRef}
+                width={GAME_WIDTH}
+                height={GAME_HEIGHT}
+                className="rounded-lg shadow-[0_0_40px_rgba(120,80,255,0.25)]"
+                style={{ imageRendering: "pixelated" }}
+              />
+
+            </div>
+          </div>
+
           {!side && (
-            <div className="absolute inset-x-0 bottom-6 flex items-center justify-center pointer-events-none">
-              <div className="flex items-center gap-3 text-gray-400 bg-black/30 px-4 py-2 rounded-lg">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping" />
-                <span>Waiting for an opponent to join...</span>
+            <div className="absolute inset-x-0 bottom-6 flex justify-center pointer-events-none">
+              <div className="
+              flex items-center gap-3
+              bg-black/40 backdrop-blur-md
+              border border-white/10
+              text-gray-300
+              px-4 py-2 rounded-lg
+            ">
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-ping" />
+                <span>Waiting for an opponent...</span>
               </div>
             </div>
           )}
+
         </OnlinePongHUD>
       </div>
 
-      {/* Game Over Popup */}
       {side && gameOverData && (
         <GameOverPopup
           isOpen={showGameOverPopup}
@@ -715,6 +741,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
         />
       )}
     </div>
+
   );
 };
 

@@ -34,87 +34,26 @@ export default function SetupScreen({
   const [showBallColors, setShowBallColors] = useState(false);
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4 overflow-y-auto">
-      <div className="max-w-4xl w-full py-8">
-        <h2 className="text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-          Setup Your Characters
+    <div className="h-full min-h-0 w-full max-w-6xl mx-auto px-6 flex flex-col justify-center text-white">
+
+      <div className="text-center mb-10">
+        <div className="text-sm tracking-widest text-purple-300 mb-1">
+          MATCH CONFIGURATION
+        </div>
+
+        <h2 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+          Player Setup
         </h2>
 
-        {/* Theme Selection */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-300 text-center mb-3">
-            Select Map Theme
-          </h3>
-          <div className="flex justify-center gap-3 flex-wrap">
-            {THEMES.map((theme) => (
-              <button
-                key={theme.id}
-                onClick={() =>
-                  setGameColors({ ...gameColors, theme: theme.id })
-                }
-                className={`px-4 py-2 rounded-lg border-2 transition-all ${
-                  gameColors.theme === theme.id
-                    ? "border-purple-500 bg-purple-500/20 text-white"
-                    : "border-gray-600 bg-gray-800/50 text-gray-300 hover:border-gray-500"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: theme.centerLine }}
-                  />
-                  {theme.name}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+        <p className="text-gray-400 mt-2 text-sm">
+          Customize players and arena before starting
+        </p>
+      </div>
 
-        {/* Ball Color Selection */}
-        <div className="mb-6 flex justify-center">
-          <div className="relative">
-            <button
-              onClick={() => setShowBallColors(!showBallColors)}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-800/60 rounded-lg border border-gray-600 hover:border-gray-500 transition-all"
-            >
-              <div
-                className="w-6 h-6 rounded-full border-2 border-white/30"
-                style={{ backgroundColor: gameColors.ballColor }}
-              />
-              <span className="text-gray-300">Ball Color</span>
-              <Palette size={16} className="text-gray-400" />
-            </button>
+      <div className="grid lg:grid-cols-[1fr_320px] gap-10 items-start">
 
-            {showBallColors && (
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-gray-800 rounded-lg p-3 shadow-xl z-10 min-w-[200px]">
-                <div className="grid grid-cols-4 gap-2">
-                  {BALL_COLORS.map((color) => (
-                    <button
-                      key={color.value}
-                      onClick={() => {
-                        setGameColors({
-                          ...gameColors,
-                          ballColor: color.value,
-                        });
-                        setShowBallColors(false);
-                      }}
-                      className={`w-8 h-8 rounded-full transition-all ${
-                        gameColors.ballColor === color.value
-                          ? "ring-2 ring-white scale-110"
-                          : "hover:scale-110"
-                      }`}
-                      style={{ backgroundColor: color.value }}
-                      title={color.name}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <div className="flex flex-wrap justify-center gap-6">
 
-        <div className="flex gap-6 justify-center">
-          {/* Left Player Setup */}
           {(!isSingle || aiPos === "right") && (
             <PlayerSetupCard
               side="left"
@@ -123,7 +62,6 @@ export default function SetupScreen({
             />
           )}
 
-          {/* Right Player Setup */}
           {(!isSingle || aiPos === "left") && (
             <PlayerSetupCard
               side="right"
@@ -131,21 +69,109 @@ export default function SetupScreen({
               setPlayer={setRightPlayer}
             />
           )}
+
         </div>
 
-        <div className="flex justify-center gap-4 mt-8">
-          <button
-            onClick={onBack}
-            className="bg-gray-700 hover:bg-gray-600 text-white px-8 py-3 rounded-lg font-semibold transition-all"
-          >
-            Back
-          </button>
-          <button
-            onClick={onStart}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
-          >
-            Start Game
-          </button>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.035] backdrop-blur-xl p-5 space-y-6">
+
+          <div>
+            <div className="text-[11px] text-gray-500 mb-2 tracking-wide">
+              MAP THEME
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {THEMES.map((theme) => {
+                const active = gameColors.theme === theme.id;
+
+                return (
+                  <button
+                    key={theme.id}
+                    onClick={() =>
+                      setGameColors({ ...gameColors, theme: theme.id })
+                    }
+                    className={`
+                      flex items-center gap-2 px-3 py-2 rounded-md border text-xs transition-all
+                      ${active
+                        ? "border-purple-400/60 bg-purple-500/15 text-white"
+                        : "border-white/10 bg-white/[0.02] text-gray-400 hover:bg-white/[0.05]"
+                      }
+                    `}
+                  >
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: theme.centerLine }}
+                    />
+                    {theme.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-[11px] text-gray-500 mb-2 tracking-wide">
+              BALL COLOR
+            </div>
+
+            <div className="relative">
+              <button
+                onClick={() => setShowBallColors(!showBallColors)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-white/10 bg-white/[0.025] hover:bg-white/[0.05] text-gray-300 transition"
+              >
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-4 h-4 rounded-full border border-white/30"
+                    style={{ backgroundColor: gameColors.ballColor }}
+                  />
+                  Select Color
+                </div>
+                <Palette size={14} />
+              </button>
+
+              {showBallColors && (
+                <div className="absolute z-20 mt-2 w-full rounded-lg border border-white/10 bg-[#0f101f] backdrop-blur-xl p-3 shadow-2xl">
+                  <div className="grid grid-cols-5 gap-2">
+                    {BALL_COLORS.map((color) => (
+                      <button
+                        key={color.value}
+                        onClick={() => {
+                          setGameColors({
+                            ...gameColors,
+                            ballColor: color.value,
+                          });
+                          setShowBallColors(false);
+                        }}
+                        className={`w-7 h-7 rounded-full transition ${gameColors.ballColor === color.value
+                            ? "ring-2 ring-white scale-110"
+                            : "hover:scale-110"
+                          }`}
+                        style={{ backgroundColor: color.value }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-white/10 flex flex-col gap-3">
+
+            <button
+              onClick={onBack}
+              className="py-2 rounded-md border border-white/10 bg-white/[0.02] hover:bg-white/[0.06] text-gray-300 hover:text-white transition"
+            >
+              ← Back
+            </button>
+
+            <button
+              onClick={onStart}
+              className="py-2 rounded-md bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 text-white font-medium shadow-lg transition"
+            >
+              Start Match
+            </button>
+
+          </div>
+
         </div>
       </div>
     </div>

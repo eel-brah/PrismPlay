@@ -4,6 +4,7 @@ import {
   getRoomHistoryDb,
   listRoomsHistoryDb,
   getRoomLeaderboard,
+  getGlobalLeaderboard,
 } from "./agario_service.js";
 
 type PlayersHistoryQuery = {
@@ -72,6 +73,14 @@ export async function agario_routes(server: FastifyInstance) {
         room,
         leaderboard,
       });
+    },
+  );
+
+  server.get(
+    "/leaderboard/global",
+    { preHandler: [server.auth] },
+    async () => {
+      return getGlobalLeaderboard(100);
     },
   );
 }

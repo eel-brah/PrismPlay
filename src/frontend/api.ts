@@ -314,3 +314,9 @@ export async function apiPingMe(token: string) {
   );
   return res.data;
 }
+
+export async function apiGetGlobalLeaderboard(token: string) {
+  const res = await api.get("/agario/leaderboard/global", withAuth(token));
+
+  return res.data;
+}

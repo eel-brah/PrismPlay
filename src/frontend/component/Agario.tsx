@@ -53,6 +53,7 @@ const Agario = () => {
   const [roomName, setRoomName] = useState("");
   const roomNameRef = useRef<string>("");
   const [hasJoined, setHasJoined] = useState(false);
+  const [firstTime, setFirstTime] = useState(true);
 
   const pendingInputsRef = useRef<InputState[]>([]);
   // const lastProcessedSeqRef = useRef<number>(0);
@@ -222,6 +223,7 @@ const Agario = () => {
       isDeadRef.current = false;
       setMenuMode(roomNameRef.current);
       setHasJoined(true);
+      setFirstTime(false);
       clearAlert();
 
       enemiesRef.current = {};
@@ -566,8 +568,28 @@ const Agario = () => {
     clearAlert();
   }
 
+
   return (
-    <div className="fixed inset-0 bg-zinc-950 text-zinc-100">
+    <div className="fixed inset-0 text-zinc-100 overflow-hidden">
+
+      <div className="absolute inset-0 -z-50 bg-[#0f101f]" />
+
+      <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full 
+      bg-purple-600/20 blur-[140px] -z-50" />
+
+      <div className="absolute -bottom-40 -left-40 w-[600px] h-[600px] rounded-full 
+      bg-blue-600/20 blur-[140px] -z-50" />
+
+      <div className="absolute inset-0 -z-50
+      bg-[radial-gradient(circle_at_center,rgba(120,80,255,0.12),transparent_60%)]" />
+
+
+      {firstTime && (
+        <div className="absolute inset-0 opacity-[0.05] -z-50
+    [background-image:linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)]
+    [background-size:60px_60px]"
+        />
+      )}
       <div className="pointer-events-none fixed top-6 left-1/2 -translate-x-1/2 z-50">
         <div
           className={`
@@ -588,13 +610,18 @@ const Agario = () => {
 
           <input
             className="
-                px-4 py-2 rounded-md border
-                border-fuchsia-500/60
-                text-white text-xl
-                bg-zinc-900
-                placeholder-zinc-400
-                focus:outline-none focus:ring-2 focus:ring-zinc-500
-              "
+    px-4 py-2 rounded-md border
+    border-white/20
+    text-white text-xl
+    bg-white/5 backdrop-blur-md
+    placeholder-white/40
+
+    focus:outline-none
+    focus:border-purple-400/70
+    focus:ring-2 focus:ring-purple-500/20
+
+    transition-all duration-200
+  "
             spellCheck={false}
             placeholder="Name (max 6)"
             maxLength={6}

@@ -338,3 +338,72 @@ export async function listPlayerHistoryDb(
     skip,
   });
 }
+
+export type GlobalLeaderboardEntry = {
+  userId: number;
+  username: string;
+  avatarUrl: string | null;
+
+  games: number;
+  wins: number;
+  totalKills: number;
+  bestMass: number;
+  score: number;
+};
+
+export async function getGlobalLeaderboard(
+  take: number = 100,
+): Promise<GlobalLeaderboardEntry[]> {
+  const rows = await prisma.playerHistory.groupBy({
+    by: ["userId"],
+    where: { userId: { not: null } },
+
+    _count: { _all: true },
+    _sum: { kills: true },
+    _max: { maxMass: true },
+  });
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: rows.map((r) => r.userId!).filter(Boolean) } },
+    select: { id: true, username: true, avatarUrl: true },
+  });
+
+  const userMap = new Map(users.map((u) => [u.id, u]));
+
+  const winsMap = await prisma.playerHistory.groupBy({
+    by: ["userId"],
+    where: { isWinner: true, userId: { not: null } },
+    _count: { _all: true },
+  });
+
+  const winsLookup = new Map(winsMap.map((w) => [w.userId!, w._count._all]));
+
+  const result = rows
+    .map((r) => {
+      const user = userMap.get(r.userId!);
+      if (!user) return null;
+
+      const games = r._count._all;
+      const wins = winsLookup.get(r.userId!) ?? 0;
+      const totalKills = r._sum.kills ?? 0;
+      const bestMass = r._max.maxMass ?? 0;
+
+      const score = wins * 1000 + totalKills * 10 + bestMass * 0.001;
+
+      return {
+        userId: user.id,
+        username: user.username,
+        avatarUrl: user.avatarUrl,
+        games,
+        wins,
+        totalKills,
+        bestMass,
+        score,
+      };
+    })
+    .filter(Boolean) as GlobalLeaderboardEntry[];
+
+  result.sort((a, b) => b.score - a.score);
+
+  return result.slice(0, take);
+}
