@@ -18,28 +18,28 @@ import type {
   GameSnapshot,
 } from "../../../shared/pong/gameTypes.js";
 
-type SocketData = {
+export type SocketData = {
   profile?: PlayerProfile;
   matchId?: string;
   side?: Side;
   userId?: number;
 };
 
-type PongSocket = Socket<
+export type PongSocket = Socket<
   ClientToServerEvents,
   ServerToClientEvents,
   object,
   SocketData
 >;
 
-type PongNS = Namespace<
+export type PongNS = Namespace<
   ClientToServerEvents,
   ServerToClientEvents,
   object,
   SocketData
 >;
 
-interface Match {
+export interface Match {
   id: string;
   left: PongSocket | null;
   right: PongSocket | null;
@@ -58,7 +58,59 @@ interface Match {
   // hasStarted: boolean;
 }
 
-const RECONNECT_TIMEOUT_MS = 15000;
+export const RECONNECT_TIMEOUT_MS = 15000;
+
+export async function getPlayerStats(playerId: number) {
+    const [wins, losses] = await Promise.all([
+      prisma.pongMatch.count({ where: { winnerId: playerId } }),
+      prisma.pongMatch.count({
+        where: {
+          OR: [{ leftPlayerId: playerId }, { rightPlayerId: playerId }],
+          NOT: { winnerId: playerId },
+        },
+      }),
+    ]);
+
+    const totalGames = wins + losses;
+    const winrate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+
+    return { wins, losses, winrate };
+}
+
+  export async function saveMatchResult(
+    fastify: FastifyInstance,
+    match: Match,
+    winnerSide: Side,
+    reason: "score" | "surrender" | "disconnect",
+  ) {
+    const leftPlayerId = match.leftProfile.id;
+    const rightPlayerId = match.rightProfile.id;
+    const winnerId = winnerSide === "left" ? leftPlayerId : rightPlayerId;
+    const duration = Math.floor((Date.now() - match.startTime) / 1000);
+
+    try {
+      await prisma.pongMatch.create({
+        data: {
+          leftPlayerId,
+          rightPlayerId,
+          winnerId,
+          leftScore: match.state.left.score,
+          rightScore: match.state.right.score,
+          reason,
+          duration,
+        },
+      });
+      fastify.log.info(
+        { matchId: match.id, winnerId, reason },
+        "[pong] Match result saved",
+      );
+    } catch (err) {
+      fastify.log.error(
+        { err, matchId: match.id },
+        "[pong] Failed to save match result",
+      );
+    }
+  }
 
 export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
   const pong = io.of("/pong") as PongNS;
@@ -227,23 +279,8 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       createMatch(a, b);
     }
   }
+ 
 
-  async function getPlayerStats(playerId: number) {
-    const [wins, losses] = await Promise.all([
-      prisma.pongMatch.count({ where: { winnerId: playerId } }),
-      prisma.pongMatch.count({
-        where: {
-          OR: [{ leftPlayerId: playerId }, { rightPlayerId: playerId }],
-          NOT: { winnerId: playerId },
-        },
-      }),
-    ]);
-
-    const totalGames = wins + losses;
-    const winrate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
-
-    return { wins, losses, winrate };
-  }
 
   async function createMatch(leftSocket: PongSocket, rightSocket: PongSocket) {
     const id = nextMatchId();
@@ -558,44 +595,10 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     }
 
     // Save to DB
-    await saveMatchResult(match, winnerSide, reason);
+    await saveMatchResult(fastify, match, winnerSide, reason);
 
     // Final cleanup
     cleanupMatch(match);
-  }
-
-  async function saveMatchResult(
-    match: Match,
-    winnerSide: Side,
-    reason: "score" | "surrender" | "disconnect",
-  ) {
-    const leftPlayerId = match.leftProfile.id;
-    const rightPlayerId = match.rightProfile.id;
-    const winnerId = winnerSide === "left" ? leftPlayerId : rightPlayerId;
-    const duration = Math.floor((Date.now() - match.startTime) / 1000);
-
-    try {
-      await prisma.pongMatch.create({
-        data: {
-          leftPlayerId,
-          rightPlayerId,
-          winnerId,
-          leftScore: match.state.left.score,
-          rightScore: match.state.right.score,
-          reason,
-          duration,
-        },
-      });
-      fastify.log.info(
-        { matchId: match.id, winnerId, reason },
-        "[pong] Match result saved",
-      );
-    } catch (err) {
-      fastify.log.error(
-        { err, matchId: match.id },
-        "[pong] Failed to save match result",
-      );
-    }
   }
 
   function tickMatch(match: Match) {
