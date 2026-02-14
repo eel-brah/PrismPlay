@@ -26,8 +26,8 @@ import {
   getStoredToken,
   storeToken,
   clearToken,
-  apiPingMe,
-  TOKEN_KEY,
+  // apiPingMe,
+  // TOKEN_KEY,
 } from "./api";
 import AgarioLeaderboard from "./component/agario/AgarioLeaderboard";
 import AppBackground from "./component/Appbackground";
@@ -95,31 +95,31 @@ export default function App() {
     localStorage.setItem("profile_data", JSON.stringify(next));
   }
 
-  useEffect(() => {
-    if (!token) return;
+  // useEffect(() => {
+  //   if (!token) return;
 
-    const ping = async () => {
-      try {
-        await apiPingMe(token);
-      } catch { }
-    };
+  //   const ping = async () => {
+  //     try {
+  //       await apiPingMe(token);
+  //     } catch {}
+  //   };
 
-    ping();
+  //   ping();
 
-    const id = window.setInterval(ping, 15_000);
+  //   const id = window.setInterval(ping, 15_000);
 
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") ping();
-    };
-    window.addEventListener("focus", ping);
-    document.addEventListener("visibilitychange", onVisibility);
+  //   const onVisibility = () => {
+  //     if (document.visibilityState === "visible") ping();
+  //   };
+  //   window.addEventListener("focus", ping);
+  //   document.addEventListener("visibilitychange", onVisibility);
 
-    return () => {
-      window.clearInterval(id);
-      window.removeEventListener("focus", ping);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, [token]);
+  //   return () => {
+  //     window.clearInterval(id);
+  //     window.removeEventListener("focus", ping);
+  //     document.removeEventListener("visibilitychange", onVisibility);
+  //   };
+  // }, [token]);
 
   useEffect(() => {
     async function boot() {

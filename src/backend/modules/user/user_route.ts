@@ -9,7 +9,6 @@ import {
   getUserAchievementsHandler,
   updateMeHandler,
   uploadAvatar,
-  pingMeHandler,
 } from "./user_controller.js";
 import {
   achievementsResponseSchema,
@@ -18,7 +17,6 @@ import {
   loginResponseSchema,
   loginSchema,
   messageResponseSchema,
-  pingResponseSchema,
   publicUserResponseSchema,
   updateUserSchema,
   userResponseSchema,
@@ -105,10 +103,5 @@ export async function userRoutes(server: FastifyInstance) {
   server.post("/avatar", {
     preHandler: [server.auth],
     handler: uploadAvatar,
-  });
-  server.post("/me/ping", {
-    preHandler: [server.auth],
-    schema: { response: { 200: pingResponseSchema } },
-    handler: pingMeHandler,
   });
 }

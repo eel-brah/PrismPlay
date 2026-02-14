@@ -59,13 +59,6 @@ export async function createUser(input: CreateUserInput) {
   });
 }
 
-export async function touchUserLastLogin(userId: number) {
-  return prisma.user.updateMany({
-    where: { id: userId },
-    data: { lastLogin: new Date() },
-  });
-}
-
 export async function findUserByEmail(email: string) {
   return prisma.user.findUnique({ where: { email } });
 }

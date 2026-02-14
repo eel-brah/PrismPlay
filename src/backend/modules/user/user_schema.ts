@@ -50,9 +50,6 @@ export const userResponseSchema = z.object({
   avatarUrl: z.string().nullable(),
 });
 
-export const pingResponseSchema = z.object({
-  ok: z.boolean(),
-});
 
 export const publicUserResponseSchema = z.object({
   id: z.number(),

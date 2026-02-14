@@ -142,7 +142,7 @@ export async function apiLogin(email: string, password: string) {
 export async function apiLogout(token: string) {
   const res = await api.post<{ message: string }>(
     "/auth/logout",
-    null,
+    {},
     withAuth(token),
   );
   return res.data;
@@ -263,7 +263,7 @@ export async function apiIncomingRequests(token: string) {
 export async function apiAcceptFriend(token: string, id: string) {
   const res = await api.post<FriendRequest[]>(
     `/friend/requests/${id}/accept`,
-    null,
+    {},
     withAuth(token),
   );
   return res.data;
@@ -272,7 +272,7 @@ export async function apiAcceptFriend(token: string, id: string) {
 export async function apiDeclineFriend(token: string, id: string) {
   const res = await api.post<FriendRequest[]>(
     `/friend/requests/${id}/decline`,
-    null,
+    {},
     withAuth(token),
   );
   return res.data;
