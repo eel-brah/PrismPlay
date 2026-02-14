@@ -569,35 +569,73 @@ const Agario = () => {
   }
 
 
+  const glassPanel =
+    "bg-white/[0.05] backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_10px_60px_rgba(0,0,0,0.45)]";
+
+  const glowCard =
+    "bg-white/[0.04] border border-white/10 rounded-lg backdrop-blur-md";
+
+  const neonBtn =
+    "px-5 py-3 rounded-lg font-semibold transition-all duration-200 " +
+    "bg-gradient-to-r from-purple-500/40 to-blue-500/30 border border-purple-400/40 " +
+    "hover:from-purple-500/60 hover:to-blue-500/50 hover:shadow-[0_0_25px_rgba(168,85,247,0.55)] active:scale-[0.97]";
+
+  const dangerBtn =
+    "px-5 py-3 rounded-lg font-semibold transition-all duration-200 " +
+    "bg-red-500/20 border border-red-400/40 text-red-200 " +
+    "hover:bg-red-500/30 hover:border-red-400/70";
+
+  const badge =
+    "px-2 py-0.5 text-xs rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-200";
+  const primaryBtn =
+    "px-6 py-3 rounded-lg text-lg font-medium transition-all duration-200 " +
+    "bg-white/[0.05] backdrop-blur-md border border-white/10 text-white " +
+    "hover:bg-white/[0.08] hover:border-purple-400/40 hover:shadow-[0_0_10px_rgba(168,85,247,0.25)] active:scale-[0.97]";
+
+  const accentBtn =
+    "px-6 py-3 rounded-lg text-lg font-semibold transition-all duration-200 " +
+    "bg-purple-500/30 border border-purple-400/40 text-white " +
+    "hover:from-purple-500/40 hover:to-blue-500/30 hover:shadow-[0_0_10px_rgba(168,85,247,0.45)] active:scale-[0.97]";
+
+  const subtleBtn =
+    "px-4 py-2 rounded-md text-lg transition-all duration-200 " +
+    "bg-white/[0.04] border border-white/10 text-gray-200 " +
+    "hover:bg-white/[0.07] hover:text-white hover:border-white/20";
+
+  const listBtn =
+    "px-3 py-2 rounded-md text-sm transition-all " +
+    "bg-white/[0.05] border border-white/10 text-gray-200 " +
+    "hover:bg-white/[0.1] hover:border-blue-400/40";
+
   return (
     <div className="fixed inset-0 text-zinc-100 overflow-hidden">
 
       <div className="absolute inset-0 -z-50 bg-[#0f101f]" />
 
       <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full 
-      bg-purple-600/20 blur-[140px] -z-50" />
+        bg-purple-600/20 blur-[140px] -z-50" />
 
       <div className="absolute -bottom-40 -left-40 w-[600px] h-[600px] rounded-full 
-      bg-blue-600/20 blur-[140px] -z-50" />
+        bg-blue-600/20 blur-[140px] -z-50" />
 
       <div className="absolute inset-0 -z-50
-      bg-[radial-gradient(circle_at_center,rgba(120,80,255,0.12),transparent_60%)]" />
+        bg-[radial-gradient(circle_at_center,rgba(120,80,255,0.12),transparent_60%)]" />
 
 
       {firstTime && (
         <div className="absolute inset-0 opacity-[0.05] -z-50
-    [background-image:linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)]
-    [background-size:60px_60px]"
+          [background-image:linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)]
+          [background-size:60px_60px]"
         />
       )}
       <div className="pointer-events-none fixed top-6 left-1/2 -translate-x-1/2 z-50">
         <div
           className={`
-            px-6 py-3 rounded-md border text-lg transition-all duration-200
-            ${alert.type
+px-6 py-3 rounded-md border text-lg transition-all duration-200
+${alert.type
               ? `${alertStyles[alert.type]} opacity-100 translate-y-0`
               : "opacity-0 -translate-y-2"}
-            `}
+`}
           aria-live="polite"
         >
           {alert.message}
@@ -605,23 +643,21 @@ const Agario = () => {
       </div>
 
       {!hasJoined && (
-        <div className="absolute inset-0 flex flex-col justify-center items-center gap-4">
-          <h1 className="text-4xl mb-4 font-bold text-zinc-100">Agario</h1>
+        <div className="absolute inset-0 flex flex-col justify-center items-center gap-5">
+
+          <h1 className="text-4xl mb-4 font-bold text-white tracking-wide">
+            Agario
+          </h1>
 
           <input
             className="
-    px-4 py-2 rounded-md border
-    border-white/20
-    text-white text-xl
-    bg-white/5 backdrop-blur-md
-    placeholder-white/40
-
-    focus:outline-none
-    focus:border-purple-400/70
-    focus:ring-2 focus:ring-purple-500/20
-
-    transition-all duration-200
-  "
+            px-4 py-2 rounded-md border border-white/20
+            text-white text-xl bg-white/5 backdrop-blur-md
+            placeholder-white/40
+            focus:outline-none focus:border-purple-400/70
+            focus:ring-2 focus:ring-purple-500/20
+            transition-all duration-200
+            "
             spellCheck={false}
             placeholder="Name (max 6)"
             maxLength={6}
@@ -638,7 +674,7 @@ const Agario = () => {
                 roomNameRef.current = DEFAULT_ROOM;
                 handleJoinRoom("join");
               }}
-              className="px-6 py-3 bg-zinc-800 text-white rounded-md text-xl hover:bg-zinc-700 transition"
+              className={accentBtn}
             >
               Start (FFA)
             </button>
@@ -648,7 +684,7 @@ const Agario = () => {
                 clearAlert();
                 setMenuMode(menuMode != "join" ? "join" : HOME_PAGE);
               }}
-              className="px-6 py-3 bg-zinc-800 text-white rounded-md text-xl hover:bg-zinc-700 transition"
+              className={primaryBtn}
             >
               Join Room
             </button>
@@ -658,7 +694,7 @@ const Agario = () => {
                 clearAlert();
                 setMenuMode(menuMode != "create" ? "create" : HOME_PAGE);
               }}
-              className="px-6 py-3 bg-zinc-800 text-white rounded-md text-xl hover:bg-zinc-700 transition"
+              className={primaryBtn}
             >
               Create Room
             </button>
@@ -666,41 +702,39 @@ const Agario = () => {
 
           {menuMode === HOME_PAGE && (
             <div className="flex gap-3 mt-2">
-              <button
-                onClick={goHome}
-                className="px-4 py-2 bg-zinc-800  text-white rounded-md text-lg hover:bg-zinc-700 transition"
-              >
-                🏠 Home
-              </button>
-
-              <button
-                onClick={goProfile}
-                className="px-4 py-2 bg-zinc-800  text-white rounded-md text-lg hover:bg-zinc-700 transition"
-              >
-                👤 Profile
-              </button>
+              <button onClick={goHome} className={subtleBtn}>🏠 Home</button>
+              <button onClick={goProfile} className={subtleBtn}>👤 Profile</button>
             </div>
           )}
 
           {menuMode === "join" && (
-            <div className="w-[560px] max-w-[92vw] bg-zinc-900/90 rounded-lg p-4 border border-fuchsia-500/60 backdrop-blur">
-              <div className="text-white font-bold text-xl mb-2">Rooms</div>
+            <div className="w-[540px] max-w-[92vw] p-5 bg-white/[0.05] backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_10px_60px_rgba(0,0,0,0.45)]">
 
-              <div className="max-h-[260px] overflow-auto flex flex-col gap-2">
+              <div className="text-xl font-semibold mb-4 text-white tracking-wide">
+                Rooms
+              </div>
+
+              <div className="max-h-[240px] overflow-auto flex flex-col gap-2">
                 {rooms.length === 0 && (
-                  <div className="text-zinc-400">No rooms right now.</div>
+                  <div className="text-zinc-400 text-sm">No rooms right now.</div>
                 )}
 
                 {rooms.map((r) => (
                   <div
                     key={r.room}
-                    className="flex items-center justify-between border border-fuchsia-500/60 rounded p-2 bg-zinc-950/40"
+                    className="
+                    flex items-center justify-between rounded-xl px-3 py-2.5
+                    bg-white/[0.04] border border-white/10
+                    hover:bg-white/[0.07] hover:border-purple-400/40
+                    transition-all duration-200
+                    "
                   >
                     <div className="text-white">
                       <div className="font-semibold">
                         {r.room} {r.visibility === "private" ? "🔒" : "🌐"}
                       </div>
-                      <div className="text-sm text-gray-200">
+
+                      <div className="text-xs text-gray-300">
                         {r.status} • {r.playerCount}/{r.maxPlayers}
                         {r.room !== DEFAULT_ROOM && (
                           <>
@@ -715,7 +749,7 @@ const Agario = () => {
                     <div className="flex gap-2">
                       {r.allowSpectators && (
                         <button
-                          className="px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                          className={listBtn}
                           onClick={() => {
                             setRoomName(r.room);
                             roomNameRef.current = r.room;
@@ -730,8 +764,9 @@ const Agario = () => {
                           👁 Spectate
                         </button>
                       )}
+
                       <button
-                        className="px-3 py-2 bg-gray-700 text-white rounded hover:bg-gray-800"
+                        className={listBtn}
                         onClick={() => {
                           setRoomName(r.room);
                           roomNameRef.current = r.room;
@@ -745,22 +780,20 @@ const Agario = () => {
                       >
                         {r.visibility === "public" ? "Join" : "Select"}
                       </button>
-
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-4 flex flex-col gap-2">
+              <div className="mt-4 flex flex-col gap-2.5">
                 <input
                   className="
-                      px-4 py-2 rounded-md border
-                      border-fuchsia-500/60
-                      text-white text-xl
-                      bg-zinc-900
-                      placeholder-zinc-400
-                      focus:outline-none focus:ring-2 focus:ring-zinc-500
-                    "
+                  px-4 py-2.5 rounded-lg
+                  bg-white/[0.06] border border-white/10
+                  text-white placeholder-white/40
+                  focus:outline-none focus:border-purple-400/60 focus:ring-2 focus:ring-purple-500/20
+                  transition-all duration-200
+                  "
                   spellCheck={false}
                   placeholder="Room name (or select above)"
                   maxLength={20}
@@ -773,13 +806,12 @@ const Agario = () => {
 
                 <input
                   className="
-                      px-4 py-2 rounded-md border
-                      border-fuchsia-500/60
-                      text-white text-xl
-                      bg-zinc-900
-                      placeholder-zinc-400
-                      focus:outline-none focus:ring-2 focus:ring-zinc-500
-                    "
+                  px-4 py-2.5 rounded-lg
+                  bg-white/[0.06] border border-white/10
+                  text-white placeholder-white/40
+                  focus:outline-none focus:border-purple-400/60 focus:ring-2 focus:ring-purple-500/20
+                  transition-all duration-200
+                  "
                   spellCheck={false}
                   maxLength={8}
                   placeholder="Key (only for private rooms)"
@@ -787,28 +819,21 @@ const Agario = () => {
                   onChange={(e) => setJoinKey(e.target.value)}
                 />
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 mt-1">
                   <button
                     onClick={() => {
                       const r = roomName.trim();
                       if (!r) {
-                        setAlert({
-                          type: "warning",
-                          message: "Room name is missing",
-                        });
+                        setAlert({ type: "warning", message: "Room name is missing" });
                         return;
                       }
                       if (!isValidRoomName(r)) {
-                        setAlert({
-                          type: "warning",
-                          message: "Room name is invalid",
-                        });
+                        setAlert({ type: "warning", message: "Room name is invalid" });
                         return;
                       }
-                      handleJoinRoom("join", isSpectator)
+                      handleJoinRoom("join", isSpectator);
                     }}
-
-                    className="px-6 py-3 bg-gray-500 text-white rounded-md text-xl hover:bg-gray-600 transition"
+                    className={accentBtn}
                   >
                     {isSpectator ? "Spectate" : "Join"}
                   </button>
@@ -821,7 +846,7 @@ const Agario = () => {
                       setJoinKey("");
                       clearAlert();
                     }}
-                    className="px-6 py-3 bg-zinc-700 text-white rounded-md text-xl hover:bg-zinc-600 transition"
+                    className={primaryBtn}
                   >
                     Back
                   </button>
@@ -831,18 +856,20 @@ const Agario = () => {
           )}
 
           {menuMode === "create" && (
-            <div className="w-[560px] max-w-[92vw] bg-zinc-900/90 rounded-lg p-4 border border-fuchsia-500/60 backdrop-blur">
-              <div className="text-white font-bold text-xl mb-3">Create Room</div>
+            <div className="w-[540px] max-w-[92vw] p-5 bg-white/[0.05] backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_10px_60px_rgba(0,0,0,0.45)]">
+
+              <div className="text-xl font-semibold mb-4 text-white tracking-wide">
+                Create Room
+              </div>
 
               <input
                 className="
-                    px-4 py-2 rounded-md border
-                    border-fuchsia-500/60
-                    text-white text-xl
-                    bg-zinc-900
-                    placeholder-zinc-400
-                    focus:outline-none focus:ring-2 focus:ring-zinc-500
-                  "
+                w-full px-4 py-2 rounded-lg
+                bg-white/[0.04] border border-white/15
+                text-white placeholder-white/40
+                focus:outline-none focus:border-purple-400/60 focus:ring-2 focus:ring-purple-500/20
+                transition-all
+                "
                 spellCheck={false}
                 placeholder="Room name (A-Z, 0-9, _ or -)"
                 maxLength={20}
@@ -850,75 +877,65 @@ const Agario = () => {
                 onChange={(e) => {
                   roomNameRef.current = e.target.value;
                   setRoomName(e.target.value);
-                }
-                }
+                }}
               />
 
-              <div className="mt-3 flex gap-5 items-center">
-                <label className="text-white flex items-center gap-2">
-                  <input
-                    type="radio"
-                    checked={visibility === "public"}
-                    onChange={() => setVisibility("public")}
-                  />
-                  Public
-                </label>
-
-                <label className="text-white flex items-center gap-2">
-                  <input
-                    type="radio"
-                    checked={visibility === "private"}
-                    onChange={() => setVisibility("private")}
-                  />
-                  Private
-                </label>
+              <div className="mt-5 flex gap-6">
+                {(["public", "private"] as const).map(v => (
+                  <label key={v} className="flex items-center gap-2 cursor-pointer text-gray-300">
+                    <input
+                      type="radio"
+                      checked={visibility === v}
+                      onChange={() => setVisibility(v)}
+                      className="accent-purple-500"
+                    />
+                    <span className="capitalize">{v}</span>
+                  </label>
+                ))}
               </div>
 
-              <div className="mt-3 flex items-center">
-                <label className="text-white flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={allowSpectators}
-                    onChange={(e) => setAllowSpectators(e.target.checked)}
-                  />
-                  Allow Spectators
-                </label>
-              </div>
+              <label className="mt-4 flex items-center gap-2 text-gray-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={allowSpectators}
+                  onChange={(e) => setAllowSpectators(e.target.checked)}
+                  className="accent-purple-500"
+                />
+                Allow spectators
+              </label>
 
-              <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="mt-4 grid grid-cols-2 gap-3">
+
                 <input
                   className="
-                      px-4 py-2 rounded-md border
-                      border-fuchsia-500/60
-                      text-white text-xl
-                      bg-zinc-900
-                      placeholder-zinc-400
-                      focus:outline-none focus:ring-2 focus:ring-zinc-500
-                    "
-                  spellCheck={false}
+                  px-4 py-2 rounded-lg
+                  bg-white/[0.04] border border-white/15
+                  text-white placeholder-white/40
+                  focus:outline-none focus:border-purple-400/60 focus:ring-2 focus:ring-purple-500/20
+                  "
                   type="number"
+                  spellCheck={false}
                   min={MIN_PLAYERS_PER_ROOM}
                   max={MAX_PLAYERS_PER_ROOM}
-                  placeholder="Max players 2-50"
+                  placeholder="Max players"
                   value={maxPlayers}
                   onChange={(e) =>
                     setMaxPlayers(e.target.value === "" ? "" : Number(e.target.value))
                   }
                 />
+
                 <input
                   className="
-                      px-4 py-2 rounded-md border
-                      border-fuchsia-500/60
-                      text-white text-xl
-                      bg-zinc-900
-                      placeholder-zinc-400
-                      focus:outline-none focus:ring-2 focus:ring-zinc-500
-                    "
+                  px-4 py-2 rounded-lg
+                  bg-white/[0.04] border border-white/15
+                  text-white placeholder-white/40
+                  focus:outline-none focus:border-purple-400/60 focus:ring-2 focus:ring-purple-500/20
+                  "
                   type="number"
                   spellCheck={false}
                   min={MIN_MINUTES}
                   max={MAX_MINUTES}
-                  placeholder="Duration (min) 1-60"
+                  placeholder="Duration (minutes)"
                   value={durationMin}
                   onChange={(e) =>
                     setDurationMin(e.target.value === "" ? "" : Number(e.target.value))
@@ -927,56 +944,41 @@ const Agario = () => {
               </div>
 
               {visibility === "private" && createdKey && (
-                <div className="mt-3 px-3 py-2 rounded bg-yellow-100 border border-yellow-300 text-yellow-900">
-                  Private Key: <b>{createdKey}</b>
+                <div className="mt-4 text-center">
+                  <div className="text-xs text-gray-400 mb-1">Private Room Key</div>
+                  <div className="inline-block font-mono tracking-widest text-lg text-purple-300 border border-purple-400/30 px-4 py-2 rounded-lg bg-purple-500/10">
+                    {createdKey}
+                  </div>
                 </div>
               )}
 
-              <div className="mt-4 flex gap-3">
+              <div className="mt-5 flex gap-3 justify-between">
+
                 <button
                   onClick={() => {
                     const r = roomName.trim();
 
                     if (!r) {
-                      setAlert({
-                        type: "warning",
-                        message: "Room name is missing",
-                      });
+                      setAlert({ type: "warning", message: "Room name is missing" });
                       return;
                     }
-
                     if (!isValidRoomName(r)) {
-                      setAlert({
-                        type: "warning",
-                        message: "Room name is invalid",
-                      });
+                      setAlert({ type: "warning", message: "Room name is invalid" });
                       return;
                     }
-
                     if (maxPlayers === "" || typeof maxPlayers !== "number") {
-                      setAlert({
-                        type: "warning",
-                        message: "Max players is required",
-                      });
+                      setAlert({ type: "warning", message: "Max players is required" });
                       return;
                     }
-
-                    if (
-                      maxPlayers < MIN_PLAYERS_PER_ROOM ||
-                      maxPlayers > MAX_PLAYERS_PER_ROOM
-                    ) {
+                    if (maxPlayers < MIN_PLAYERS_PER_ROOM || maxPlayers > MAX_PLAYERS_PER_ROOM) {
                       setAlert({
                         type: "warning",
                         message: `Max players must be between ${MIN_PLAYERS_PER_ROOM} and ${MAX_PLAYERS_PER_ROOM}`,
                       });
                       return;
                     }
-
                     if (durationMin === "" || typeof durationMin !== "number") {
-                      setAlert({
-                        type: "warning",
-                        message: "Duration is required",
-                      });
+                      setAlert({ type: "warning", message: "Duration is required" });
                       return;
                     }
                     if (durationMin < MIN_MINUTES || durationMin > MAX_MINUTES) {
@@ -989,9 +991,9 @@ const Agario = () => {
 
                     handleJoinRoom("create");
                   }}
-                  className="px-6 py-3 bg-gray-500 text-white rounded-md text-xl hover:bg-gray-600 transition"
+                  className={accentBtn}
                 >
-                  Create
+                  Create Room
                 </button>
 
                 <button
@@ -1003,10 +1005,11 @@ const Agario = () => {
                     setCreatedKey("");
                     clearAlert();
                   }}
-                  className="px-6 py-3 bg-zinc-700 text-white rounded-md text-xl hover:bg-zinc-600 transition"
+                  className={primaryBtn}
                 >
                   Back
                 </button>
+
               </div>
             </div>
           )}
@@ -1022,7 +1025,12 @@ const Agario = () => {
             <div className="flex gap-4">
               <button
                 onClick={handleRespawn}
-                className="px-6 py-3 bg-white text-black rounded-md text-xl hover:bg-gray-200"
+                className="
+                px-6 py-3 rounded-lg font-semibold
+                bg-gradient-to-r from-purple-500 to-blue-500
+                text-white hover:brightness-110
+                hover:shadow-[0_0_30px_rgba(168,85,247,0.6)]
+                transition-all"
               >
                 Respawn
               </button>
@@ -1035,7 +1043,12 @@ const Agario = () => {
                   // setMenuMode(DEFAULT_ROOM);
                   handleJoinRoom("join", true);
                 }}
-                className="px-6 py-3 bg-white text-black rounded-md text-xl hover:bg-gray-200"
+                className="
+                px-6 py-3 rounded-lg font-semibold
+                bg-gradient-to-r from-purple-500 to-blue-500
+                text-white hover:brightness-110
+                hover:shadow-[0_0_30px_rgba(168,85,247,0.6)]
+                transition-all"
               >
                 Spectate
               </button>
@@ -1071,77 +1084,90 @@ const Agario = () => {
 
       {
         hasJoined && roomInfo?.status === "waiting" && (
-          <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-40">
-            <div className="bg-zinc-900 rounded-lg p-6 w-[560px] max-w-[92vw] border border-white/10 text-white">
-              <div className="text-2xl font-bold text-zinc-100 flex items-center justify-between">
-                <span>
-                  Lobby: {roomInfo.room}{" "}
-                  {roomInfo.visibility === "private" ? "🔒" : "🌐"}
-                </span>
-                <span className="text-sm text-zinc-400">
-                  {lobbyPlayers.length}/{roomInfo.maxPlayers}
-                </span>
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-40">
+
+            <div className={`${glassPanel} p-7 w-[620px] max-w-[92vw] text-white`}>
+
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-2xl font-bold tracking-wide">
+                  {roomInfo.visibility === "private" ? "🔒" : "🌐"} {roomInfo.room}
+                </div>
+
+                <div className="text-sm text-purple-300 font-semibold">
+                  {lobbyPlayers.length}/{roomInfo.maxPlayers} Players
+                </div>
               </div>
 
-              <div className="text-zinc-400 mt-1">
-                Duration: {roomInfo.durationMin} minutes
+              <div className="text-gray-400 text-sm">
+                Match Duration: {roomInfo.durationMin} min
               </div>
 
-              <div className="mt-6 flex items-center justify-center">
-                <span className="text-xl font-bold text-zinc-100 text-center">
-                  Waiting for players to join...
-                </span>
+              <div className="mt-6 text-center">
+                <div className="text-xl font-semibold text-white animate-pulse">
+                  Waiting for players...
+                </div>
+                <div className="text-gray-400 text-sm mt-1">
+                  Game will start once the host begins the match
+                </div>
               </div>
 
-              {roomInfo.youAreHost &&
-                roomInfo.visibility === "private" &&
-                roomInfo.key && (
-                  <div className="mt-3 px-3 py-2 rounded bg-yellow-100 border border-yellow-300 text-yellow-900">
-                    Room Key: <b>{roomInfo.key}</b>
+              {roomInfo.youAreHost && roomInfo.visibility === "private" && roomInfo.key && (
+                <div className="mt-5 text-center">
+                  <div className="text-xs text-gray-400 mb-1">Invite Key</div>
+                  <div className="font-mono tracking-widest text-lg text-purple-300 border border-purple-400/30 px-4 py-2 rounded-lg inline-block bg-purple-500/10">
+                    {roomInfo.key}
                   </div>
-                )}
+                </div>
+              )}
 
-              <div className="mt-4">
-                <div className="font-semibold text-zinc-100 mb-2">Players</div>
-                <div className="max-h-[220px] overflow-auto border border-gray rounded bg-black">
+              <div className="mt-6">
+                <div className="text-sm text-gray-300 mb-2">Players</div>
+
+                <div className="max-h-[240px] overflow-auto space-y-2 pr-1">
                   {lobbyPlayers.map((p) => (
                     <div
                       key={p.id}
-                      className="px-3 py-2 border-b last:border-b-0 flex justify-between"
+                      className={`${glowCard} px-4 py-2 flex justify-between items-center`}
                     >
-                      <span className="text-zinc-100">{p.name}</span>
+                      <span className="font-medium text-gray-100">
+                        {p.name}
+                      </span>
+
                       {p.id === roomInfo.hostId && (
-                        <span className="text-sm text-zinc-400">Host</span>
+                        <span className={badge}>HOST</span>
                       )}
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="mt-4 flex gap-3 items-center">
+              <div className="mt-6 flex gap-3 items-center justify-between">
+
                 {roomInfo.youAreHost ? (
                   <button
                     onClick={() => {
-                      if (socketRef.current) {
-                        socketRef.current.emit("agario:start-room")
-                      }
+                      socketRef.current?.emit("agario:start-room");
                       clearAlert();
                     }}
-                    className="px-5 py-3 bg-green-600 text-white rounded hover:bg-green-700"
+                    className={accentBtn}
                   >
                     Start Match
                   </button>
                 ) : (
-                  <div className="text-zinc-400">Waiting for host to start…</div>
+                  <div className="text-gray-400 text-sm">
+                    Waiting for host to start…
+                  </div>
                 )}
 
                 <button
-                  onClick={() => { backToMainMenu(true); }}
-                  className="px-5 py-3 bg-red-500 text-zinc-100 rounded hover:bg-red-600"
+                  onClick={() => backToMainMenu(true)}
+                  className={dangerBtn}
                 >
                   Leave
                 </button>
+
               </div>
+
             </div>
           </div>
         )
