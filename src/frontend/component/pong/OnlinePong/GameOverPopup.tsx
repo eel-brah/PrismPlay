@@ -13,7 +13,6 @@ export interface GameOverPopupProps {
   opponentNickname: string;
   mySide: Side;
   winReason?: WinReason;
-  // 👇 UPDATE: Make this optional
   onFindMatch?: () => void;
   onLeave: () => void;
 }

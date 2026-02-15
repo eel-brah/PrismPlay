@@ -113,7 +113,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
     avatarUrl: undefined,
   };
 
-  // Determine which player is on which side
+  // Determine players side
   const leftPlayer = side === "left" ? myPlayer : opponent;
   const rightPlayer = side === "right" ? myPlayer : opponent;
   const leftStatus = side === "left" ? myStatus : opponentStatus;
@@ -124,10 +124,9 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
   // --- Setup socket & matchmaking ---
   useEffect(() => {
     const namespace = inviteId ? "/pong-private" : "/pong";
-    // console.log(`Connecting to ${namespace} namespace`);
 
     const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
-      namespace, // <--- Use variable instead of string "/pong"
+      namespace,
       {
         path: "/socket.io",
         auth: { token },
@@ -139,11 +138,9 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      // console.log(`[${namespace}] connected`, socket.id);
       setMyStatus("connected");
       setConnectionError(null);
 
-      // 👇 Check for inviteId before joining
       if (inviteId) {
         // @ts-expect-error: Custom payload for private match
         socket.emit("match.join", { inviteId });
@@ -167,10 +164,6 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
     });
 
     socket.on("match.found", (payload: MatchFoundPayload) => {
-      // console.log("[match.found] side:", payload.side);
-      // console.log("[match.found] playerStats:", payload.playerStats);
-      // console.log("[match.found] opponentStats:", payload.opponentStats);
-
       setSide(payload.side);
       sideRef.current = payload.side;
 
@@ -196,7 +189,6 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
       setUiPhase("inMatch");
     });
 
-    // socket.on("game.state", (snapshot) => (snapshotRef.current = snapshot));
     socket.on("game.state", (snapshot) => {
       snapshotRef.current = snapshot;
 
@@ -212,23 +204,12 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
         winner: payload.winnerSide,
       };
 
-      // Use ref to get current side (avoids stale closure)
       const currentSide = sideRef.current;
       const isWinner = payload.winnerSide === currentSide;
       const myScore =
         currentSide === "left" ? payload.leftScore : payload.rightScore;
       const opponentScore =
         currentSide === "left" ? payload.rightScore : payload.leftScore;
-
-      // console.log("[game.over] payload:", payload);
-      // console.log(
-      //   "[game.over] currentSide:",
-      //   currentSide,
-      //   "winnerSide:",
-      //   payload.winnerSide,
-      //   "isWinner:",
-      //   isWinner,
-      // );
 
       setGameOverData({
         isWinner,
@@ -244,7 +225,6 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
     socket.on("opponent.disconnected", () => {
       setOpponentStatus("disconnected");
       if (uiPhaseRef.current !== "gameover") {
-        // If opponent disconnected mid-game, show as a win
         const snap = snapshotRef.current;
         const currentSide = sideRef.current;
         setGameOverData({
@@ -275,8 +255,6 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
     });
 
     socket.on("match.reconnected", (payload) => {
-      // console.log("[match.reconnected]", payload);
-
       setSide(payload.side);
       sideRef.current = payload.side;
 
@@ -327,7 +305,6 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
     });
 
     socket.on("match.cancelled", () => {
-      // console.log("[pong] match cancelled");
       snapshotRef.current = null;
       setUiPhase("searching");
       setOpponent(UNKNOWN_PLAYER);
@@ -366,9 +343,8 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
     });
 
     socket.on("opponent.surrendered", () => {
-      // console.log("[pong] opponent surrendered");
       setOpponentStatus("disconnected");
-      // Opponent surrendered - show game over as win
+
       const snap = snapshotRef.current;
       const currentSide = sideRef.current;
       setGameOverData({
@@ -463,7 +439,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Scale canvas for sharp text on high-DPI screens
+    // Scale canvas text
     const dpr = window.devicePixelRatio || 1;
     canvas.width = GAME_WIDTH * dpr;
     canvas.height = GAME_HEIGHT * dpr;
@@ -583,7 +559,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
         ctx.fillText(text, (GAME_WIDTH - w) / 2, 100);
       }
 
-      // Display countdown overlay (drawn last so it appears on top)
+      // countdown
       if (snap.phase === "countdown") {
         ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
         ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
