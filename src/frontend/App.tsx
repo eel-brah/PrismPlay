@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { connectPresence, disconnectPresence } from "./presenceSocket";
+import { io, type Socket } from "socket.io-client";
 import Pong from "./component/pong/pong";
 import LoginForm from "./component/LoginForm";
 import RegisterForm from "./component/RegisterForm";
@@ -45,9 +47,7 @@ function NavItem({
     <button
       onClick={onClick}
       className={`relative px-2 py-1 transition-colors
-${active
-          ? "text-white"
-          : "text-gray-400 hover:text-gray-200"}
+${active ? "text-white" : "text-gray-400 hover:text-gray-200"}
 after:absolute after:left-0 after:-bottom-1 after:h-[2px] after:w-full
 after:scale-x-0 after:bg-gradient-to-r after:from-purple-400 after:to-blue-400
 after:transition-transform
@@ -72,6 +72,7 @@ export default function App() {
   } | null>(null);
 
   //CHECK TOKEN IF VALID
+  const presenceRef = useRef<Socket | null>(null);
   const isAuthed = !bootingAuth && !!token;
 
   function saveProfileDataForPlayerProfile(user: {
@@ -83,7 +84,7 @@ export default function App() {
     let previous: any = {};
     try {
       previous = raw ? JSON.parse(raw) : {};
-    } catch { }
+    } catch {}
 
     const next = {
       ...previous,
@@ -155,7 +156,24 @@ export default function App() {
 
     boot();
   }, []);
+  useEffect(() => {
+    if (bootingAuth) return;
 
+    if (!token) {
+      disconnectPresence();
+      return;
+    }
+
+    const ps = connectPresence(token);
+
+    ps.on("connect", () => console.log("presence connected from App", ps.id));
+    ps.on("disconnect", () => console.log("presence disconnected from App"));
+
+    return () => {
+      ps.off("connect");
+      ps.off("disconnect");
+    };
+  }, [bootingAuth, token]);
   async function handleLogin(email: string, password: string) {
     const data = await apiLogin(email, password);
 
@@ -183,7 +201,7 @@ export default function App() {
     if (current) {
       try {
         await apiLogout(current);
-      } catch { }
+      } catch {}
     }
 
     clearToken();
@@ -207,11 +225,11 @@ export default function App() {
       : location.pathname === "/leaderboard"
         ? "leaderboard"
         : location.pathname === "/games" ||
-          location.pathname === "/landing" ||
-          location.pathname === "/guest" ||
-          location.pathname === "/offline" ||
-          location.pathname === "/online" ||
-          location.pathname === "/agario"
+            location.pathname === "/landing" ||
+            location.pathname === "/guest" ||
+            location.pathname === "/offline" ||
+            location.pathname === "/online" ||
+            location.pathname === "/agario"
           ? "games"
           : location.pathname.startsWith("/social")
             ? "social"
@@ -251,11 +269,9 @@ export default function App() {
 
   return (
     <>
-
       <AppBackground>
         {showTopBar && (
           <div className="fixed top-0 left-0 right-0 z-[100]">
-
             <div
               className="
         relative
@@ -264,16 +280,13 @@ export default function App() {
         shadow-[0_8px_40px_rgba(0,0,0,0.45)]
       "
             >
-
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-400/40 to-transparent" />
 
               <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-b from-transparent to-black/20 pointer-events-none" />
 
               <div className="mx-auto max-w-6xl px-4">
                 <div className="h-14 flex items-center justify-between text-sm">
-
                   <div className="flex items-center gap-6">
-
                     <button
                       onClick={() => navigate("/home")}
                       className="
@@ -322,7 +335,6 @@ export default function App() {
                   </div>
 
                   <div className="flex items-center gap-3">
-
                     {isAuthed ? (
                       <button
                         onClick={handleLogout}
@@ -367,9 +379,7 @@ export default function App() {
                         Back
                       </button>
                     )}
-
                   </div>
-
                 </div>
               </div>
             </div>
@@ -381,8 +391,9 @@ export default function App() {
           <Route
             path="/home"
             element={
-              <div className={`${topPaddingClass} flex items-center justify-center`}>
-
+              <div
+                className={`${topPaddingClass} flex items-center justify-center`}
+              >
                 <HomePage
                   onPlay={() => navigate("/games")}
                   onLogin={() => navigate("/login/form")}
@@ -398,7 +409,9 @@ export default function App() {
           <Route
             path="/agario"
             element={
-              <div className={`${topPaddingClass} min-h-screen overflow-y-auto`}>
+              <div
+                className={`${topPaddingClass} min-h-screen overflow-y-auto`}
+              >
                 <Agario />
               </div>
             }
@@ -407,27 +420,26 @@ export default function App() {
           <Route
             path="/leaderboard"
             element={
-              <div
-                className={`min-h-screen ${topPaddingClass}`}
-              >
+              <div className={`min-h-screen ${topPaddingClass}`}>
                 <AgarioLeaderboard />
               </div>
             }
           />
-          <Route path="/login" element={<Navigate to="/login/form" replace />} />
+          <Route
+            path="/login"
+            element={<Navigate to="/login/form" replace />}
+          />
           <Route
             path="/login/form"
             element={
               <div className="min-h-screen  flex items-center justify-center px-6">
                 <div className="w-full max-w-5xl grid md:grid-cols-2 gap-10 items-center">
-
                   <div className="hidden md:block text-white">
-                    <h1 className="text-4xl font-bold mb-4">
-                      Welcome Back
-                    </h1>
+                    <h1 className="text-4xl font-bold mb-4">Welcome Back</h1>
                     <p className="text-gray-300 leading-relaxed">
-                      Log in to continue your progress, access multiplayer matches,
-                      track your statistics and compete on the leaderboard.
+                      Log in to continue your progress, access multiplayer
+                      matches, track your statistics and compete on the
+                      leaderboard.
                     </p>
 
                     <div className="mt-8 text-sm text-gray-400">
@@ -457,7 +469,6 @@ export default function App() {
                       </button>
                     </div>
                   </div>
-
                 </div>
               </div>
             }
@@ -467,14 +478,13 @@ export default function App() {
             element={
               <div className="min-h-screen  flex items-center justify-center px-6">
                 <div className="w-full max-w-5xl grid md:grid-cols-2 gap-10 items-center">
-
                   <div className="hidden md:block text-white">
                     <h1 className="text-4xl font-bold mb-4">
                       Create Your Account
                     </h1>
                     <p className="text-gray-300 leading-relaxed">
-                      Save your progress, unlock multiplayer, appear on the leaderboard
-                      and connect with other players.
+                      Save your progress, unlock multiplayer, appear on the
+                      leaderboard and connect with other players.
                     </p>
 
                     <div className="mt-8 text-sm text-gray-400">
@@ -501,7 +511,6 @@ export default function App() {
                       </button>
                     </div>
                   </div>
-
                 </div>
               </div>
             }
@@ -509,11 +518,8 @@ export default function App() {
           <Route
             path="/games"
             element={
-              <div
-                className={`min-h-screen  ${topPaddingClass}`}
-              >
+              <div className={`min-h-screen  ${topPaddingClass}`}>
                 <div className="max-w-5xl mx-auto px-6 py-14">
-
                   <div className="text-center mb-12">
                     <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                       Game Launcher
@@ -531,13 +537,13 @@ export default function App() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-
                     <button
-                      onClick={() => navigate(!isAuthed ? "/guest" : "/landing")}
+                      onClick={() =>
+                        navigate(!isAuthed ? "/guest" : "/landing")
+                      }
                       className="group text-left rounded-3xl border bg-white/[0.04] border-white/10 hover:border-purple-400/40 backdrop-blur-xl p-7 shadow-xl hover:scale-[1.03] hover:border-purple-400/60 transition-all"
                     >
                       <div className="flex items-center gap-5 mb-5">
-
                         <div className="w-16 h-16 rounded-2xl bg-purple-600/30 border border-purple-400/50 flex items-center justify-center text-3xl group-hover:scale-110 transition">
                           🏓
                         </div>
@@ -575,7 +581,6 @@ export default function App() {
                       className="group text-left rounded-3xl border bg-white/[0.04] border-white/10 hover:border-blue-400/40 backdrop-blur-xl p-7 shadow-xl hover:scale-[1.03] hover:border-blue-400/60 transition-all"
                     >
                       <div className="flex items-center gap-5 mb-5">
-
                         <div className="w-16 h-16 rounded-2xl bg-purple-600/30 border border-purple-400/50 flex items-center justify-center text-3xl group-hover:scale-110 transition">
                           🔵
                         </div>
@@ -599,9 +604,7 @@ export default function App() {
 
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-400">
-
                           {isAuthed ? "Full access" : "Play as a guest"}
-
                         </span>
 
                         <span className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm font-semibold group-hover:bg-purple-500 transition">
@@ -609,7 +612,6 @@ export default function App() {
                         </span>
                       </div>
                     </Link>
-
                   </div>
                 </div>
               </div>
@@ -619,11 +621,8 @@ export default function App() {
             path="/landing"
             element={
               isAuthed ? (
-                <div
-                  className={`min-h-screen ${topPaddingClass}`}
-                >
+                <div className={`min-h-screen ${topPaddingClass}`}>
                   <div className="max-w-4xl mx-auto px-6 py-16">
-
                     <div className="text-center mb-14">
                       <div className="text-sm text-purple-300 mb-2 tracking-wide">
                         Pong Arena
@@ -639,15 +638,16 @@ export default function App() {
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-8">
-
                       <button
                         onClick={() => navigate("/offline")}
                         className="group text-left rounded-3xl bg-white/[0.05] border border-white/10 backdrop-blur-xl p-7 hover:border-blue-400/40 hover:scale-[1.02] transition-all"
                       >
                         <div className="flex items-center gap-4 mb-5">
-                          <div className="w-14 h-14 rounded-2xl flex items-center justify-center
+                          <div
+                            className="w-14 h-14 rounded-2xl flex items-center justify-center
                                 bg-blue-500/10 border border-blue-400/40 text-2xl
-                                group-hover:scale-110 transition">
+                                group-hover:scale-110 transition"
+                          >
                             🤖
                           </div>
 
@@ -669,9 +669,11 @@ export default function App() {
                         </ul>
 
                         <div className="flex justify-end">
-                          <span className="px-5 py-2 rounded-lg text-sm font-semibold
+                          <span
+                            className="px-5 py-2 rounded-lg text-sm font-semibold
                                  bg-gradient-to-r from-blue-500 to-blue-600
-                                 group-hover:from-blue-400 group-hover:to-blue-500 text-white/90 transition">
+                                 group-hover:from-blue-400 group-hover:to-blue-500 text-white/90 transition"
+                          >
                             Play offline
                           </span>
                         </div>
@@ -682,9 +684,11 @@ export default function App() {
                         className="group text-left rounded-3xl bg-white/[0.05] border border-white/10 backdrop-blur-xl p-7 hover:border-purple-400/40 hover:scale-[1.02] transition-all"
                       >
                         <div className="flex items-center gap-4 mb-5">
-                          <div className="w-14 h-14 rounded-2xl flex items-center justify-center
+                          <div
+                            className="w-14 h-14 rounded-2xl flex items-center justify-center
                                 bg-purple-500/10 border border-purple-400/40 text-2xl
-                                group-hover:scale-110 transition">
+                                group-hover:scale-110 transition"
+                          >
                             🌐
                           </div>
 
@@ -707,14 +711,15 @@ export default function App() {
                         </ul>
 
                         <div className="flex justify-end">
-                          <span className="px-5 py-2 rounded-lg text-sm font-semibold
+                          <span
+                            className="px-5 py-2 rounded-lg text-sm font-semibold
                                  bg-gradient-to-r from-purple-500 to-purple-600
-                                 group-hover:from-purple-400 text-white/90 group-hover:to-purple-500 transition">
+                                 group-hover:from-purple-400 text-white/90 group-hover:to-purple-500 transition"
+                          >
                             Find Match
                           </span>
                         </div>
                       </button>
-
                     </div>
                   </div>
                 </div>
@@ -749,9 +754,7 @@ export default function App() {
                   Loading...
                 </div>
               ) : isAuthed ? (
-                <div
-                  className={`min-h-screen ${topPaddingClass}`}
-                >
+                <div className={`min-h-screen ${topPaddingClass}`}>
                   <PlayerProfile />
                 </div>
               ) : (
@@ -767,9 +770,7 @@ export default function App() {
                   Loading...
                 </div>
               ) : isAuthed ? (
-                <div
-                  className={`min-h-screen ${topPaddingClass}`}
-                >
+                <div className={`min-h-screen ${topPaddingClass}`}>
                   <PublicPlayerProfile />
                 </div>
               ) : (
@@ -846,7 +847,13 @@ export default function App() {
           <Route path="/game/:gameId" element={<GamePage />} />
           <Route
             path="*"
-            element={<ErrorPage code={404} title="Not Found" message="That page doesn't exist." />}
+            element={
+              <ErrorPage
+                code={404}
+                title="Not Found"
+                message="That page doesn't exist."
+              />
+            }
           />
         </Routes>
       </AppBackground>

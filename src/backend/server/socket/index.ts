@@ -5,6 +5,7 @@ import { init_agario } from "./agario.js";
 import { init_pong } from "./pong.js";
 import { init_chat } from "./init_chat.js";
 import { init_pong_private } from "./pongPrivate.js";
+import { init_presence } from "src/backend/modules/user/presence.js";
 
 export default fp(async function socketPlugin(fastify: FastifyInstance) {
   const io = new SocketIOServer(fastify.server, {
@@ -22,6 +23,7 @@ export default fp(async function socketPlugin(fastify: FastifyInstance) {
   init_pong(io, fastify);
   init_pong_private(io, fastify);
   init_chat(io, fastify);
+  init_presence(io, fastify);
 
   fastify.decorate("io", io);
 });
