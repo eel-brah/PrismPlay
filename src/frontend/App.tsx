@@ -19,7 +19,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import Agario from "./component/Agario";
-import OnlinePong from "./component/OnlinePong";
+import OnlinePong from "./component/pong/OnlinePong/OnlinePong";
 import {
   apiGetMe,
   apiLogin,
@@ -295,7 +295,7 @@ export default function App() {
                 hover:from-blue-200 hover:to-purple-200 transition-colors
               "
                     >
-                      SITE NAME
+                      Ping Pong
                     </button>
 
                     {!minimalTopBar && (

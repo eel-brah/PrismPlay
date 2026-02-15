@@ -1,5 +1,5 @@
 import { Trophy, Frown, User, Search, LogOut, Swords } from "lucide-react";
-import type { Side } from "../../shared/pong/gameTypes";
+import type { Side } from "../../../../shared/pong/gameTypes";
 import { useNavigate } from "react-router";
 
 export type WinReason = "score" | "surrender" | "disconnect";
@@ -20,7 +20,7 @@ export interface GameOverPopupProps {
 
 function getWinReasonText(
   reason: WinReason | undefined,
-  isWinner: boolean
+  isWinner: boolean,
 ): string {
   switch (reason) {
     case "score":
@@ -61,7 +61,6 @@ export function GameOverPopup({
   onFindMatch,
   onLeave,
 }: GameOverPopupProps) {
-
   const navigate = useNavigate();
 
   if (!isOpen) return null;
@@ -156,7 +155,6 @@ export function GameOverPopup({
 
             {/* Action buttons */}
             <div className="space-y-3">
-              
               {/* 👇 UPDATE: Conditionally render based on prop existence */}
               {onFindMatch && (
                 <button
@@ -170,8 +168,8 @@ export function GameOverPopup({
 
               {/* Visit profile */}
               <button
-                onClick={()=>{
-                  navigate('/profile/'+opponentNickname);
+                onClick={() => {
+                  navigate("/profile/" + opponentNickname);
                 }}
                 className="w-full flex items-center justify-center gap-3 bg-gray-700/50 hover:bg-gray-700 text-gray-200 font-semibold py-3 px-4 rounded-xl transition-all border border-gray-600/50 hover:border-gray-500/50"
               >
