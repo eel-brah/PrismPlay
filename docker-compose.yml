@@ -3,7 +3,7 @@ services:
     image: mariadb:11
     container_name: mariadb
     env_file:
-      - .env.docker
+      - .env.production
     volumes:
       - db_data:/var/lib/mysql
     ports:
