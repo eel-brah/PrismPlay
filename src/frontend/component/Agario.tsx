@@ -538,7 +538,7 @@ const Agario = () => {
 
     let room = roomNameRef.current.trim();
     if (room.length === 0) room = DEFAULT_ROOM;
-    socket.emit("agario:join-room", { name: playerName, room, key: joinKey.trim() || undefined });
+    socket.emit("agario:join-room", { name: playerName, room, key: joinKey.trim() || undefined, spactator: false });
   }
 
   function backToMainMenu(leave: boolean = false) {

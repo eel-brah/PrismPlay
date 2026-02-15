@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { Server as IOServer, Socket } from "socket.io";
-import prisma from "src/backend/utils/prisma";
+import prisma from "../../../backend/utils/prisma.js";
 
 type PresencePayload = { userId: number; online: boolean; lastSeen: number | null };
 
