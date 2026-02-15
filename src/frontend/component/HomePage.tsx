@@ -92,7 +92,7 @@ export default function HomePage({
           </div>
 
           <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-            <div className="bg-white/15 rounded-lg py-3 px-3">
+            <div className={`${loggedIn ? "bg-white/5" : "bg-white/15"} rounded-lg py-3 px-3`}>
               <div className="text-green-400 font-semibold">Gameplay</div>
               <div className="text-gray-400 text-xs">Always available</div>
             </div>

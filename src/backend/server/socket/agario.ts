@@ -8,7 +8,6 @@ import { agarioEngine } from "../../games/agarioEngine.js";
 import { activePlayers, agarioHandlers } from "../../games/agarioHanders.js";
 import { getIdentity, identityKey } from "../../games/agarioUtils.js";
 
-
 export function init_agario(io: SocketIOServer, fastify: FastifyInstance) {
   const agario = io.of("/agario");
 
@@ -43,10 +42,11 @@ export function init_agario(io: SocketIOServer, fastify: FastifyInstance) {
       try {
         await createGuestDb(guestId);
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Unknown error";
-        fastify.log.error({ id: socket.id }, errorMessage);
-        return next(new Error("Guest creation failed"));
+        fastify.log.error(
+          { id: socket.id },
+          err instanceof Error ? err.message : "Unknown error",
+        );
+        return next(new Error("Internal server error"));
       }
       return next();
     }

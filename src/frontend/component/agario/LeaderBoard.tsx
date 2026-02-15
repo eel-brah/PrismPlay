@@ -66,64 +66,119 @@ export const Leaderboard = ({ leaderboard }: LeaderboardProps) => {
 type Props = {
   leaderboard: FinalLeaderboardEntry[];
   durationMin: number;
+  backToMainMenu: (restart: boolean) => void;
 };
 
 export const FinalLeaderboard = ({
   leaderboard,
   durationMin,
+  backToMainMenu,
 }: Props) => {
   if (leaderboard.length === 0) return null;
 
   const winner = leaderboard[0];
 
-  const medalStyle = (rank: number) => {
+  const medalColor = (rank: number) => {
     switch (rank) {
       case 1:
         return "text-yellow-400";
       case 2:
         return "text-gray-300";
       case 3:
-        return "text-amber-600";
+        return "text-amber-500";
       default:
-        return "text-white";
+        return "text-gray-200";
     }
   };
 
   return (
-    <div className="w-[480px] max-w-[92vw] bg-zinc-900 rounded-xl shadow-xl p-6 text-white">
-      <div className="text-center mb-6">
-        <div className="text-3xl font-bold text-yellow-400">
-          🏆 {winner.name} Wins!
-        </div>
-        <div className="text-sm text-gray-400">
-          Match duration: {durationMin} minutes
-        </div>
-      </div>
+    <div className="absolute inset-0 flex items-center justify-center z-50">
 
-      <div className="border border-white/10 rounded-lg overflow-hidden">
-        {leaderboard.map((p) => (
-          <div
-            key={p.id}
-            className={`
-              flex justify-between items-center
-              px-4 py-3
-              border-b last:border-b-0 border-white/10
-            `}
-          // TODO: is me
-          // ${p.id ===  ? "bg-white/10 font-semibold" : ""}
-          >
-            <div className={`flex items-center gap-3 ${medalStyle(p.rank)}`}>
-              <span className="w-6 text-right">{p.rank}</span>
-              <span>{p.name}</span>
-              {p.rank <= 3 && <span>★</span>}
-            </div>
+      {/* Blur background */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
-            <div className="flex items-center gap-6 text-sm text-gray-300">
-              <span className="text-red-400">⚔ {p.kills}</span>
-              <span>⬤ {p.maxMass}</span>
-            </div>
+      {/* Glass Card */}
+      <div
+        className="
+          relative
+          w-[480px] max-w-[92vw]
+          rounded-2xl
+          bg-white/[0.05]
+          border border-white/10
+          backdrop-blur-2xl
+          shadow-[0_10px_60px_rgba(0,0,0,0.6)]
+          p-8
+          text-white
+        "
+      >
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+            🏆 {winner.name} Wins!
           </div>
-        ))}
+
+          <div className="text-sm text-white/50 mt-2">
+            Match duration: {durationMin} minutes
+          </div>
+        </div>
+
+        {/* Leaderboard */}
+        <div className="space-y-3 mb-8">
+          {leaderboard.map((p) => (
+            <div
+              key={p.id}
+              className="
+                flex justify-between items-center
+                rounded-xl
+                px-5 py-4
+                border border-white/10
+                bg-white/[0.03]
+                hover:bg-white/[0.06]
+                transition-all duration-200
+              "
+            >
+              <div className={`flex items-center gap-3 ${medalColor(p.rank)}`}>
+                <span className="w-6 text-right font-semibold">
+                  {p.rank}
+                </span>
+
+                <span className="font-medium">{p.name}</span>
+
+                {p.rank <= 3 && <span>★</span>}
+              </div>
+
+              <div className="flex items-center gap-6 text-sm text-gray-300">
+                <span className="text-red-400">
+                  ⚔ <b className="text-white">{p.kills}</b>
+                </span>
+
+                <span className="text-cyan-300">
+                  ⬤ <b className="text-white">
+                    {Math.floor(p.maxMass)}
+                  </b>
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Back Button */}
+        <div className="flex justify-center">
+          <button
+            onClick={() => backToMainMenu(false)}
+            className="
+              px-6 py-3
+              rounded-lg
+              text-sm font-semibold
+              bg-gradient-to-r from-purple-500 to-blue-500
+              hover:from-purple-400 hover:to-blue-400
+              transition-all duration-200
+              shadow-lg
+            "
+          >
+            Back to Menu
+          </button>
+        </div>
       </div>
     </div>
   );

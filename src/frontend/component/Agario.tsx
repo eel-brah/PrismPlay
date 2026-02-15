@@ -514,8 +514,6 @@ const Agario = () => {
     setRoomName(room);
     roomNameRef.current = room;
 
-    if (typeof durationMin != "number") setDurationMin(1);
-
     if (mode === "join") {
       socket.emit("agario:join-room", { name, room, key: joinKey.trim() || undefined, spectator });
     } else {
@@ -575,11 +573,6 @@ const Agario = () => {
   const glowCard =
     "bg-white/[0.04] border border-white/10 rounded-lg backdrop-blur-md";
 
-  const neonBtn =
-    "px-5 py-3 rounded-lg font-semibold transition-all duration-200 " +
-    "bg-gradient-to-r from-purple-500/40 to-blue-500/30 border border-purple-400/40 " +
-    "hover:from-purple-500/60 hover:to-blue-500/50 hover:shadow-[0_0_25px_rgba(168,85,247,0.55)] active:scale-[0.97]";
-
   const dangerBtn =
     "px-5 py-3 rounded-lg font-semibold transition-all duration-200 " +
     "bg-red-500/20 border border-red-400/40 text-red-200 " +
@@ -628,6 +621,8 @@ const Agario = () => {
           [background-size:60px_60px]"
         />
       )}
+
+
       <div className="pointer-events-none fixed top-6 left-1/2 -translate-x-1/2 z-50">
         <div
           className={`
@@ -668,7 +663,7 @@ ${alert.type
           <div className="flex gap-3">
             <button
               onClick={() => {
-                clearAlert();
+                // clearAlert();
                 setMenuMode(HOME_PAGE);
                 setRoomName(DEFAULT_ROOM);
                 roomNameRef.current = DEFAULT_ROOM;
@@ -681,7 +676,7 @@ ${alert.type
 
             <button
               onClick={() => {
-                clearAlert();
+                // clearAlert();
                 setMenuMode(menuMode != "join" ? "join" : HOME_PAGE);
               }}
               className={primaryBtn}
@@ -691,7 +686,7 @@ ${alert.type
 
             <button
               onClick={() => {
-                clearAlert();
+                // clearAlert();
                 setMenuMode(menuMode != "create" ? "create" : HOME_PAGE);
               }}
               className={primaryBtn}
@@ -1070,14 +1065,8 @@ ${alert.type
             <FinalLeaderboard
               leaderboard={finalLeaderboard}
               durationMin={typeof durationMin === "number" ? durationMin : 0}
+              backToMainMenu={backToMainMenu}
             />
-
-            <button
-              onClick={() => { backToMainMenu(false); }}
-              className="mt-8 px-6 py-3 bg-gray-600 hover:bg-gray-500 rounded-md text-lg text-white transition"
-            >
-              Back to Menu
-            </button>
           </div>
         )
       }
