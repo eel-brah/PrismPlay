@@ -1,6 +1,5 @@
 import prisma from "../../utils/prisma.js";
 
-
 const publicUserSelect = {
   id: true,
   username: true,
@@ -72,6 +71,26 @@ export async function sendFriendRequest(
     return { ok: false as const, code: "ALREADY_FRIENDS" as const };
   }
 
+  const outgoing = await prisma.friendRequest.findUnique({
+    where: { fromUserId_toUserId: { fromUserId, toUserId: toUser.id } },
+    select: { id: true },
+  });
+
+  if (outgoing) {
+    return { ok: false as const, code: "ALREADY_REQUESTED" as const };
+  }
+
+  const incoming = await prisma.friendRequest.findUnique({
+    where: {
+      fromUserId_toUserId: { fromUserId: toUser.id, toUserId: fromUserId },
+    },
+    select: { id: true },
+  });
+
+  if (incoming) {
+    return { ok: false as const, code: "THEY_ALREADY_REQUESTED_YOU" as const };
+  }
+
   try {
     const request = await prisma.friendRequest.create({
       data: { fromUserId, toUserId: toUser.id },
@@ -128,7 +147,7 @@ export async function declineFriendRequest(
     return { ok: false as const, code: "NOT_PENDING" as const };
 
   await prisma.friendRequest.delete({
-    where: { id: requestId }
+    where: { id: requestId },
   });
   // await prisma.friendRequest.update({
   //   where: { id: requestId },

@@ -200,7 +200,9 @@ export async function apiGetPlayerStats(token: string, playerId: number) {
   return res.data;
 }
 
-export async function apiGetPongLeaderboard(token: string): Promise<PongLeaderboardEntry[]> {
+export async function apiGetPongLeaderboard(
+  token: string,
+): Promise<PongLeaderboardEntry[]> {
   const res = await api.get<PongLeaderboardEntry[]>(
     `/pong/matchs/leaderboard`,
     withAuth(token),
@@ -305,12 +307,20 @@ export async function apiIsFrienddPending(token: string, id: number) {
 }
 
 export async function apiAddFriend(token: string, username: string) {
-  const res = await api.post<FriendRequest[]>(
-    "/friend/requests",
-    { username },
-    withAuth(token),
-  );
-  return res.data;
+  try {
+    const res = await api.post<FriendRequest[]>(
+      "/friend/requests",
+      { username },
+      withAuth(token),
+    );
+    return res.data;
+  } catch (e: unknown) {
+    if (axios.isAxiosError(e)) {
+      const serverMsg = (e.response?.data as any)?.message;
+      throw new Error(serverMsg ?? e.message ?? "Send Reuqest Failed");
+    }
+    throw new Error("Send Reuqest Failed");
+  }
 }
 
 // PING
