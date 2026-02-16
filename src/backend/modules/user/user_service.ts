@@ -191,3 +191,42 @@ export async function getUserAchievements(userId: number) {
     { id: "veteran", name: "Veteran", unlocked: veteran },
   ];
 }
+
+
+export async function findOrCreateGoogleUser(input: {
+  googleId: string;
+  email: string;
+  username: string;
+  avatarUrl: string;
+}) {
+  // Try to find by googleId first
+  let user = await prisma.user.findUnique({ where: { googleId: input.googleId }, select: safeSelect });
+  if (user) return user;
+
+  // Try to find by email (link existing account)
+  const existing = await prisma.user.findUnique({ where: { email: input.email } });
+  if (existing) {
+    user = await prisma.user.update({
+      where: { id: existing.id },
+      data: { googleId: input.googleId },
+      select: safeSelect,
+    });
+    return user;
+  }
+
+  // Create new user — ensure unique username
+  let username = input.username.replace(/\s+/g, "_");
+  const taken = await prisma.user.findUnique({ where: { username } });
+  if (taken) username = `${username}_${Date.now()}`;
+
+  return prisma.user.create({
+    data: {
+      email: input.email,
+      username,
+      googleId: input.googleId,
+      avatarUrl: input.avatarUrl,
+      passwordHash: null,
+    },
+    select: safeSelect,
+  });
+}
