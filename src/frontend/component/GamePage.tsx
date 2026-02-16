@@ -1,7 +1,7 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getStoredToken } from "../api"; 
-import OnlinePong from "../component/OnlinePong"; // Adjust path if needed
+import { getStoredToken } from "../api";
+import OnlinePong from "./pong/OnlinePong/OnlinePong"; // Adjust path if needed
 
 export default function GamePage() {
   const { gameId } = useParams();
@@ -12,10 +12,10 @@ export default function GamePage() {
 
   return (
     <div className="w-full h-screen bg-black">
-      <OnlinePong 
-        token={token} 
-        inviteId={gameId} 
-        onReturn={() => navigate("/social")} 
+      <OnlinePong
+        token={token}
+        inviteId={gameId}
+        onReturn={() => navigate("/social")}
       />
     </div>
   );

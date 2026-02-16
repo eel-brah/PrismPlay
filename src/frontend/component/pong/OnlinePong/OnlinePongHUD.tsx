@@ -1,5 +1,5 @@
 import React from "react";
-import type { Side } from "../../shared/pong/gameTypes";
+import type { Side } from "../../../../shared/pong/gameTypes";
 
 export type Status = "connected" | "disconnected";
 

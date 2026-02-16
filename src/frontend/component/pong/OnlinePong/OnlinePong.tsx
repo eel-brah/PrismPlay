@@ -9,7 +9,7 @@ import {
   GameSnapshot,
   MatchFoundPayload,
   Side,
-} from "../../shared/pong/gameTypes";
+} from "../../../../shared/pong/gameTypes";
 import {
   OnlinePongHUD,
   OnlinePlayerLite,
@@ -36,7 +36,11 @@ const UNKNOWN_PLAYER: OnlinePlayerLite = {
   avatarUrl: null,
 };
 
-const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) => {
+const OnlinePong: React.FC<OnlinePongProps> = ({
+  token,
+  inviteId,
+  onReturn,
+}) => {
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const socketRef = useRef<Socket<
@@ -109,7 +113,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
     avatarUrl: undefined,
   };
 
-  // Determine which player is on which side
+  // Determine players side
   const leftPlayer = side === "left" ? myPlayer : opponent;
   const rightPlayer = side === "right" ? myPlayer : opponent;
   const leftStatus = side === "left" ? myStatus : opponentStatus;
@@ -120,10 +124,9 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
   // --- Setup socket & matchmaking ---
   useEffect(() => {
     const namespace = inviteId ? "/pong-private" : "/pong";
-    // console.log(`Connecting to ${namespace} namespace`);
 
     const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
-      namespace, // <--- Use variable instead of string "/pong"
+      namespace,
       {
         path: "/socket.io",
         auth: { token },
@@ -135,11 +138,9 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      // console.log(`[${namespace}] connected`, socket.id);
       setMyStatus("connected");
       setConnectionError(null);
 
-      // 👇 Check for inviteId before joining
       if (inviteId) {
         // @ts-expect-error: Custom payload for private match
         socket.emit("match.join", { inviteId });
@@ -163,10 +164,6 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
     });
 
     socket.on("match.found", (payload: MatchFoundPayload) => {
-      // console.log("[match.found] side:", payload.side);
-      // console.log("[match.found] playerStats:", payload.playerStats);
-      // console.log("[match.found] opponentStats:", payload.opponentStats);
-
       setSide(payload.side);
       sideRef.current = payload.side;
 
@@ -192,11 +189,12 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
       setUiPhase("inMatch");
     });
 
-    // socket.on("game.state", (snapshot) => (snapshotRef.current = snapshot));
     socket.on("game.state", (snapshot) => {
       snapshotRef.current = snapshot;
 
-      setOpponentStatus((prev) => (prev === "disconnected" ? "connected" : prev));
+      setOpponentStatus((prev) =>
+        prev === "disconnected" ? "connected" : prev,
+      );
     });
 
     socket.on("game.over", (payload) => {
@@ -206,23 +204,12 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
         winner: payload.winnerSide,
       };
 
-      // Use ref to get current side (avoids stale closure)
       const currentSide = sideRef.current;
       const isWinner = payload.winnerSide === currentSide;
       const myScore =
         currentSide === "left" ? payload.leftScore : payload.rightScore;
       const opponentScore =
         currentSide === "left" ? payload.rightScore : payload.leftScore;
-
-      // console.log("[game.over] payload:", payload);
-      // console.log(
-      //   "[game.over] currentSide:",
-      //   currentSide,
-      //   "winnerSide:",
-      //   payload.winnerSide,
-      //   "isWinner:",
-      //   isWinner,
-      // );
 
       setGameOverData({
         isWinner,
@@ -238,7 +225,6 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
     socket.on("opponent.disconnected", () => {
       setOpponentStatus("disconnected");
       if (uiPhaseRef.current !== "gameover") {
-        // If opponent disconnected mid-game, show as a win
         const snap = snapshotRef.current;
         const currentSide = sideRef.current;
         setGameOverData({
@@ -269,8 +255,6 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
     });
 
     socket.on("match.reconnected", (payload) => {
-      // console.log("[match.reconnected]", payload);
-
       setSide(payload.side);
       sideRef.current = payload.side;
 
@@ -321,7 +305,6 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
     });
 
     socket.on("match.cancelled", () => {
-      // console.log("[pong] match cancelled");
       snapshotRef.current = null;
       setUiPhase("searching");
       setOpponent(UNKNOWN_PLAYER);
@@ -360,9 +343,8 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
     });
 
     socket.on("opponent.surrendered", () => {
-      // console.log("[pong] opponent surrendered");
       setOpponentStatus("disconnected");
-      // Opponent surrendered - show game over as win
+
       const snap = snapshotRef.current;
       const currentSide = sideRef.current;
       setGameOverData({
@@ -457,6 +439,14 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // Scale canvas text
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = GAME_WIDTH * dpr;
+    canvas.height = GAME_HEIGHT * dpr;
+    canvas.style.width = `${GAME_WIDTH}px`;
+    canvas.style.height = `${GAME_HEIGHT}px`;
+    ctx.scale(dpr, dpr);
+
     const draw = () => {
       const phase = uiPhaseRef.current;
       const connectionError = connectionErrorRef.current;
@@ -465,14 +455,14 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
 
       const snap = snapshotRef.current;
       ctx.fillStyle = "#1e1e2e";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
       if (phase === "error") {
         ctx.fillStyle = "#f38ba8";
         ctx.font = "28px monospace";
         const msg = connectionError || "Connection error.";
         const w = ctx.measureText(msg).width;
-        ctx.fillText(msg, (canvas.width - w) / 2, canvas.height / 2);
+        ctx.fillText(msg, (GAME_WIDTH - w) / 2, GAME_HEIGHT / 2);
         return;
       }
 
@@ -485,15 +475,15 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
             ? "Searching for opponent..."
             : "Waiting for game...";
         const w = ctx.measureText(msg).width;
-        ctx.fillText(msg, (canvas.width - w) / 2, canvas.height / 2);
+        ctx.fillText(msg, (GAME_WIDTH - w) / 2, GAME_HEIGHT / 2);
         return;
       }
 
       // mid line
       const gradient = ctx.createLinearGradient(
-        canvas.width / 2 - 2,
+        GAME_WIDTH / 2 - 2,
         0,
-        canvas.width / 2 + 2,
+        GAME_WIDTH / 2 + 2,
         0,
       );
       gradient.addColorStop(0, "rgba(137, 180, 250, 0)");
@@ -503,8 +493,8 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
       ctx.lineWidth = 2;
       ctx.setLineDash([10, 15]);
       ctx.beginPath();
-      ctx.moveTo(canvas.width / 2, 0);
-      ctx.lineTo(canvas.width / 2, canvas.height);
+      ctx.moveTo(GAME_WIDTH / 2, 0);
+      ctx.lineTo(GAME_WIDTH / 2, GAME_HEIGHT);
       ctx.stroke();
       ctx.setLineDash([]);
 
@@ -512,12 +502,12 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
         ctx.font = `${fontSize}px monospace`;
         ctx.fillStyle = "#cdd6f4";
         const w = ctx.measureText(text).width;
-        ctx.fillText(text, (canvas.width - w) / 2, y);
+        ctx.fillText(text, (GAME_WIDTH - w) / 2, y);
       };
 
       if (snap.phase === "gameover" && snap.winner && side) {
         const isWinner = snap.winner === side;
-        centered(isWinner ? "You win!" : "You lose!", canvas.height / 2);
+        centered(isWinner ? "You win!" : "You lose!", GAME_HEIGHT / 2);
       }
 
       // ball trail
@@ -557,12 +547,8 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
       // score
       ctx.font = "bold 48px monospace";
       ctx.fillStyle = "#cdd6f4";
-      ctx.fillText(snap.left.score.toString(), canvas.width / 4 - 12, 60);
-      ctx.fillText(
-        snap.right.score.toString(),
-        (canvas.width * 3) / 4 - 12,
-        60,
-      );
+      ctx.fillText(snap.left.score.toString(), GAME_WIDTH / 4 - 12, 60);
+      ctx.fillText(snap.right.score.toString(), (GAME_WIDTH * 3) / 4 - 12, 60);
 
       // combo
       if (snap.combo > 2 && snap.phase === "playing") {
@@ -570,17 +556,17 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
         ctx.fillStyle = "#f9e2af";
         const text = `${snap.combo}x COMBO!`;
         const w = ctx.measureText(text).width;
-        ctx.fillText(text, (canvas.width - w) / 2, 100);
+        ctx.fillText(text, (GAME_WIDTH - w) / 2, 100);
       }
 
-      // Display countdown overlay (drawn last so it appears on top)
+      // countdown
       if (snap.phase === "countdown") {
         ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
         if (snap.countdown > 0) {
-          centered(snap.countdown.toString(), canvas.height / 2 + 20, 96);
-          centered("Game Ready!", canvas.height / 2 - 60, 32);
-          centered(`vs ${openentNickname}`, canvas.height / 2 + 100, 24);
+          centered(snap.countdown.toString(), GAME_HEIGHT / 2 + 20, 96);
+          centered("Game Ready!", GAME_HEIGHT / 2 - 60, 32);
+          centered(`vs ${openentNickname}`, GAME_HEIGHT / 2 + 100, 24);
         }
       }
     };
@@ -633,12 +619,9 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
 
   // --- UI --- //
   return (
-
     <div className="fixed inset-0 z-[9999] flex flex-col p-4">
-
       <div className="relative flex items-center justify-end px-4 py-2 mb-4">
         <div className="flex items-center gap-2">
-
           <button
             onClick={() => setSoundOn((s) => !s)}
             className="
@@ -657,7 +640,8 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
             <button
               onClick={() => {
                 const socket = socketRef.current;
-                if (socket && uiPhase === "inMatch") socket.emit("match.surrender");
+                if (socket && uiPhase === "inMatch")
+                  socket.emit("match.surrender");
                 else if (socket) socket.emit("match.leave");
                 onReturn();
               }}
@@ -677,7 +661,6 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
       </div>
 
       <div className="relative flex-1 flex items-center justify-center overflow-auto">
-
         <OnlinePongHUD
           mySide={side}
           showPlayers={!!side}
@@ -690,39 +673,38 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
           loadingLeft={loadingStats}
           loadingRight={loadingStats}
         >
-
-          <div className="
+          <div
+            className="
           relative rounded-xl p-[6px]
           bg-gradient-to-r from-purple-500/30 via-blue-500/30 to-purple-500/30
-        ">
+        "
+          >
             <div className="rounded-lg bg-black/70 backdrop-blur-sm">
-
               <canvas
                 ref={canvasRef}
                 width={GAME_WIDTH}
                 height={GAME_HEIGHT}
                 className="rounded-lg shadow-[0_0_40px_rgba(120,80,255,0.25)]"
-                style={{ imageRendering: "pixelated" }}
               />
-
             </div>
           </div>
 
           {!side && (
             <div className="absolute inset-x-0 bottom-6 flex justify-center pointer-events-none">
-              <div className="
+              <div
+                className="
               flex items-center gap-3
               bg-black/40 backdrop-blur-md
               border border-white/10
               text-gray-300
               px-4 py-2 rounded-lg
-            ">
+            "
+              >
                 <div className="w-2 h-2 bg-purple-400 rounded-full animate-ping" />
                 <span>Waiting for an opponent...</span>
               </div>
             </div>
           )}
-
         </OnlinePongHUD>
       </div>
 
@@ -741,7 +723,6 @@ const OnlinePong: React.FC<OnlinePongProps> = ({ token, inviteId, onReturn }) =>
         />
       )}
     </div>
-
   );
 };
 
