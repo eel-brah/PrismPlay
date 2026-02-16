@@ -48,10 +48,12 @@ export async function sendRequestHandler(
       return rep.code(404).send({ message: "User not found" });
     if (result.code === "SELF")
       return rep.code(400).send({ message: "You cannot add yourself" });
+    if (result.code === "THEY_ALREADY_REQUESTED_YOU")
+      return rep.code(400).send({ message: "You have Incoming request from this User" });
     if (result.code === "ALREADY_FRIENDS")
       return rep.code(409).send({ message: "Already friends" });
     if (result.code === "ALREADY_REQUESTED")
-      return rep.code(409).send({ message: "Request already exists" });
+      return rep.code(409).send({ message: "You Already Send Freind Request to this User" });
     return rep.code(400).send({ message: "Cannot send request" });
   }
 
