@@ -600,14 +600,6 @@ export default function PlayerProfile() {
   const level = Math.max(1, Math.floor(xpTotal / xpMax) + 1);
   const xpCurrent = xpTotal % xpMax;
   const xpPercent = Math.min(100, Math.round((xpCurrent / xpMax) * 100));
-  const lastLoginAt = user.lastLogin
-    ? new Date(user.lastLogin).getTime()
-    : null;
-  const isOnline =
-    lastLoginAt !== null && Date.now() - lastLoginAt < 5 * 60 * 1000;
-  const statusPill = isOnline
-    ? { text: "Online", cls: "bg-green-600 text-white" }
-    : { text: "Offline", cls: "bg-gray-600 text-white" };
   return (
     <div className="w-full h-full text-white">
       <div className="max-w-6xl mx-auto px-6 pt-8 pb-4">
@@ -657,13 +649,6 @@ export default function PlayerProfile() {
                 </div>
                 <div className="text-xs text-gray-400 mt-2">
                   Member since: {new Date(user.createdAt).toLocaleDateString()}
-                </div>
-                <div className="mt-2 flex items-center justify-center">
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full ${statusPill.cls}`}
-                  >
-                    {statusPill.text}
-                  </span>
                 </div>
                 <div className="mt-4">
                   <div className="flex items-center justify-between text-xs text-gray-400">
@@ -1686,14 +1671,6 @@ export function PublicPlayerProfile() {
   const level = Math.max(1, Math.floor(xpTotal / xpMax) + 1);
   const xpCurrent = xpTotal % xpMax;
   const xpPercent = Math.min(100, Math.round((xpCurrent / xpMax) * 100));
-  const lastLoginAt = user.lastLogin
-    ? new Date(user.lastLogin).getTime()
-    : null;
-  const isOnline =
-    lastLoginAt !== null && Date.now() - lastLoginAt < 5 * 60 * 1000;
-  const statusPill = isOnline
-    ? { text: "Online", cls: "bg-green-600 text-white" }
-    : { text: "Offline", cls: "bg-gray-600 text-white" };
   const showFriendAction = myUserId !== null && user.id !== myUserId;
   const friendButtonLabel = friendPending
     ? "Pending..."
@@ -1778,13 +1755,6 @@ export function PublicPlayerProfile() {
                 <div className="text-center font-medium">{user.username}</div>
                 <div className="text-center text-sm text-gray-400 mb-3">
                   Member since: {new Date(user.createdAt).toLocaleDateString()}
-                </div>
-                <div className="mt-2 flex items-center justify-center">
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full ${statusPill.cls}`}
-                  >
-                    {statusPill.text}
-                  </span>
                 </div>
                 {showFriendAction && (
                   <div className="mt-4 flex flex-col items-center gap-2">
