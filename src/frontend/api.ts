@@ -6,7 +6,7 @@ import {
   GetRoomHistoryDbReturn,
   PlayerHistoryWithRoom,
 } from "src/shared/agario/types";
-
+import { PongLeaderboardEntry } from "../shared/pong/gameTypes";
 const api = axios.create({
   baseURL: "/api",
   timeout: 10_000,
@@ -195,6 +195,14 @@ export async function apiGetMatchHistory(token: string, playerId: number) {
 export async function apiGetPlayerStats(token: string, playerId: number) {
   const res = await api.get<PlayerStats>(
     `/pong/matchs/stats/${playerId}`,
+    withAuth(token),
+  );
+  return res.data;
+}
+
+export async function apiGetPongLeaderboard(token: string): Promise<PongLeaderboardEntry[]> {
+  const res = await api.get<PongLeaderboardEntry[]>(
+    `/pong/matchs/leaderboard`,
     withAuth(token),
   );
   return res.data;

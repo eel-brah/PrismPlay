@@ -93,3 +93,18 @@ export interface ClientToServerEvents {
   "match.surrender": () => void;
   "input.update": (payload: { up: boolean; down: boolean }) => void;
 }
+
+export type PongLeaderboardEntry = {
+  userId: number;
+  username: string;
+  avatarUrl: string | null;
+  wins: number;
+  losses: number;
+  totalGames: number;
+  winRate: number;
+  totalPointsScored: number;
+  totalPointsConceded: number;
+  currentStreak: number;
+  bestStreak: number;
+  score: number;
+};
