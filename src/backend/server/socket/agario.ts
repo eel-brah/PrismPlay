@@ -58,17 +58,17 @@ export function init_agario(io: SocketIOServer, fastify: FastifyInstance) {
   agario.on("connection", async (socket) => {
     fastify.log.info({ id: socket.id }, "socket connected");
     //TODO: test this
-    const ap = activePlayers.get(identityKey(getIdentity(socket)));
-
-    if (socket.recovered) {
-      fastify.log.info({ id: socket.id }, "socket recovered");
-      if (ap?.timeoutId) {
-        clearTimeout(ap.timeoutId);
-        ap.timeoutId = undefined;
-        ap.disconnectedAt = undefined;
-      }
-      return;
-    }
+    // const ap = activePlayers.get(identityKey(getIdentity(socket)));
+    //
+    // if (socket.recovered) {
+    //   fastify.log.info({ id: socket.id }, "socket recovered");
+    //   if (ap?.timeoutId) {
+    //     clearTimeout(ap.timeoutId);
+    //     ap.timeoutId = undefined;
+    //     ap.disconnectedAt = undefined;
+    //   }
+    //   return;
+    // }
     await agarioHandlers(socket, fastify);
   });
 }

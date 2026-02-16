@@ -65,7 +65,7 @@ export const Leaderboard = ({ leaderboard }: LeaderboardProps) => {
 
 type Props = {
   leaderboard: FinalLeaderboardEntry[];
-  durationMin: number;
+  durationMin: string;
   backToMainMenu: (restart: boolean) => void;
 };
 
@@ -77,6 +77,7 @@ export const FinalLeaderboard = ({
   if (leaderboard.length === 0) return null;
 
   const winner = leaderboard[0];
+
 
   const medalColor = (rank: number) => {
     switch (rank) {
@@ -94,14 +95,11 @@ export const FinalLeaderboard = ({
   return (
     <div className="absolute inset-0 flex items-center justify-center z-50">
 
-      {/* Blur background */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-
-      {/* Glass Card */}
       <div
         className="
           relative
           w-[480px] max-w-[92vw]
+          max-h-[85vh]
           rounded-2xl
           bg-white/[0.05]
           border border-white/10
@@ -109,10 +107,10 @@ export const FinalLeaderboard = ({
           shadow-[0_10px_60px_rgba(0,0,0,0.6)]
           p-8
           text-white
+          flex flex-col
         "
       >
-        {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6 shrink-0">
           <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
             🏆 {winner.name} Wins!
           </div>
@@ -122,8 +120,18 @@ export const FinalLeaderboard = ({
           </div>
         </div>
 
-        {/* Leaderboard */}
-        <div className="space-y-3 mb-8">
+        <div
+          className="
+            flex-1
+            overflow-y-auto
+            pr-2
+            space-y-3
+            mb-6
+            scrollbar-thin
+            scrollbar-thumb-white/10
+            scrollbar-track-transparent
+          "
+        >
           {leaderboard.map((p) => (
             <div
               key={p.id}
@@ -162,8 +170,7 @@ export const FinalLeaderboard = ({
           ))}
         </div>
 
-        {/* Back Button */}
-        <div className="flex justify-center">
+        <div className="flex justify-center shrink-0">
           <button
             onClick={() => backToMainMenu(false)}
             className="

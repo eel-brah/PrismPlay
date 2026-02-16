@@ -59,9 +59,8 @@ const Agario = () => {
   // const lastProcessedSeqRef = useRef<number>(0);
 
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [finalLeaderboard, setFinalLeaderboard] = useState<FinalLeaderboardEntry[]>([]);
+  const finalLeaderboard = useRef<FinalLeaderboardEntry[]>([]);
   const [finalStatus, setFinalStatus] = useState<FinalStatus | null>(null);
-  const isEmptyLeaderboard = useRef<boolean>(true);
 
   const [alert, setAlert] = useState<{
     type: AlertType;
@@ -79,6 +78,8 @@ const Agario = () => {
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [lobbyPlayers, setLobbyPlayers] = useState<LobbyPlayer[]>([]);
   const roomStatusRef = useRef<"waiting" | "started" | "ended">("waiting");
+  const [roomDuration, setRoomDuration] = useState<string>("");
+  const roomStartedAt = useRef<number>(0);
 
 
   const navigate = useNavigate();
@@ -171,7 +172,10 @@ const Agario = () => {
     socket.on("agario:room-status", (data: { status: "waiting" | "started", startedAt: number | undefined }) => {
       setRoomInfo((prev) => (prev ? { ...prev, status: data.status, startedAt: data.startedAt } : prev));
       roomStatusRef.current = data.status;
-      if (data.status === "started") clearAlert();
+      if (data.status === "started") {
+        clearAlert();
+        roomStartedAt.current = data.startedAt ?? Date.now();
+      }
     });
 
     socket.on("agario:rooms", (list: RoomSummary[]) => {
@@ -189,15 +193,14 @@ const Agario = () => {
     });
 
     socket.on("agario:leaderboard", (leaderboard: FinalLeaderboardEntry[]) => {
-      setFinalLeaderboard(leaderboard)
-      isEmptyLeaderboard.current = leaderboard.length === 0;
+      finalLeaderboard.current = leaderboard;
     });
     // socket.on("leaderboard:final", setLeaderboard);
 
     socket.on("agario:left-room", () => {
       clearing(Object.keys(enemiesRef.current).length === 0
         && roomNameRef.current != DEFAULT_ROOM
-        && !isEmptyLeaderboard.current
+        && finalLeaderboard.current.length
         ? "leaderboard" : HOME_PAGE);
     });
 
@@ -479,6 +482,18 @@ const Agario = () => {
     };
   }, []);
 
+
+  useEffect(() => {
+    if (menuMode === "leaderboard" && roomStartedAt.current) {
+      const totalSeconds = Math.floor((Date.now() - roomStartedAt.current) / 1000);
+
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+
+      setRoomDuration(`${minutes}:${seconds.toString().padStart(2, "0")}`)
+    }
+  }, [menuMode]);
+
   function resizeCanvas() {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -502,6 +517,8 @@ const Agario = () => {
     const socket = socketRef.current;
     if (!socket) return;
 
+    finalLeaderboard.current = [];
+
     let name = playerName.trim();
     if (playerName.length > 6) name = playerName.slice(0, 6);
     name = name || "Pl" + Math.floor(Math.random() * 1000);
@@ -517,7 +534,6 @@ const Agario = () => {
     if (mode === "join") {
       socket.emit("agario:join-room", { name, room, key: joinKey.trim() || undefined, spectator });
     } else {
-      console.log("olayerL: ", maxPlayers)
       socket.emit("agario:create-room", {
         name,
         room,
@@ -538,7 +554,7 @@ const Agario = () => {
 
     let room = roomNameRef.current.trim();
     if (room.length === 0) room = DEFAULT_ROOM;
-    socket.emit("agario:join-room", { name: playerName, room, key: joinKey.trim() || undefined, spactator: false });
+    socket.emit("agario:join-room", { name: playerName, room, key: joinKey.trim() || undefined, spectator: false });
   }
 
   function backToMainMenu(leave: boolean = false) {
@@ -554,9 +570,12 @@ const Agario = () => {
     isDeadRef.current = false;
 
     setHasJoined(false);
+    // setDurationMin("");
     setRoomInfo(null);
     setLobbyPlayers([]);
     setLeaderboard([]);
+    // setFinalLeaderboard([]);
+    // isEmptyLeaderboard.current = true;
 
     setMenuMode(mode);
     setRoomName("");
@@ -1060,18 +1079,6 @@ ${alert.type
       }
 
       {
-        menuMode === "leaderboard" && finalLeaderboard.length > 0 && (
-          <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50">
-            <FinalLeaderboard
-              leaderboard={finalLeaderboard}
-              durationMin={typeof durationMin === "number" ? durationMin : 0}
-              backToMainMenu={backToMainMenu}
-            />
-          </div>
-        )
-      }
-
-      {
         hasJoined && roomInfo?.status === "waiting" && (
           <div className="absolute inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-40">
 
@@ -1183,6 +1190,19 @@ ${alert.type
           onLeave={() => { leaveRoom(); }}
         />
       )}
+
+      {
+        menuMode === "leaderboard" && finalLeaderboard.current.length > 0 && (
+          <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50">
+            <FinalLeaderboard
+              leaderboard={finalLeaderboard.current}
+              durationMin={roomDuration}
+              backToMainMenu={backToMainMenu}
+            />
+          </div>
+        )
+      }
+
       <canvas ref={canvasRef} id="agario" className="w-full h-full block" />
     </div >
   );

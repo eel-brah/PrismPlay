@@ -211,7 +211,6 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
     }
     const parsed = createRoomSchema.safeParse(payload);
     if (!parsed.success) {
-    console.log(parsed.error.issues);
       socket.emit("agario:error", "Invalid input");
       return;
     }
@@ -657,7 +656,8 @@ async function deletePlayer(
         kills: state.kills,
         maxMass: state.maxMass,
       };
-      if (!disconnected) socket.emit("agario:final-status", finalStatus);
+      if (!disconnected && world.meta.status === "started")
+        socket.emit("agario:final-status", finalStatus);
     }
     broadcastPlayers(socket.nsp, roomName, world);
     for (const id of Object.keys(world.players)) {

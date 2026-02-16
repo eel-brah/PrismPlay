@@ -24,17 +24,19 @@ import {
   Virus,
   World,
 } from "../../shared/agario/types.js";
-import {
-  radiusFromMass,
-  randomId,
-} from "../../shared/agario/utils.js";
+import { radiusFromMass, randomId } from "../../shared/agario/utils.js";
 import type { Namespace } from "socket.io";
 import {
   createPlayerHistoryDb,
   finalizeRoomResultsDb,
   getRoomLeaderboard,
 } from "../modules/agario/agario_service.js";
-import { broadcastPlayers, MIN_SECOND_TO_STORE, sendRoomInfo, worldByRoom } from "./agarioHanders.js";
+import {
+  broadcastPlayers,
+  MIN_SECOND_TO_STORE,
+  sendRoomInfo,
+  worldByRoom,
+} from "./agarioHanders.js";
 import { FastifyBaseLogger } from "fastify";
 import { randomOrb, randomViruses, removeActivePlayer } from "./agarioUtils.js";
 
@@ -279,9 +281,14 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
         delete players[id];
 
         if (world.meta.hostId === state.userId) {
-          for (const id of Object.keys(players)) {
-            if (players[id].userId) world.meta.hostId = players[id].userId;
+          let nextHost: number | undefined;
+          for (const p of Object.values(world.players)) {
+            if (typeof p.userId === "number") {
+              nextHost = p.userId;
+              break;
+            }
           }
+          world.meta.hostId = nextHost ?? -1;
         }
 
         const socket = io.sockets.get(id);
@@ -482,9 +489,7 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
           tickNow >= world.meta.endAt;
 
         if (roomEnded) {
-          const snapshotPlayers = Object.values(world.players).filter(
-            (p) => p.endTime === undefined,
-          );
+          const snapshotPlayers = Object.values(world.players);
 
           const saveJobs = snapshotPlayers.map((player) =>
             createPlayerHistoryDb(
