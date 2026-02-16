@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { connectPresence, disconnectPresence } from "./presenceSocket";
-import { io, type Socket } from "socket.io-client";
+import { type Socket } from "socket.io-client";
 import Pong from "./component/pong/pong";
 import LoginForm from "./component/LoginForm";
 import RegisterForm from "./component/RegisterForm";
@@ -31,8 +31,8 @@ import {
   // apiPingMe,
   // TOKEN_KEY,
 } from "./api";
-import AgarioLeaderboard from "./component/agario/AgarioLeaderboard";
 import AppBackground from "./component/Appbackground";
+import GlobalLeaderboard from "./component/GlobalLeaderboard";
 
 function NavItem({
   label,
@@ -84,7 +84,7 @@ export default function App() {
     let previous: any = {};
     try {
       previous = raw ? JSON.parse(raw) : {};
-    } catch {}
+    } catch { }
 
     const next = {
       ...previous,
@@ -201,7 +201,7 @@ export default function App() {
     if (current) {
       try {
         await apiLogout(current);
-      } catch {}
+      } catch { }
     }
 
     clearToken();
@@ -225,11 +225,11 @@ export default function App() {
       : location.pathname === "/leaderboard"
         ? "leaderboard"
         : location.pathname === "/games" ||
-            location.pathname === "/landing" ||
-            location.pathname === "/guest" ||
-            location.pathname === "/offline" ||
-            location.pathname === "/online" ||
-            location.pathname === "/agario"
+          location.pathname === "/landing" ||
+          location.pathname === "/guest" ||
+          location.pathname === "/offline" ||
+          location.pathname === "/online" ||
+          location.pathname === "/agario"
           ? "games"
           : location.pathname.startsWith("/social")
             ? "social"
@@ -421,7 +421,7 @@ export default function App() {
             path="/leaderboard"
             element={
               <div className={`min-h-screen ${topPaddingClass}`}>
-                <AgarioLeaderboard />
+                <GlobalLeaderboard />
               </div>
             }
           />
