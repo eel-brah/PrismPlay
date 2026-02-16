@@ -61,7 +61,7 @@ export default function SocialHub() {
   >([]);
   const navigate = useNavigate();
   const [requests, setRequests] = useState<
-    { id: string; name: string; avatarUrl?: string; mutualFriends?: number }[]
+    { id: string; name: string; avatarUrl?: string}[]
   >([]);
   const [friendsSubTab, setFriendsSubTab] = useState<
     "friends" | "requests" | "add"
@@ -181,7 +181,6 @@ export default function SocialHub() {
         id: String(r.id),
         name: r.fromUser.username,
         avatarUrl: r.fromUser.avatarUrl ?? undefined,
-        mutualFriends: 0,
       })),
     );
   };
@@ -927,9 +926,6 @@ export default function SocialHub() {
                           <div className="font-semibold text-gray-100">
                             {r.name}
                           </div>
-                          <div className="text-xs text-gray-400">
-                            {r.mutualFriends || 0} mutual friends
-                          </div>
                         </div>
                       </div>
                       <div className="mt-4 flex gap-3">
@@ -960,7 +956,6 @@ export default function SocialHub() {
                   ))}
               </div>
             )}
-
             {/* Add Friend Form */}
             {friendsSubTab === "add" && (
               <div className="max-w-3xl mx-auto space-y-4">
