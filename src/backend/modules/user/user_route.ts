@@ -22,6 +22,8 @@ import {
   userResponseSchema,
 } from "./user_schema.js";
 
+import { googleCallbackHandler, googleRedirectHandler } from "./user_controller.js";
+
 export async function authRoutes(server: FastifyInstance) {
   server.post("/login", {
     schema: {
@@ -46,6 +48,10 @@ export async function authRoutes(server: FastifyInstance) {
     },
     handler: logoutHandler,
   });
+
+  // Google OAuth
+  server.get("/google", { handler: googleRedirectHandler });
+  server.get("/google/callback", { handler: googleCallbackHandler });
 }
 
 export async function userRoutes(server: FastifyInstance) {

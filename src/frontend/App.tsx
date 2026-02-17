@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { connectPresence, disconnectPresence } from "./presenceSocket";
+import { connectChat, disconnectChat } from "./chatSocket";
 import { type Socket } from "socket.io-client";
 import Pong from "./component/pong/pong";
 import LoginForm from "./component/LoginForm";
@@ -33,6 +34,7 @@ import {
 } from "./api";
 import AppBackground from "./component/Appbackground";
 import GlobalLeaderboard from "./component/GlobalLeaderboard";
+import GameInviteOverlay from "./component/GameInviteOverlay";
 
 function NavItem({
   label,
@@ -84,7 +86,7 @@ export default function App() {
     let previous: any = {};
     try {
       previous = raw ? JSON.parse(raw) : {};
-    } catch { }
+    } catch {}
 
     const next = {
       ...previous,
@@ -123,7 +125,48 @@ export default function App() {
   // }, [token]);
 
   useEffect(() => {
+    //     async function boot() {
+    //         const saved = getStoredToken();
+
+    //         if (!saved) {
+    //             setBootingAuth(false);
+    //             return;
+    //         }
+
+    //         try {
+    //             const me = await apiGetMe(saved);
+    //             setToken(saved);
+    //             setUser(me); // Store user data
+    //             saveProfileDataForPlayerProfile(me);
+    //         } catch (e: any) {
+    //             // token expired/invalid
+    //             const status = axios.isAxiosError(e) ? e.response?.status : undefined;
+    //             if (status === 401 || status === 403) {
+    //                 clearToken();
+    //                 setToken(null);
+    //                 setUser(null);
+    //             }
+    //             // clearToken();
+    //             // setToken(null);
+    //             // console.log("has been caled ", e);
+
+    //             // setSessionMode("guest");
+    //         } finally {
+    //             setBootingAuth(false);
+    //         }
+    //     }
+
+    //     boot();
+    // }, []);
     async function boot() {
+      // ── Handle OAuth redirect token ──
+      const params = new URLSearchParams(window.location.search);
+      const oauthToken = params.get("token");
+      if (oauthToken) {
+        storeToken(oauthToken);
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+
       const saved = getStoredToken();
 
       if (!saved) {
@@ -134,21 +177,15 @@ export default function App() {
       try {
         const me = await apiGetMe(saved);
         setToken(saved);
-        setUser(me); // Store user data
+        setUser(me);
         saveProfileDataForPlayerProfile(me);
       } catch (e: any) {
-        // token expired/invalid
         const status = axios.isAxiosError(e) ? e.response?.status : undefined;
         if (status === 401 || status === 403) {
           clearToken();
           setToken(null);
           setUser(null);
         }
-        // clearToken();
-        // setToken(null);
-        // console.log("has been caled ", e);
-
-        // setSessionMode("guest");
       } finally {
         setBootingAuth(false);
       }
@@ -161,6 +198,7 @@ export default function App() {
 
     if (!token) {
       disconnectPresence();
+      disconnectChat();
       return;
     }
 
@@ -169,11 +207,16 @@ export default function App() {
     ps.on("connect", () => console.log("presence connected from App", ps.id));
     ps.on("disconnect", () => console.log("presence disconnected from App"));
 
+    // Connect global chat socket (needs user id)
+    if (user?.id) {
+      connectChat(user.id);
+    }
+
     return () => {
       ps.off("connect");
       ps.off("disconnect");
     };
-  }, [bootingAuth, token]);
+  }, [bootingAuth, token, user]);
   async function handleLogin(email: string, password: string) {
     const data = await apiLogin(email, password);
 
@@ -201,12 +244,13 @@ export default function App() {
     if (current) {
       try {
         await apiLogout(current);
-      } catch { }
+      } catch {}
     }
 
     clearToken();
     setToken(null);
     setUser(null);
+    disconnectChat();
     // setSessionMode("guest");
     navigate("/home");
   }
@@ -214,7 +258,8 @@ export default function App() {
   const hideTopBar =
     location.pathname === "/agario" ||
     location.pathname === "/offline" ||
-    location.pathname === "/online";
+    location.pathname === "/online" ||
+    location.pathname.startsWith("/game/");
   const showTopBar = !hideTopBar;
   const topPaddingClass = showTopBar ? "pt-16" : "";
   const minimalTopBar =
@@ -225,11 +270,11 @@ export default function App() {
       : location.pathname === "/leaderboard"
         ? "leaderboard"
         : location.pathname === "/games" ||
-          location.pathname === "/landing" ||
-          location.pathname === "/guest" ||
-          location.pathname === "/offline" ||
-          location.pathname === "/online" ||
-          location.pathname === "/agario"
+            location.pathname === "/landing" ||
+            location.pathname === "/guest" ||
+            location.pathname === "/offline" ||
+            location.pathname === "/online" ||
+            location.pathname === "/agario"
           ? "games"
           : location.pathname.startsWith("/social")
             ? "social"
@@ -385,6 +430,8 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {isAuthed && <GameInviteOverlay />}
 
         <Routes>
           <Route path="/" element={<Navigate to="/home" replace />} />

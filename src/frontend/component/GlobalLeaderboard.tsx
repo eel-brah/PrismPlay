@@ -81,7 +81,7 @@ export default function GlobalLeaderboard() {
               }
             `}
           >
-            {g === "agario" ? "Agario" : "Pong PonPong"}
+            {g === "agario" ? "Agario" : "Pong"}
           </button>
         ))}
       </div>

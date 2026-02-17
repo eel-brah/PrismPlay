@@ -22,6 +22,13 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { pipeline } from "node:stream/promises";
 
+import {
+  GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
+  GOOGLE_REDIRECT_URI,
+} from "../../server/config.js";
+import { findOrCreateGoogleUser } from "./user_service.js";
+
 export type JwtPayload = { id: number };
 
 function extractBearerToken(authHeader: string): string | null {
@@ -54,11 +61,22 @@ export async function loginHandler(
   req: FastifyRequest<{ Body: LoginInput }>,
   rep: FastifyReply,
 ) {
-  const { email, password } = req.body;
+  // const { email, password } = req.body;
 
+  // const user = await findUserByEmail(email);
+  // if (!user)
+  //   return rep.code(401).send({ message: "Invalid email or password" });
+
+  // const ok = await verifyPassword(password, user.passwordHash);
+
+  const { email, password } = req.body;
   const user = await findUserByEmail(email);
   if (!user)
     return rep.code(401).send({ message: "Invalid email or password" });
+
+  if (!user.passwordHash) {
+    return rep.code(401).send({ message: "This account uses Google login" });
+  }
 
   const ok = await verifyPassword(password, user.passwordHash);
   if (!ok) return rep.code(401).send({ message: "Invalid email or password" });
@@ -222,8 +240,82 @@ export async function uploadAvatar(req: FastifyRequest, res: FastifyReply) {
     avatarUrl: avatarUrl,
   });
 
-
   return res.send({
     avatarUrl: `/uploads/avatars/${filename}`,
   });
+}
+
+export async function googleRedirectHandler(
+  req: FastifyRequest,
+  rep: FastifyReply,
+) {
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: GOOGLE_REDIRECT_URI,
+    response_type: "code",
+    scope: "openid email profile",
+    access_type: "offline",
+    prompt: "consent",
+  });
+  return rep.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+}
+
+export async function googleCallbackHandler(
+  req: FastifyRequest,
+  rep: FastifyReply,
+) {
+  const { code } = req.query as { code?: string };
+  if (!code) return rep.code(400).send({ message: "Missing code" });
+
+  // 1. Exchange code for tokens
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      code,
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      redirect_uri: GOOGLE_REDIRECT_URI,
+      grant_type: "authorization_code",
+    }),
+  });
+  const tokenData = (await tokenRes.json()) as {
+    access_token?: string;
+    id_token?: string;
+  };
+  if (!tokenData.access_token)
+    return rep.code(401).send({ message: "Google auth failed" });
+
+  // 2. Get user info from Google
+  const userInfoRes = await fetch(
+    "https://www.googleapis.com/oauth2/v2/userinfo",
+    {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    },
+  );
+  const googleUser = (await userInfoRes.json()) as {
+    id: string;
+    email: string;
+    name: string;
+    picture: string;
+  };
+
+  // 3. Find or create user in your DB
+  const user = await findOrCreateGoogleUser({
+    googleId: googleUser.id,
+    email: googleUser.email,
+    username: googleUser.name,
+    avatarUrl: googleUser.picture,
+  });
+
+  // 4. Issue your JWT
+  const accessToken = await rep.jwtSign({ id: user.id } satisfies JwtPayload, {
+    sign: { expiresIn: "1d" },
+  });
+
+  // 5. Redirect to frontend with token
+  const frontendUrl =
+    process.env.NODE_ENV === "development" ? "http://localhost:5173" : "";
+
+  return rep.redirect(`${frontendUrl}/home?token=${accessToken}`);
 }
