@@ -2,7 +2,6 @@ import { z } from "zod";
 
 export const socketAuthSchema = z
   .object({
-    sessionId: z.string().min(1),
     token: z.string().optional(),
     guestId: z.string().optional(),
   })
@@ -11,17 +10,6 @@ export const socketAuthSchema = z
   });
 
 export type SocketAuth = z.infer<typeof socketAuthSchema>;
-
-function validate<T extends z.ZodTypeAny>(
-  schema: T,
-  data: unknown,
-): z.infer<T> {
-  const parsed = schema.safeParse(data);
-  if (!parsed.success) {
-    throw new Error(parsed.error.message);
-  }
-  return parsed.data;
-}
 
 export const inputSchema = z.object({
   x: z.number(),

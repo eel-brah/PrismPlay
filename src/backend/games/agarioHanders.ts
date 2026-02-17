@@ -423,7 +423,6 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       identity,
       roomName: room,
       socketId: socket.id,
-      sessionId: socket.data.sessionId,
       timeoutId: undefined,
     };
 

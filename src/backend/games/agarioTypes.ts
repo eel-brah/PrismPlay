@@ -13,7 +13,6 @@ export interface ActivePlayer {
   roomName: string;
 
   socketId: string;
-  sessionId: string;
   disconnectedAt?: number;
   timeoutId?: NodeJS.Timeout;
 }
