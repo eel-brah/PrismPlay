@@ -1,34 +1,10 @@
 import { useEffect, useState } from "react";
 import { apiGetRoomsHistory, getStoredToken } from "@/api";
+import { formatDurationMs, formatRoomDuration } from "@/game/agario/utils";
 
 type Room = Awaited<ReturnType<typeof apiGetRoomsHistory>>[number];
 
 const PAGE_SIZE = 15;
-
-function toMs(value: Date | string | null | undefined): number | null {
-  if (!value) return null;
-  return value instanceof Date ? value.getTime() : new Date(value).getTime();
-}
-
-function formatRoomDuration(room: {
-  startedAt: Date | string;
-  endedAt?: Date | string | null;
-  maxDurationMin?: number | null;
-}): string {
-  const startMs = toMs(room.startedAt);
-  const endMs = toMs(room.endedAt);
-
-  const totalSeconds =
-    endMs != null && startMs != null
-      ? Math.floor((endMs - startMs) / 1000)
-      : (room.maxDurationMin ?? 0) * 60;
-
-  const safe = Math.max(0, totalSeconds);
-  const minutes = Math.floor(safe / 60);
-  const seconds = safe % 60;
-
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-}
 
 export default function RoomsHistoryPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -156,37 +132,51 @@ export default function RoomsHistoryPage() {
                       Leaderboard
                     </div>
 
-                    <div className="max-h-64 overflow-y-auto space-y-2 pr-2">
+                    <div className="max-h-72 overflow-y-auto rounded-xl border border-white/10 bg-white/[0.03]">
+
+                      {/* HEADER */}
+                      <div className="grid grid-cols-5 px-4 py-2 text-xs font-semibold text-white/50 bg-white/[0.05]">
+                        <div>#</div>
+                        <div>Player</div>
+                        <div>Kills</div>
+                        <div>Max Mass</div>
+                        <div>Duration</div>
+                      </div>
+
                       {room.leaderboard.map((p) => (
                         <div
                           key={p.id}
-                          className="flex justify-between items-center rounded-lg px-4 py-2 bg-white/[0.04] border border-white/5 hover:bg-white/[0.07] transition"
+                          className="grid grid-cols-5 px-4 py-2 text-sm items-center border-t border-white/5 hover:bg-white/[0.06] transition"
                         >
-                          <div className="flex items-center gap-3">
-                            <span className="w-6 text-right text-gray-400">
-                              {p.rank}
-                            </span>
-
-                            <span className="text-gray-200">
-                              {p.trueName
-                                ? `${p.trueName} as ${p.name}`
-                                : p.name}
-                            </span>
+                          {/* Rank */}
+                          <div className="text-gray-400 font-semibold">
+                            {p.rank}
                           </div>
 
-                          <div className="flex items-center gap-6 text-sm">
-                            <span className="text-red-400">
-                              ⚔ <b className="text-white">{p.kills}</b>
-                            </span>
+                          {/* Player */}
+                          <div className="text-gray-200 truncate">
+                            {p.trueName
+                              ? `${p.trueName} as ${p.name}`
+                              : p.name}
+                          </div>
 
-                            <span className="text-cyan-300">
-                              ⬤ <b className="text-white">
-                                {Math.floor(p.maxMass)}
-                              </b>
-                            </span>
+                          {/* Kills */}
+                          <div className="text-red-400">
+                            {p.kills}
+                          </div>
+
+                          {/* Max Mass */}
+                          <div className="text-cyan-300">
+                            {Math.floor(p.maxMass)}
+                          </div>
+
+                          {/* Duration Played */}
+                          <div className="text-purple-300">
+                            {formatDurationMs(p.durationMs)}
                           </div>
                         </div>
                       ))}
+
                     </div>
 
                   </div>

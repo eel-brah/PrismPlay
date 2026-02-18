@@ -208,3 +208,38 @@ export function getOrCreateGuestId(): string {
   }
   return id;
 }
+
+function toMs(value: Date | string | null | undefined): number | null {
+  if (!value) return null;
+  return value instanceof Date ? value.getTime() : new Date(value).getTime();
+}
+
+export function formatRoomDuration(room: {
+  startedAt: Date | string;
+  endedAt?: Date | string | null;
+  maxDurationMin?: number | null;
+}): string {
+  const startMs = toMs(room.startedAt);
+  const endMs = toMs(room.endedAt);
+
+  const totalSeconds =
+    endMs != null && startMs != null
+      ? Math.floor((endMs - startMs) / 1000)
+      : (room.maxDurationMin ?? 0) * 60;
+
+  const safe = Math.max(0, totalSeconds);
+  const minutes = Math.floor(safe / 60);
+  const seconds = safe % 60;
+
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+export function formatDurationMs(ms?: number | null): string {
+  if (!ms || ms <= 0) return "-";
+
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
