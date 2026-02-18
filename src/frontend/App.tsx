@@ -35,6 +35,7 @@ import {
 import AppBackground from "./component/Appbackground";
 import GlobalLeaderboard from "./component/GlobalLeaderboard";
 import GameInviteOverlay from "./component/GameInviteOverlay";
+import RoomsHistoryPage from "./component/agario/RoomsHistoryPage";
 
 function NavItem({
   label,
@@ -86,7 +87,7 @@ export default function App() {
     let previous: any = {};
     try {
       previous = raw ? JSON.parse(raw) : {};
-    } catch {}
+    } catch { }
 
     const next = {
       ...previous,
@@ -244,7 +245,7 @@ export default function App() {
     if (current) {
       try {
         await apiLogout(current);
-      } catch {}
+      } catch { }
     }
 
     clearToken();
@@ -270,11 +271,11 @@ export default function App() {
       : location.pathname === "/leaderboard"
         ? "leaderboard"
         : location.pathname === "/games" ||
-            location.pathname === "/landing" ||
-            location.pathname === "/guest" ||
-            location.pathname === "/offline" ||
-            location.pathname === "/online" ||
-            location.pathname === "/agario"
+          location.pathname === "/landing" ||
+          location.pathname === "/guest" ||
+          location.pathname === "/offline" ||
+          location.pathname === "/online" ||
+          location.pathname === "/agario"
           ? "games"
           : location.pathname.startsWith("/social")
             ? "social"
@@ -467,9 +468,34 @@ export default function App() {
           <Route
             path="/leaderboard"
             element={
-              <div className={`min-h-screen ${topPaddingClass}`}>
-                <GlobalLeaderboard />
-              </div>
+              bootingAuth ? (
+                <div className="min-h-screen flex items-center justify-center text-white">
+                  Loading...
+                </div>
+              ) : isAuthed ? (
+                <div className={`min-h-screen ${topPaddingClass}`}>
+                  <GlobalLeaderboard />
+                </div>
+              ) : (
+                <Navigate to="/login/form" replace />
+              )
+            }
+          />
+
+          <Route
+            path="/history"
+            element={
+              bootingAuth ? (
+                <div className="min-h-screen flex items-center justify-center text-white">
+                  Loading...
+                </div>
+              ) : isAuthed ? (
+                <div className={`min-h-screen ${topPaddingClass}`}>
+                  <RoomsHistoryPage />
+                </div>
+              ) : (
+                <Navigate to="/login/form" replace />
+              )
             }
           />
           <Route

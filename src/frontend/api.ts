@@ -5,6 +5,7 @@ import {
   FinalLeaderboardEntry,
   GetRoomHistoryDbReturn,
   PlayerHistoryWithRoom,
+  RoomHistoryItem,
 } from "src/shared/agario/types";
 import { PongLeaderboardEntry } from "../shared/pong/gameTypes";
 const api = axios.create({
@@ -335,6 +336,19 @@ export async function apiPingMe(token: string) {
 
 export async function apiGetGlobalLeaderboard(token: string) {
   const res = await api.get("/agario/leaderboard/global", withAuth(token));
+
+  return res.data;
+}
+
+export async function apiGetRoomsHistory(
+  token: string,
+  take = 20,
+  skip = 0,
+) {
+  const res = await api.get<RoomHistoryItem[]>(
+    `/agario/history/rooms?take=${take}&skip=${skip}&onlyEnded=true`,
+    withAuth(token),
+  );
 
   return res.data;
 }
