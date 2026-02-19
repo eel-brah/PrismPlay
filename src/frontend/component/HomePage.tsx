@@ -48,16 +48,16 @@ export default function HomePage({
             )}
           </div>
 
-          <h1 className="mt-5 text-4xl md:text-5xl font-bold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+          <h1 className="mt-5 text-3xl md:text-5xl font-bold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
             {loggedIn
               ? "Continue Your Competitive Journey"
-              : "A Competitive Arcade Platform"}
+              : "PrismPlay is Competitive Arcade Platform"}
           </h1>
 
           <p className="mt-4 text-gray-300 text-lg">
             {loggedIn
               ? "Your stats are being tracked. Improve your ranking and challenge players."
-              : "Play instantly as a guest or create an account to unlock progression."}
+              : "Play instantly as a guest or create an account to unlock more futures."}
           </p>
 
           <p className="mt-2 text-gray-400 max-w-xl mx-auto">
@@ -111,7 +111,7 @@ export default function HomePage({
                 Leaderboard
               </div>
               <div className="text-gray-400 text-xs">
-                {loggedIn ? "Ranking enabled" : "Unavailable"}
+                {loggedIn ? "Ranking enabled" : "Login required"}
               </div>
             </div>
 

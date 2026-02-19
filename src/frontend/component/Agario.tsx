@@ -22,6 +22,8 @@ import { InputState } from "src/backend/modules/agario/agario_schema";
 import { useNavigate } from "react-router-dom";
 import { AlertType, Camera, LeaderboardEntry, LobbyPlayer, RoomInfo } from "@/game/agario/type";
 import { isValidRoomName } from "../../shared/agario/utils";
+import { useTopBar } from "../utils/topbar-controller";
+import { createPortal } from "react-dom";
 
 const alertStyles: Record<Exclude<AlertType, "">, string> = {
   error: "bg-red-100 border-red-300 text-red-700",
@@ -82,12 +84,12 @@ const Agario = () => {
   const roomStartedAt = useRef<number>(0);
   const roomListInterval = useRef<NodeJS.Timeout | undefined>(undefined)
 
+
+  const setTopBarVisible = useTopBar();
+
   const navigate = useNavigate();
-  const goHome = () => {
-    navigate("/");
-  };
-  const goProfile = () => {
-    navigate("/profile");
+  const goHistory = () => {
+    navigate("/agario/history");
   };
 
   function clearAlert() {
@@ -596,6 +598,14 @@ const Agario = () => {
   }
 
 
+  useEffect(() => {
+    const inMenu = !hasJoined || menuMode === MAIN_MENU;
+
+    setTopBarVisible(inMenu);
+
+    return () => setTopBarVisible(true);
+  }, [hasJoined, menuMode]);
+
   const glassPanel =
     "bg-white/[0.05] backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_10px_60px_rgba(0,0,0,0.45)]";
 
@@ -652,19 +662,22 @@ const Agario = () => {
       )}
 
 
-      <div className="pointer-events-none fixed top-6 left-1/2 -translate-x-1/2 z-50">
-        <div
-          className={`
-            px-6 py-3 rounded-md border text-lg transition-all duration-200
-            ${alert.type
-              ? `${alertStyles[alert.type]} opacity-100 translate-y-0`
-              : "opacity-0 -translate-y-2"}
-            `}
-          aria-live="polite"
-        >
-          {alert.message}
-        </div>
-      </div>
+      {createPortal(
+        <div className="pointer-events-none fixed top-6 left-1/2 -translate-x-1/2 z-[9999]">
+          <div
+            className={`
+        px-6 py-3 rounded-md border text-lg transition-all duration-200
+        ${alert.type
+                ? `${alertStyles[alert.type]} opacity-100 translate-y-0`
+                : "opacity-0 -translate-y-2"}
+      `}
+            aria-live="polite"
+          >
+            {alert.message}
+          </div>
+        </div>,
+        document.body
+      )}
 
       {!hasJoined && (
         <div className="absolute inset-0 flex flex-col justify-center items-center gap-5">
@@ -689,7 +702,7 @@ const Agario = () => {
             onChange={(e) => setPlayerName(e.target.value)}
           />
 
-          <div className="flex gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <button
               onClick={() => {
                 // clearAlert();
@@ -722,14 +735,16 @@ const Agario = () => {
             >
               Create Room
             </button>
+
+            {menuMode === MAIN_MENU && (
+              <button
+                onClick={goHistory}
+                className={`${primaryBtn} col-span-3`}>
+                History
+              </button>
+            )}
           </div>
 
-          {menuMode === MAIN_MENU && (
-            <div className="flex gap-3 mt-2">
-              <button onClick={goHome} className={subtleBtn}>🏠 Home</button>
-              <button onClick={goProfile} className={subtleBtn}>👤 Profile</button>
-            </div>
-          )}
 
           {menuMode === "join" && (
             <div className="w-[540px] max-w-[92vw] p-5 bg-white/[0.05] backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_10px_60px_rgba(0,0,0,0.45)]">
