@@ -35,10 +35,11 @@ import {
   RoomHistoryItem,
   RoomLeaderboardEntry,
 } from "src/shared/agario/types";
+import ProfileHistorySection from "./GamesHistory";
 
 type Tab = "profile" | "history";
 
-type AgarPlayerHistoryRow = {
+export type AgarPlayerHistoryRow = {
   id: number;
   name: string;
   durationMs: number;
@@ -48,20 +49,6 @@ type AgarPlayerHistoryRow = {
   roomId: number;
   roomName: string;
 };
-
-function msToMinSec(ms: number) {
-  const total = Math.max(0, Math.floor(ms / 1000));
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}m ${s}s`;
-}
-
-function formatDate(value: string | Date | null) {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString();
-}
 
 function mapAgarPlayerRows(
   records: PlayerHistoryWithRoom[],
@@ -81,21 +68,6 @@ function mapAgarPlayerRows(
 function mapRoomHistoryToSummary(
   room: GetRoomHistoryDbReturn,
 ): RoomHistoryItem {
-  // id: number | string;
-  // type: "user" | "guest";
-  // trueName: string | null;
-  // name: string;
-  //
-  // rank: number;
-  // kills: number;
-  // maxMass: number;
-  // durationMs: number;
-  // isWinner: boolean;
-  //
-  // user: PublicUser | null;
-  // guest: PublicGuest | null;
-  //
-  // createdAt: Date;
   const leaderboard = room.leaderboard.map((entry) => ({
     id: entry.id,
     type: entry.type,
@@ -125,15 +97,15 @@ function mapRoomHistoryToSummary(
     createdBy: room.createdBy,
     winner: winner
       ? {
-          id: winner.id,
-          type: winner.type,
-          name: winner.name,
-          trueName: winner.trueName,
-          kills: winner.kills,
-          maxMass: winner.maxMass,
-          durationMs: winner.durationMs,
-          rank: winner.rank,
-        }
+        id: winner.id,
+        type: winner.type,
+        name: winner.name,
+        trueName: winner.trueName,
+        kills: winner.kills,
+        maxMass: winner.maxMass,
+        durationMs: winner.durationMs,
+        rank: winner.rank,
+      }
       : null,
     leaderboard,
   };
@@ -173,31 +145,10 @@ function mapLeaderboardEntries(
 
 export default function PlayerProfile() {
   const [tab, setTab] = useState<Tab>("profile");
-  // const [user, setUser] = useState(localStorage.getItem("profile_data"));
   const [user, setUser] = useState<User | null>(null);
   const [meLoading, setMeLoading] = useState(true);
   const [meError, setMeError] = useState("");
-  // const [user, setUser] = useState(() => {
-  //   // const raw = localStorage.getItem("profile_data");
-  //   const base = {
-  //     username: "ht",
-  //     email: "ht@example.com",
-  //     level: 9,
-  //     xp: 80,
-  //     xpMax: 100,
-  //     memberSince: new Date().toLocaleDateString(),
-  //     wins: 46,
-  //     losses: 37,
-  //     avatarUrl: "",
-  //   };
-  //   try {
-  //     return raw ? { ...base, ...JSON.parse(raw) } : base;
-  //   } catch {
-  //     return base;
-  //   }
-  // });
   const [isEditing, setIsEditing] = useState(false);
-  // const [editName, setEditName] = useState(user.username);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editPassword, setEditPassword] = useState("");
@@ -211,19 +162,13 @@ export default function PlayerProfile() {
   const [historyFetched, setHistoryFetched] = useState(false);
   const [historyMode, setHistoryMode] = useState<"pong" | "agario">("pong");
   const [agarPlayers, setAgarPlayers] = useState<AgarPlayerHistoryRow[]>([]);
-  const [agarPlayersLoading, setAgarPlayersLoading] = useState(false);
-  const [agarPlayersError, setAgarPlayersError] = useState("");
   const [agarPlayersFetched, setAgarPlayersFetched] = useState(false);
   const [agarRoomsById, setAgarRoomsById] = useState<
     Record<number, RoomHistoryItem>
   >({});
-  const [agarRoomLoading, setAgarRoomLoading] = useState(false);
-  const [agarRoomError, setAgarRoomError] = useState("");
   const [agarLeaderboardByRoomId, setAgarLeaderboardByRoomId] = useState<
     Record<number, RoomHistoryItem["leaderboard"]>
   >({});
-  const [agarLeaderboardLoading, setAgarLeaderboardLoading] = useState(false);
-  const [agarLeaderboardError, setAgarLeaderboardError] = useState("");
   const [stats, setStats] = useState<PlayerStats | null>(null);
   const [statsError, setStatsError] = useState("");
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -367,14 +312,11 @@ export default function PlayerProfile() {
 
     let cancelled = false;
     const loadAgarPlayers = async () => {
-      setAgarPlayersLoading(true);
-      setAgarPlayersError("");
       try {
         const token = getStoredToken();
         if (!token) {
           if (!cancelled) {
             setAgarPlayers([]);
-            setAgarPlayersError("Not authenticated");
           }
           return;
         }
@@ -383,14 +325,8 @@ export default function PlayerProfile() {
           setAgarPlayers(mapAgarPlayerRows(data));
         }
       } catch (err) {
-        if (!cancelled) {
-          setAgarPlayersError(
-            err instanceof Error ? err.message : "Failed to load agar history",
-          );
-        }
       } finally {
         if (!cancelled) {
-          setAgarPlayersLoading(false);
           setAgarPlayersFetched(true);
         }
       }
@@ -409,12 +345,9 @@ export default function PlayerProfile() {
 
     let cancelled = false;
     const loadRoomHistory = async () => {
-      setAgarRoomLoading(true);
-      setAgarRoomError("");
       try {
         const token = getStoredToken();
         if (!token) {
-          if (!cancelled) setAgarRoomError("Not authenticated");
           return;
         }
         const room = await apiGetAgarioRoomHistory(token, roomId);
@@ -425,13 +358,7 @@ export default function PlayerProfile() {
           }));
         }
       } catch (err) {
-        if (!cancelled) {
-          setAgarRoomError(
-            err instanceof Error ? err.message : "Failed to load room history",
-          );
-        }
       } finally {
-        if (!cancelled) setAgarRoomLoading(false);
       }
     };
     void loadRoomHistory();
@@ -449,12 +376,9 @@ export default function PlayerProfile() {
 
     let cancelled = false;
     const loadLeaderboard = async () => {
-      setAgarLeaderboardLoading(true);
-      setAgarLeaderboardError("");
       try {
         const token = getStoredToken();
         if (!token) {
-          if (!cancelled) setAgarLeaderboardError("Not authenticated");
           return;
         }
         const data = await apiGetAgarioRoomLeaderboard(token, roomId);
@@ -474,13 +398,7 @@ export default function PlayerProfile() {
           [roomId]: leaderboard,
         }));
       } catch (err) {
-        if (!cancelled) {
-          setAgarLeaderboardError(
-            err instanceof Error ? err.message : "Failed to load leaderboard",
-          );
-        }
       } finally {
-        if (!cancelled) setAgarLeaderboardLoading(false);
       }
     };
     void loadLeaderboard();
@@ -525,12 +443,9 @@ export default function PlayerProfile() {
   useEffect(() => {
     if (!user) return;
     setAgarPlayers([]);
-    setAgarPlayersError("");
     setAgarPlayersFetched(false);
     setAgarRoomsById({});
-    setAgarRoomError("");
     setAgarLeaderboardByRoomId({});
-    setAgarLeaderboardError("");
     setSelectedAgarPlayerId(null);
     setShowAgarLeaderboard(false);
   }, [user?.id]);
@@ -617,11 +532,10 @@ export default function PlayerProfile() {
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`px-4 py-1 rounded-full text-sm transition-colors ${
-                  tab === t
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-300 hover:bg-gray-800"
-                }`}
+                className={`px-4 py-1 rounded-full text-sm transition-colors ${tab === t
+                  ? "bg-blue-600 text-white"
+                  : "text-gray-300 hover:bg-gray-800"
+                  }`}
               >
                 {t[0].toUpperCase() + t.slice(1)}
               </button>
@@ -852,392 +766,21 @@ export default function PlayerProfile() {
         </div>
       )}
       {tab === "history" && (
-        <div className="max-w-6xl mx-auto px-6 pb-10">
-          <div className="rounded-2xl border border-white/10 bg-gray-900/50 shadow-xl p-6">
-            <div className="flex items-center gap-2 mb-4 text-gray-200">
-              <Gamepad2 className="w-5 h-5" />
-              <span className="text-sm font-semibold">Game History</span>
-            </div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="inline-flex rounded-full bg-gray-800/60 p-1">
-                <button
-                  onClick={() => setHistoryMode("pong")}
-                  className={`px-4 py-1 rounded-full text-sm transition-colors ${
-                    historyMode === "pong"
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-300 hover:bg-gray-800"
-                  }`}
-                >
-                  Pong
-                </button>
-                <button
-                  onClick={() => setHistoryMode("agario")}
-                  className={`px-4 py-1 rounded-full text-sm transition-colors ${
-                    historyMode === "agario"
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-300 hover:bg-gray-800"
-                  }`}
-                >
-                  Agar.io
-                </button>
-              </div>
-            </div>
-            {historyMode === "pong" && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-gray-400">
-                      <th className="px-3 py-2">Opponent</th>
-                      <th className="px-3 py-2">Result</th>
-                      <th className="px-3 py-2">Score</th>
-                      <th className="px-3 py-2">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-800">
-                    {historyLoading && (
-                      <tr className="text-gray-400">
-                        <td className="px-3 py-3" colSpan={4}>
-                          Loading history...
-                        </td>
-                      </tr>
-                    )}
-                    {!historyLoading && historyError && (
-                      <tr className="text-red-300">
-                        <td className="px-3 py-3" colSpan={4}>
-                          {historyError}
-                        </td>
-                      </tr>
-                    )}
-                    {!historyLoading &&
-                      !historyError &&
-                      history.length === 0 && (
-                        <tr className="text-gray-400">
-                          <td className="px-3 py-3" colSpan={4}>
-                            No matches yet
-                          </td>
-                        </tr>
-                      )}
-                    {!historyLoading &&
-                      !historyError &&
-                      history.map((row) => {
-                        const resultText =
-                          row.result === "win" ? "Win" : "Loss";
-                        const resultClass =
-                          row.result === "win"
-                            ? "bg-green-600/30 text-green-300"
-                            : "bg-red-600/30 text-red-300";
-                        return (
-                          <tr key={row.id} className="text-gray-200">
-                            <td className="px-3 py-2">{row.opponentName}</td>
-                            <td className="px-3 py-2">
-                              <span
-                                className={`px-2 py-1 rounded ${resultClass}`}
-                              >
-                                {resultText}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2">{row.score}</td>
-                            <td className="px-3 py-2">
-                              {new Date(row.date).toLocaleDateString()}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            {historyMode === "agario" && (
-              <div>
-                <div className="text-xs font-semibold text-gray-300 mb-3">
-                  Player History
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-left text-gray-400">
-                        <th className="px-3 py-2">Name</th>
-                        <th className="px-3 py-2">Duration</th>
-                        <th className="px-3 py-2">Kills</th>
-                        <th className="px-3 py-2">Max Mass</th>
-                        <th className="px-3 py-2">Rank</th>
-                        <th className="px-3 py-2">Room</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {agarPlayersLoading && (
-                        <tr className="text-gray-400">
-                          <td className="px-3 py-3" colSpan={6}>
-                            Loading history...
-                          </td>
-                        </tr>
-                      )}
-                      {!agarPlayersLoading && agarPlayersError && (
-                        <tr className="text-red-300">
-                          <td className="px-3 py-3" colSpan={6}>
-                            {agarPlayersError}
-                          </td>
-                        </tr>
-                      )}
-                      {!agarPlayersLoading &&
-                        !agarPlayersError &&
-                        agarPlayers.length === 0 && (
-                          <tr className="text-gray-400">
-                            <td className="px-3 py-3" colSpan={6}>
-                              No matches yet
-                            </td>
-                          </tr>
-                        )}
-                      {!agarPlayersLoading &&
-                        !agarPlayersError &&
-                        agarPlayers.map((p) => {
-                          const isSelected = selectedAgarPlayerId === p.id;
-                          const isLeaderboardOpen =
-                            isSelected && showAgarLeaderboard;
-                          return (
-                            <React.Fragment key={p.id}>
-                              <tr
-                                className={`text-gray-200 cursor-pointer hover:bg-white/5 border-b border-gray-800 ${isSelected ? "bg-white/10" : ""}`}
-                                onClick={() => {
-                                  if (isSelected) {
-                                    setSelectedAgarPlayerId(null);
-                                    setShowAgarLeaderboard(false);
-                                    return;
-                                  }
-                                  setSelectedAgarPlayerId(p.id);
-                                  setShowAgarLeaderboard(false);
-                                }}
-                              >
-                                <td className="px-3 py-2">{p.name}</td>
-                                <td className="px-3 py-2">
-                                  {msToMinSec(p.durationMs)}
-                                </td>
-                                <td className="px-3 py-2">{p.kills}</td>
-                                <td className="px-3 py-2">{p.maxMass}</td>
-                                <td className="px-3 py-2">{p.rank}</td>
-                                <td className="px-3 py-2">{p.roomName}</td>
-                              </tr>
-                              <tr
-                                className={
-                                  isSelected
-                                    ? "bg-white/5 border-b border-gray-800"
-                                    : ""
-                                }
-                              >
-                                <td
-                                  className={`px-3 ${isSelected ? "py-4" : "py-0"}`}
-                                  colSpan={6}
-                                >
-                                  <div
-                                    className={`overflow-hidden transition-all duration-300 ease-out ${isSelected ? "max-h-[1200px] opacity-100 translate-y-0" : "max-h-0 opacity-0 -translate-y-1 pointer-events-none"}`}
-                                  >
-                                    {agarRoomLoading && (
-                                      <div className="text-sm text-gray-400">
-                                        Loading room history...
-                                      </div>
-                                    )}
-                                    {!agarRoomLoading && agarRoomError && (
-                                      <div className="text-sm text-red-300">
-                                        {agarRoomError}
-                                      </div>
-                                    )}
-                                    {!agarRoomLoading &&
-                                      !agarRoomError &&
-                                      selectedAgarRoom && (
-                                        <div>
-                                          <div className="flex items-center justify-between mb-3">
-                                            <div className="text-xs font-semibold text-gray-300">
-                                              Room history
-                                            </div>
-                                            <button
-                                              onClick={() =>
-                                                setShowAgarLeaderboard(
-                                                  (prev) => !prev,
-                                                )
-                                              }
-                                              className="px-3 py-1 rounded text-xs bg-white/10 text-gray-200 hover:text-white"
-                                            >
-                                              Leaderboard
-                                            </button>
-                                          </div>
-                                          <div className="text-gray-300 mb-3">
-                                            <span className="font-semibold text-white">
-                                              {selectedAgarRoom.name}
-                                            </span>
-                                            <span className="ml-2 text-xs px-2 py-1 rounded bg-white/5">
-                                              {selectedAgarRoom.visibility}
-                                            </span>
-                                          </div>
-                                          <div className="text-sm text-gray-400 mb-4">
-                                            Winner:{" "}
-                                            {selectedAgarRoom.winner
-                                              ? `${selectedAgarRoom.winner.name} • ${selectedAgarRoom.winner.kills} kills • ${selectedAgarRoom.winner.maxMass} max mass • ${msToMinSec(selectedAgarRoom.winner.durationMs)} • rank ${selectedAgarRoom.winner.rank}`
-                                              : "—"}
-                                          </div>
-                                          <div className="overflow-x-auto">
-                                            <table className="w-full text-sm">
-                                              <thead>
-                                                <tr className="text-left text-gray-400">
-                                                  <th className="px-3 py-2">
-                                                    Name
-                                                  </th>
-                                                  <th className="px-3 py-2">
-                                                    Visibility
-                                                  </th>
-                                                  <th className="px-3 py-2">
-                                                    Default
-                                                  </th>
-                                                  <th className="px-3 py-2">
-                                                    Players
-                                                  </th>
-                                                  <th className="px-3 py-2">
-                                                    Duration
-                                                  </th>
-                                                  <th className="px-3 py-2">
-                                                    Started
-                                                  </th>
-                                                  <th className="px-3 py-2">
-                                                    Ended
-                                                  </th>
-                                                </tr>
-                                              </thead>
-                                              <tbody className="divide-y divide-gray-800">
-                                                <tr className="text-gray-200">
-                                                  <td className="px-3 py-2">
-                                                    {selectedAgarRoom.name}
-                                                  </td>
-                                                  <td className="px-3 py-2">
-                                                    {
-                                                      selectedAgarRoom.visibility
-                                                    }
-                                                  </td>
-                                                  <td className="px-3 py-2">
-                                                    {selectedAgarRoom.isDefault
-                                                      ? "Yes"
-                                                      : "No"}
-                                                  </td>
-                                                  <td className="px-3 py-2">
-                                                    {
-                                                      selectedAgarRoom.playersCount
-                                                    }
-                                                    /
-                                                    {selectedAgarRoom.maxPlayers ??
-                                                      "—"}
-                                                  </td>
-                                                  <td className="px-3 py-2">
-                                                    {selectedAgarRoom.maxDurationMin ===
-                                                    null
-                                                      ? "—"
-                                                      : `${selectedAgarRoom.maxDurationMin}m`}
-                                                  </td>
-                                                  <td className="px-3 py-2">
-                                                    {formatDate(
-                                                      selectedAgarRoom.startedAt,
-                                                    )}
-                                                  </td>
-                                                  <td className="px-3 py-2">
-                                                    {formatDate(
-                                                      selectedAgarRoom.endedAt,
-                                                    )}
-                                                  </td>
-                                                </tr>
-                                              </tbody>
-                                            </table>
-                                          </div>
-                                          <div
-                                            className={`mt-6 overflow-hidden transition-all duration-300 ease-out ${isLeaderboardOpen ? "max-h-[900px] opacity-100 translate-y-0" : "max-h-0 opacity-0 -translate-y-1 pointer-events-none"}`}
-                                          >
-                                            <div className="text-xs font-semibold text-gray-300 mb-3">
-                                              Leaderboard
-                                            </div>
-                                            {agarLeaderboardLoading && (
-                                              <div className="text-sm text-gray-400 mb-3">
-                                                Loading leaderboard...
-                                              </div>
-                                            )}
-                                            {!agarLeaderboardLoading &&
-                                              agarLeaderboardError && (
-                                                <div className="text-sm text-red-300 mb-3">
-                                                  {agarLeaderboardError}
-                                                </div>
-                                              )}
-                                            {!agarLeaderboardLoading &&
-                                              !agarLeaderboardError && (
-                                                <div className="overflow-x-auto">
-                                                  <table className="w-full text-sm">
-                                                    <thead>
-                                                      <tr className="text-left text-gray-400">
-                                                        <th className="px-3 py-2">
-                                                          Name
-                                                        </th>
-                                                        <th className="px-3 py-2">
-                                                          In-Game Name
-                                                        </th>
-                                                        <th className="px-3 py-2">
-                                                          Kills
-                                                        </th>
-                                                        <th className="px-3 py-2">
-                                                          Max Mass
-                                                        </th>
-                                                        <th className="px-3 py-2">
-                                                          Duration
-                                                        </th>
-                                                        <th className="px-3 py-2">
-                                                          Rank
-                                                        </th>
-                                                      </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-gray-800">
-                                                      {selectedAgarRoom.leaderboard.map(
-                                                        (p) => (
-                                                          <tr
-                                                            key={`${p.id}-${p.rank}-${p.createdAt}`}
-                                                            className="text-gray-200"
-                                                          >
-                                                            <td className="px-3 py-2">
-                                                              {p.trueName ??
-                                                                "—"}
-                                                            </td>
-                                                            <td className="px-3 py-2">
-                                                              {p.name}
-                                                            </td>
-                                                            <td className="px-3 py-2">
-                                                              {p.kills}
-                                                            </td>
-                                                            <td className="px-3 py-2">
-                                                              {p.maxMass}
-                                                            </td>
-                                                            <td className="px-3 py-2">
-                                                              {msToMinSec(
-                                                                p.durationMs,
-                                                              )}
-                                                            </td>
-                                                            <td className="px-3 py-2">
-                                                              {p.rank}
-                                                            </td>
-                                                          </tr>
-                                                        ),
-                                                      )}
-                                                    </tbody>
-                                                  </table>
-                                                </div>
-                                              )}
-                                          </div>
-                                        </div>
-                                      )}
-                                  </div>
-                                </td>
-                              </tr>
-                            </React.Fragment>
-                          );
-                        })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <ProfileHistorySection
+          historyMode={historyMode}
+          setHistoryMode={setHistoryMode}
+
+          history={history}
+          loading={historyLoading}
+          error={historyError}
+
+          players={agarPlayers}
+          selectedId={selectedAgarPlayerId}
+          setSelectedId={setSelectedAgarPlayerId}
+          selectedRoom={selectedAgarRoom}
+          showLeaderboard={showAgarLeaderboard}
+          setShowLeaderboard={setShowAgarLeaderboard}
+        />
       )}
     </div>
   );
@@ -1260,19 +803,13 @@ export function PublicPlayerProfile() {
   const [historyFetched, setHistoryFetched] = useState(false);
   const [historyMode, setHistoryMode] = useState<"pong" | "agario">("pong");
   const [agarPlayers, setAgarPlayers] = useState<AgarPlayerHistoryRow[]>([]);
-  const [agarPlayersLoading, setAgarPlayersLoading] = useState(false);
-  const [agarPlayersError, setAgarPlayersError] = useState("");
   const [agarPlayersFetched, setAgarPlayersFetched] = useState(false);
   const [agarRoomsById, setAgarRoomsById] = useState<
     Record<number, RoomHistoryItem>
   >({});
-  const [agarRoomLoading, setAgarRoomLoading] = useState(false);
-  const [agarRoomError, setAgarRoomError] = useState("");
   const [agarLeaderboardByRoomId, setAgarLeaderboardByRoomId] = useState<
     Record<number, RoomHistoryItem["leaderboard"]>
   >({});
-  const [agarLeaderboardLoading, setAgarLeaderboardLoading] = useState(false);
-  const [agarLeaderboardError, setAgarLeaderboardError] = useState("");
   const [selectedAgarPlayerId, setSelectedAgarPlayerId] = useState<
     number | null
   >(null);
@@ -1418,12 +955,9 @@ export function PublicPlayerProfile() {
     setHistoryFetched(false);
     setHistoryMode("pong");
     setAgarPlayers([]);
-    setAgarPlayersError("");
     setAgarPlayersFetched(false);
     setAgarRoomsById({});
-    setAgarRoomError("");
     setAgarLeaderboardByRoomId({});
-    setAgarLeaderboardError("");
     setSelectedAgarPlayerId(null);
     setShowAgarLeaderboard(false);
   }, [username]);
@@ -1478,14 +1012,11 @@ export function PublicPlayerProfile() {
 
     let cancelled = false;
     const loadAgarPlayers = async () => {
-      setAgarPlayersLoading(true);
-      setAgarPlayersError("");
       try {
         const token = getStoredToken();
         if (!token) {
           if (!cancelled) {
             setAgarPlayers([]);
-            setAgarPlayersError("Not authenticated");
           }
           return;
         }
@@ -1494,14 +1025,8 @@ export function PublicPlayerProfile() {
           setAgarPlayers(mapAgarPlayerRows(data));
         }
       } catch (err) {
-        if (!cancelled) {
-          setAgarPlayersError(
-            err instanceof Error ? err.message : "Failed to load agar history",
-          );
-        }
       } finally {
         if (!cancelled) {
-          setAgarPlayersLoading(false);
           setAgarPlayersFetched(true);
         }
       }
@@ -1520,12 +1045,9 @@ export function PublicPlayerProfile() {
 
     let cancelled = false;
     const loadRoomHistory = async () => {
-      setAgarRoomLoading(true);
-      setAgarRoomError("");
       try {
         const token = getStoredToken();
         if (!token) {
-          if (!cancelled) setAgarRoomError("Not authenticated");
           return;
         }
         const room = await apiGetAgarioRoomHistory(token, roomId);
@@ -1536,13 +1058,7 @@ export function PublicPlayerProfile() {
           }));
         }
       } catch (err) {
-        if (!cancelled) {
-          setAgarRoomError(
-            err instanceof Error ? err.message : "Failed to load room history",
-          );
-        }
       } finally {
-        if (!cancelled) setAgarRoomLoading(false);
       }
     };
     void loadRoomHistory();
@@ -1560,12 +1076,9 @@ export function PublicPlayerProfile() {
 
     let cancelled = false;
     const loadLeaderboard = async () => {
-      setAgarLeaderboardLoading(true);
-      setAgarLeaderboardError("");
       try {
         const token = getStoredToken();
         if (!token) {
-          if (!cancelled) setAgarLeaderboardError("Not authenticated");
           return;
         }
         const data = await apiGetAgarioRoomLeaderboard(token, roomId);
@@ -1585,13 +1098,7 @@ export function PublicPlayerProfile() {
           [roomId]: leaderboard,
         }));
       } catch (err) {
-        if (!cancelled) {
-          setAgarLeaderboardError(
-            err instanceof Error ? err.message : "Failed to load leaderboard",
-          );
-        }
       } finally {
-        if (!cancelled) setAgarLeaderboardLoading(false);
       }
     };
     void loadLeaderboard();
@@ -1657,10 +1164,10 @@ export function PublicPlayerProfile() {
 
   if (loading) return <div>Loading...</div>;
   if (notFound)
-    return <ErrorPage code = {404} title="Not Found" message={`User "${username ?? ""}" was not found.`} />;
+    return <ErrorPage code={404} title="Not Found" message={`User "${username ?? ""}" was not found.`} />;
   if (error) return <div>{error}</div>;
   if (!user)
-    return <ErrorPage code = {404} title="Not Found" message={`User "${username ?? ""}" was not found.`} />;
+    return <ErrorPage code={404} title="Not Found" message={`User "${username ?? ""}" was not found.`} />;
 
   const gamesPlayed = stats?.totalGames ?? 0;
   const wins = stats?.wins ?? 0;
@@ -1726,11 +1233,10 @@ export function PublicPlayerProfile() {
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`px-4 py-1 rounded-full text-sm transition-colors ${
-                  tab === t
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-300 hover:bg-gray-800"
-                }`}
+                className={`px-4 py-1 rounded-full text-sm transition-colors ${tab === t
+                  ? "bg-blue-600 text-white"
+                  : "text-gray-300 hover:bg-gray-800"
+                  }`}
               >
                 {t[0].toUpperCase() + t.slice(1)}
               </button>
@@ -1894,389 +1400,21 @@ export function PublicPlayerProfile() {
         </div>
       )}
       {tab === "history" && (
-        <div className="max-w-6xl mx-auto px-6 pb-10">
-          <div className="rounded-2xl border border-white/10 bg-gray-900/50 shadow-xl p-6">
-            <div className="flex items-center gap-2 mb-4 text-gray-200">
-              <Gamepad2 className="w-5 h-5" />
-              <span className="text-sm font-semibold">Game History</span>
-            </div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="inline-flex rounded-full bg-gray-800/60 p-1">
-                <button
-                  onClick={() => setHistoryMode("pong")}
-                  className={`px-4 py-1 rounded-full text-sm transition-colors ${
-                    historyMode === "pong"
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-300 hover:bg-gray-800"
-                  }`}
-                >
-                  Pong
-                </button>
-                <button
-                  onClick={() => setHistoryMode("agario")}
-                  className={`px-4 py-1 rounded-full text-sm transition-colors ${
-                    historyMode === "agario"
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-300 hover:bg-gray-800"
-                  }`}
-                >
-                  Agar.io
-                </button>
-              </div>
-            </div>
-            {historyMode === "pong" && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-gray-400">
-                      <th className="px-3 py-2">Opponent</th>
-                      <th className="px-3 py-2">Result</th>
-                      <th className="px-3 py-2">Score</th>
-                      <th className="px-3 py-2">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-800">
-                    {historyLoading && (
-                      <tr className="text-gray-400">
-                        <td className="px-3 py-3" colSpan={4}>
-                          Loading history...
-                        </td>
-                      </tr>
-                    )}
-                    {!historyLoading && historyError && (
-                      <tr className="text-red-300">
-                        <td className="px-3 py-3" colSpan={4}>
-                          {historyError}
-                        </td>
-                      </tr>
-                    )}
-                    {!historyLoading &&
-                      !historyError &&
-                      history.length === 0 && (
-                        <tr className="text-gray-400">
-                          <td className="px-3 py-3" colSpan={4}>
-                            No matches yet
-                          </td>
-                        </tr>
-                      )}
-                    {!historyLoading &&
-                      !historyError &&
-                      history.map((row) => {
-                        const resultText =
-                          row.result === "win" ? "Win" : "Loss";
-                        const resultClass =
-                          row.result === "win"
-                            ? "bg-green-600/30 text-green-300"
-                            : "bg-red-600/30 text-red-300";
-                        return (
-                          <tr key={row.id} className="text-gray-200">
-                            <td className="px-3 py-2">{row.opponentName}</td>
-                            <td className="px-3 py-2">
-                              <span
-                                className={`px-2 py-1 rounded ${resultClass}`}
-                              >
-                                {resultText}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2">{row.score}</td>
-                            <td className="px-3 py-2">
-                              {new Date(row.date).toLocaleDateString()}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            {historyMode === "agario" && (
-              <div>
-                <div className="text-xs font-semibold text-gray-300 mb-3">
-                  Player History
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-left text-gray-400">
-                        <th className="px-3 py-2">Name</th>
-                        <th className="px-3 py-2">Duration</th>
-                        <th className="px-3 py-2">Kills</th>
-                        <th className="px-3 py-2">Max Mass</th>
-                        <th className="px-3 py-2">Rank</th>
-                        <th className="px-3 py-2">Room</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {agarPlayersLoading && (
-                        <tr className="text-gray-400">
-                          <td className="px-3 py-3" colSpan={6}>
-                            Loading history...
-                          </td>
-                        </tr>
-                      )}
-                      {!agarPlayersLoading && agarPlayersError && (
-                        <tr className="text-red-300">
-                          <td className="px-3 py-3" colSpan={6}>
-                            {agarPlayersError}
-                          </td>
-                        </tr>
-                      )}
-                      {!agarPlayersLoading &&
-                        !agarPlayersError &&
-                        agarPlayers.length === 0 && (
-                          <tr className="text-gray-400">
-                            <td className="px-3 py-3" colSpan={6}>
-                              No matches yet
-                            </td>
-                          </tr>
-                        )}
-                      {!agarPlayersLoading &&
-                        !agarPlayersError &&
-                        agarPlayers.map((p) => {
-                          const isSelected = selectedAgarPlayerId === p.id;
-                          const isLeaderboardOpen =
-                            isSelected && showAgarLeaderboard;
-                          return (
-                            <React.Fragment key={p.id}>
-                              <tr
-                                className={`text-gray-200 cursor-pointer hover:bg-white/5 border-b border-gray-800 ${isSelected ? "bg-white/10" : ""}`}
-                                onClick={() => {
-                                  if (isSelected) {
-                                    setSelectedAgarPlayerId(null);
-                                    setShowAgarLeaderboard(false);
-                                    return;
-                                  }
-                                  setSelectedAgarPlayerId(p.id);
-                                  setShowAgarLeaderboard(false);
-                                }}
-                              >
-                                <td className="px-3 py-2">{p.name}</td>
-                                <td className="px-3 py-2">
-                                  {msToMinSec(p.durationMs)}
-                                </td>
-                                <td className="px-3 py-2">{p.kills}</td>
-                                <td className="px-3 py-2">{p.maxMass}</td>
-                                <td className="px-3 py-2">{p.rank}</td>
-                                <td className="px-3 py-2">{p.roomName}</td>
-                              </tr>
-                              <tr
-                                className={
-                                  isSelected
-                                    ? "bg-white/5 border-b border-gray-800"
-                                    : ""
-                                }
-                              >
-                                <td
-                                  className={`px-3 ${isSelected ? "py-4" : "py-0"}`}
-                                  colSpan={6}
-                                >
-                                  <div
-                                    className={`overflow-hidden transition-all duration-300 ease-out ${isSelected ? "max-h-[1200px] opacity-100 translate-y-0" : "max-h-0 opacity-0 -translate-y-1 pointer-events-none"}`}
-                                  >
-                                    {agarRoomLoading && (
-                                      <div className="text-sm text-gray-400">
-                                        Loading room history...
-                                      </div>
-                                    )}
-                                    {!agarRoomLoading && agarRoomError && (
-                                      <div className="text-sm text-red-300">
-                                        {agarRoomError}
-                                      </div>
-                                    )}
-                                    {!agarRoomLoading &&
-                                      !agarRoomError &&
-                                      selectedAgarRoom && (
-                                        <div>
-                                          <div className="flex items-center justify-between mb-3">
-                                            <div className="text-xs font-semibold text-gray-300">
-                                              Room history
-                                            </div>
-                                            <button
-                                              onClick={() =>
-                                                setShowAgarLeaderboard(
-                                                  (prev) => !prev,
-                                                )
-                                              }
-                                              className="px-3 py-1 rounded text-xs bg-white/10 text-gray-200 hover:text-white"
-                                            >
-                                              Leaderboard
-                                            </button>
-                                          </div>
-                                          <div className="text-gray-300 mb-3">
-                                            <span className="font-semibold text-white">
-                                              {selectedAgarRoom.name}
-                                            </span>
-                                            <span className="ml-2 text-xs px-2 py-1 rounded bg-white/5">
-                                              {selectedAgarRoom.visibility}
-                                            </span>
-                                          </div>
-                                          <div className="text-sm text-gray-400 mb-4">
-                                            Winner:{" "}
-                                            {selectedAgarRoom.winner
-                                              ? `${selectedAgarRoom.winner.name} • ${selectedAgarRoom.winner.kills} kills • ${selectedAgarRoom.winner.maxMass} max mass • ${msToMinSec(selectedAgarRoom.winner.durationMs)} • rank ${selectedAgarRoom.winner.rank}`
-                                              : "—"}
-                                          </div>
-                                          <div className="overflow-x-auto">
-                                            <table className="w-full text-sm">
-                                              <thead>
-                                                <tr className="text-left text-gray-400">
-                                                  <th className="px-3 py-2">
-                                                    Name
-                                                  </th>
-                                                  <th className="px-3 py-2">
-                                                    Visibility
-                                                  </th>
-                                                  <th className="px-3 py-2">
-                                                    Default
-                                                  </th>
-                                                  <th className="px-3 py-2">
-                                                    Players
-                                                  </th>
-                                                  <th className="px-3 py-2">
-                                                    Duration
-                                                  </th>
-                                                  <th className="px-3 py-2">
-                                                    Started
-                                                  </th>
-                                                  <th className="px-3 py-2">
-                                                    Ended
-                                                  </th>
-                                                </tr>
-                                              </thead>
-                                              <tbody>
-                                                <tr className="text-gray-200">
-                                                  <td className="px-3 py-2">
-                                                    {selectedAgarRoom.name}
-                                                  </td>
-                                                  <td className="px-3 py-2">
-                                                    {
-                                                      selectedAgarRoom.visibility
-                                                    }
-                                                  </td>
-                                                  <td className="px-3 py-2">
-                                                    {selectedAgarRoom.isDefault
-                                                      ? "Yes"
-                                                      : "No"}
-                                                  </td>
-                                                  <td className="px-3 py-2">
-                                                    {
-                                                      selectedAgarRoom.playersCount
-                                                    }
-                                                  </td>
-                                                  <td className="px-3 py-2">
-                                                    {selectedAgarRoom.maxDurationMin ===
-                                                    null
-                                                      ? "—"
-                                                      : `${selectedAgarRoom.maxDurationMin}m`}
-                                                  </td>
-                                                  <td className="px-3 py-2">
-                                                    {formatDate(
-                                                      selectedAgarRoom.startedAt,
-                                                    )}
-                                                  </td>
-                                                  <td className="px-3 py-2">
-                                                    {formatDate(
-                                                      selectedAgarRoom.endedAt,
-                                                    )}
-                                                  </td>
-                                                </tr>
-                                              </tbody>
-                                            </table>
-                                          </div>
-                                          <div
-                                            className={`mt-6 overflow-hidden transition-all duration-300 ease-out ${isLeaderboardOpen ? "max-h-[900px] opacity-100 translate-y-0" : "max-h-0 opacity-0 -translate-y-1 pointer-events-none"}`}
-                                          >
-                                            <div className="text-xs font-semibold text-gray-300 mb-3">
-                                              Leaderboard
-                                            </div>
-                                            {agarLeaderboardLoading && (
-                                              <div className="text-sm text-gray-400 mb-3">
-                                                Loading leaderboard...
-                                              </div>
-                                            )}
-                                            {!agarLeaderboardLoading &&
-                                              agarLeaderboardError && (
-                                                <div className="text-sm text-red-300 mb-3">
-                                                  {agarLeaderboardError}
-                                                </div>
-                                              )}
-                                            {!agarLeaderboardLoading &&
-                                              !agarLeaderboardError && (
-                                                <div className="overflow-x-auto">
-                                                  <table className="w-full text-sm">
-                                                    <thead>
-                                                      <tr className="text-left text-gray-400">
-                                                        <th className="px-3 py-2">
-                                                          Name
-                                                        </th>
-                                                        <th className="px-3 py-2">
-                                                          In-Game Name
-                                                        </th>
-                                                        <th className="px-3 py-2">
-                                                          Kills
-                                                        </th>
-                                                        <th className="px-3 py-2">
-                                                          Max Mass
-                                                        </th>
-                                                        <th className="px-3 py-2">
-                                                          Duration
-                                                        </th>
-                                                        <th className="px-3 py-2">
-                                                          Rank
-                                                        </th>
-                                                      </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-gray-800">
-                                                      {selectedAgarRoom.leaderboard.map(
-                                                        (p) => (
-                                                          <tr key={p.id}>
-                                                            <td className="px-3 py-2">
-                                                              {p.type ===
-                                                                "user" &&
-                                                              p.trueName
-                                                                ? p.trueName
-                                                                : p.name}
-                                                            </td>
-                                                            <td className="px-3 py-2">
-                                                              {p.name}
-                                                            </td>
-                                                            <td className="px-3 py-2">
-                                                              {p.kills}
-                                                            </td>
-                                                            <td className="px-3 py-2">
-                                                              {p.maxMass}
-                                                            </td>
-                                                            <td className="px-3 py-2">
-                                                              {msToMinSec(
-                                                                p.durationMs,
-                                                              )}
-                                                            </td>
-                                                            <td className="px-3 py-2">
-                                                              {p.rank}
-                                                            </td>
-                                                          </tr>
-                                                        ),
-                                                      )}
-                                                    </tbody>
-                                                  </table>
-                                                </div>
-                                              )}
-                                          </div>
-                                        </div>
-                                      )}
-                                  </div>
-                                </td>
-                              </tr>
-                            </React.Fragment>
-                          );
-                        })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <ProfileHistorySection
+          historyMode={historyMode}
+          setHistoryMode={setHistoryMode}
+
+          history={history}
+          loading={historyLoading}
+          error={historyError}
+
+          players={agarPlayers}
+          selectedId={selectedAgarPlayerId}
+          setSelectedId={setSelectedAgarPlayerId}
+          selectedRoom={selectedAgarRoom}
+          showLeaderboard={showAgarLeaderboard}
+          setShowLeaderboard={setShowAgarLeaderboard}
+        />
       )}
     </div>
   );

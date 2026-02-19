@@ -116,7 +116,7 @@ export const FinalLeaderboard = ({
           </div>
 
           <div className="text-sm text-white/50 mt-2">
-            Match duration: {durationMin} minutes
+            Match duration: {durationMin} minute(s)
           </div>
         </div>
 

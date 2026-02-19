@@ -59,6 +59,7 @@ async function startRoom(world: World) {
   world.meta.status = "started";
 
   for (const s of Object.values(world.players)) {
+    s.startTime = world.meta.startedAt;
     s.input = null;
     s.splitRequested = false;
     s.ejectRequested = false;
@@ -423,7 +424,6 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       identity,
       roomName: room,
       socketId: socket.id,
-      sessionId: socket.data.sessionId,
       timeoutId: undefined,
     };
 

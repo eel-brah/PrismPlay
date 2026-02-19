@@ -22,6 +22,8 @@ import { InputState } from "src/backend/modules/agario/agario_schema";
 import { useNavigate } from "react-router-dom";
 import { AlertType, Camera, LeaderboardEntry, LobbyPlayer, RoomInfo } from "@/game/agario/type";
 import { isValidRoomName } from "../../shared/agario/utils";
+import { useTopBar } from "../utils/topbar-controller";
+import { createPortal } from "react-dom";
 
 const alertStyles: Record<Exclude<AlertType, "">, string> = {
   error: "bg-red-100 border-red-300 text-red-700",
@@ -29,7 +31,7 @@ const alertStyles: Record<Exclude<AlertType, "">, string> = {
   info: "bg-blue-100 border-blue-300 text-blue-700",
 };
 
-const HOME_PAGE = "home"
+const MAIN_MENU = "main"
 
 const Agario = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -49,13 +51,13 @@ const Agario = () => {
   const isSpectatorRef = useRef(false);
 
   const [playerName, setPlayerName] = useState("");
-  const [menuMode, setMenuMode] = useState(HOME_PAGE);
+  const [menuMode, setMenuMode] = useState(MAIN_MENU);
   const [roomName, setRoomName] = useState("");
   const roomNameRef = useRef<string>("");
   const [hasJoined, setHasJoined] = useState(false);
   const [firstTime, setFirstTime] = useState(true);
 
-  const pendingInputsRef = useRef<InputState[]>([]);
+  // const pendingInputsRef = useRef<InputState[]>([]);
   // const lastProcessedSeqRef = useRef<number>(0);
 
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -76,36 +78,32 @@ const Agario = () => {
   const [joinKey, setJoinKey] = useState("");
   const [createdKey, setCreatedKey] = useState("");
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
-  const [lobbyPlayers, setLobbyPlayers] = useState<LobbyPlayer[]>([]);
+  // const [lobbyPlayers, setLobbyPlayers] = useState<LobbyPlayer[]>([]);
   const roomStatusRef = useRef<"waiting" | "started" | "ended">("waiting");
   const [roomDuration, setRoomDuration] = useState<string>("");
   const roomStartedAt = useRef<number>(0);
+  const roomListInterval = useRef<NodeJS.Timeout | undefined>(undefined)
 
+
+  const setTopBarVisible = useTopBar();
 
   const navigate = useNavigate();
-
-  const goHome = () => {
-    navigate("/");
-  };
-
-  const goProfile = () => {
-    navigate("/profile");
+  const goHistory = () => {
+    navigate("/agario/history");
   };
 
   function clearAlert() {
     setTimeout(() => {
       setAlert({ type: "", message: "" });
-    }, 3000);
+    }, 2000);
   }
 
   useEffect(() => {
     const authToken = localStorage.getItem(TOKEN_KEY);
-    const sessionId = nanoid();
 
     const socket = io("/agario", {
       path: "/socket.io",
       auth: {
-        sessionId,
         token: authToken ?? undefined,
         guestId: authToken ? undefined : getOrCreateGuestId(),
       },
@@ -135,18 +133,19 @@ const Agario = () => {
       };
     }
 
-    socket.on("connect", () => {
-      console.log("Connected to server with socket id:", socket.id);
-    });
+    // socket.on("connect", () => {
+    // console.log("Connected to server with socket id:", socket.id);
+    // });
+
+    //TODO:
+    roomListInterval.current = setInterval(() => {
+      if (!hasJoined) socket.emit("agario:list-rooms");
+    }, 1000);
+    socket.emit("agario:list-rooms");
 
     socket.on("connect_error", (err) => {
       setAlert({ type: "error", message: err.message });
     });
-
-    const interval = setInterval(() => {
-      if (!hasJoined) socket.emit("agario:list-rooms");
-    }, 1000);
-    socket.emit("agario:list-rooms");
 
     socket.on("agario:error", (msg: string) => {
       setAlert({ type: "error", message: msg });
@@ -160,12 +159,12 @@ const Agario = () => {
 
     socket.on("agario:room-info", (info: RoomInfo) => {
       setRoomInfo(info);
-      setLobbyPlayers(info.players);
+      // setLobbyPlayers(info.players);
       roomStatusRef.current = info.status;
     });
 
     socket.on("agario:room-players", (data: { players: LobbyPlayer[]; hostId: string; spectatorCount: number }) => {
-      setLobbyPlayers(data.players);
+      // setLobbyPlayers(data.players);
       setRoomInfo((prev) => (prev ? { ...prev, players: data.players, hostId: data.hostId, spectatorCount: data.spectatorCount } : prev));
     });
 
@@ -190,6 +189,11 @@ const Agario = () => {
       clearing("leaderboard")
       setAlert({ type: "info", message: "Room ended" });
       roomStatusRef.current = "ended";
+
+      clearInterval(roomListInterval.current)
+      roomListInterval.current = setInterval(() => {
+        if (!hasJoined) socket.emit("agario:list-rooms");
+      }, 1000);
     });
 
     socket.on("agario:leaderboard", (leaderboard: FinalLeaderboardEntry[]) => {
@@ -201,7 +205,12 @@ const Agario = () => {
       clearing(Object.keys(enemiesRef.current).length === 0
         && roomNameRef.current != DEFAULT_ROOM
         && finalLeaderboard.current.length
-        ? "leaderboard" : HOME_PAGE);
+        ? "leaderboard" : MAIN_MENU);
+
+      clearInterval(roomListInterval.current)
+      roomListInterval.current = setInterval(() => {
+        if (!hasJoined) socket.emit("agario:list-rooms");
+      }, 1000);
     });
 
     socket.on("agario:final-status", (status: FinalStatus) => {
@@ -233,9 +242,11 @@ const Agario = () => {
       orbsRef.current = [];
       ejectsRef.current = [];
       virusesRef.current = [];
-      pendingInputsRef.current = [];
+      // pendingInputsRef.current = [];
       // lastProcessedSeqRef.current = data.lastProcessedSeq;
 
+      clearInterval(roomListInterval.current);
+      roomListInterval.current = undefined;
       initCam();
     });
 
@@ -428,7 +439,7 @@ const Agario = () => {
         // seq: inputSeqRef.current,
         dt,
       };
-      pendingInputsRef.current.push(input);
+      // pendingInputsRef.current.push(input);
       socket.emit("input", input);
     }
 
@@ -478,7 +489,8 @@ const Agario = () => {
         cancelAnimationFrame(animationIdRef.current);
       }
       socket.disconnect();
-      clearInterval(interval);
+      clearInterval(roomListInterval.current)
+      // clearInterval(interval);
     };
   }, []);
 
@@ -566,13 +578,13 @@ const Agario = () => {
     socketRef.current?.emit("agario:leave-room");
   }
 
-  function clearing(mode = HOME_PAGE) {
+  function clearing(mode = MAIN_MENU) {
     isDeadRef.current = false;
 
     setHasJoined(false);
     // setDurationMin("");
     setRoomInfo(null);
-    setLobbyPlayers([]);
+    // setLobbyPlayers([]);
     setLeaderboard([]);
     // setFinalLeaderboard([]);
     // isEmptyLeaderboard.current = true;
@@ -585,6 +597,14 @@ const Agario = () => {
     clearAlert();
   }
 
+
+  useEffect(() => {
+    const inMenu = !hasJoined || menuMode === MAIN_MENU;
+
+    setTopBarVisible(inMenu);
+
+    return () => setTopBarVisible(true);
+  }, [hasJoined, menuMode]);
 
   const glassPanel =
     "bg-white/[0.05] backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_10px_60px_rgba(0,0,0,0.45)]";
@@ -642,19 +662,22 @@ const Agario = () => {
       )}
 
 
-      <div className="pointer-events-none fixed top-6 left-1/2 -translate-x-1/2 z-50">
-        <div
-          className={`
-px-6 py-3 rounded-md border text-lg transition-all duration-200
-${alert.type
-              ? `${alertStyles[alert.type]} opacity-100 translate-y-0`
-              : "opacity-0 -translate-y-2"}
-`}
-          aria-live="polite"
-        >
-          {alert.message}
-        </div>
-      </div>
+      {createPortal(
+        <div className="pointer-events-none fixed top-6 left-1/2 -translate-x-1/2 z-[9999]">
+          <div
+            className={`
+        px-6 py-3 rounded-md border text-lg transition-all duration-200
+        ${alert.type
+                ? `${alertStyles[alert.type]} opacity-100 translate-y-0`
+                : "opacity-0 -translate-y-2"}
+      `}
+            aria-live="polite"
+          >
+            {alert.message}
+          </div>
+        </div>,
+        document.body
+      )}
 
       {!hasJoined && (
         <div className="absolute inset-0 flex flex-col justify-center items-center gap-5">
@@ -679,11 +702,11 @@ ${alert.type
             onChange={(e) => setPlayerName(e.target.value)}
           />
 
-          <div className="flex gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <button
               onClick={() => {
                 // clearAlert();
-                setMenuMode(HOME_PAGE);
+                setMenuMode(MAIN_MENU);
                 setRoomName(DEFAULT_ROOM);
                 roomNameRef.current = DEFAULT_ROOM;
                 handleJoinRoom("join");
@@ -696,7 +719,7 @@ ${alert.type
             <button
               onClick={() => {
                 // clearAlert();
-                setMenuMode(menuMode != "join" ? "join" : HOME_PAGE);
+                setMenuMode(menuMode != "join" ? "join" : MAIN_MENU);
               }}
               className={primaryBtn}
             >
@@ -706,20 +729,22 @@ ${alert.type
             <button
               onClick={() => {
                 // clearAlert();
-                setMenuMode(menuMode != "create" ? "create" : HOME_PAGE);
+                setMenuMode(menuMode != "create" ? "create" : MAIN_MENU);
               }}
               className={primaryBtn}
             >
               Create Room
             </button>
+
+            {menuMode === MAIN_MENU && (
+              <button
+                onClick={goHistory}
+                className={`${primaryBtn} col-span-3`}>
+                History
+              </button>
+            )}
           </div>
 
-          {menuMode === HOME_PAGE && (
-            <div className="flex gap-3 mt-2">
-              <button onClick={goHome} className={subtleBtn}>🏠 Home</button>
-              <button onClick={goProfile} className={subtleBtn}>👤 Profile</button>
-            </div>
-          )}
 
           {menuMode === "join" && (
             <div className="w-[540px] max-w-[92vw] p-5 bg-white/[0.05] backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_10px_60px_rgba(0,0,0,0.45)]">
@@ -854,7 +879,7 @@ ${alert.type
 
                   <button
                     onClick={() => {
-                      setMenuMode(HOME_PAGE);
+                      setMenuMode(MAIN_MENU);
                       setRoomName("");
                       roomNameRef.current = "";
                       setJoinKey("");
@@ -977,7 +1002,7 @@ ${alert.type
                       return;
                     }
                     if (!isValidRoomName(r)) {
-                      setAlert({ type: "warning", message: "Room name is invalid" });
+                      setAlert({ type: "warning", message: "Room name is invalid - at least 3 characters" });
                       return;
                     }
                     if (maxPlayers === "" || typeof maxPlayers !== "number") {
@@ -1012,7 +1037,7 @@ ${alert.type
 
                 <button
                   onClick={() => {
-                    setMenuMode(HOME_PAGE);
+                    setMenuMode(MAIN_MENU);
                     setRoomName("");
                     roomNameRef.current = "";
                     setJoinKey("");
@@ -1090,7 +1115,7 @@ ${alert.type
                 </div>
 
                 <div className="text-sm text-purple-300 font-semibold">
-                  {lobbyPlayers.length}/{roomInfo.maxPlayers} Players
+                  {roomInfo.players.length}/{roomInfo.maxPlayers} Players
                 </div>
               </div>
 
@@ -1120,7 +1145,7 @@ ${alert.type
                 <div className="text-sm text-gray-300 mb-2">Players</div>
 
                 <div className="max-h-[240px] overflow-auto space-y-2 pr-1">
-                  {lobbyPlayers.map((p) => (
+                  {roomInfo.players.map((p) => (
                     <div
                       key={p.id}
                       className={`${glowCard} px-4 py-2 flex justify-between items-center`}

@@ -11,6 +11,10 @@ type Props = {
 };
 
 export default function RegisterForm({ onSubmit }: Props) {
+    function handleGoogleRegister() {
+      // Redirect to backend Google OAuth endpoint
+      window.location.href = "/api/auth/google";
+    }
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -129,7 +133,7 @@ export default function RegisterForm({ onSubmit }: Props) {
           </div>
           <button
             type="button"
-            // onClick={() => onSubmit("google", "oauth")}
+            onClick={handleGoogleRegister}
             className="w-full bg-white text-gray-900 hover:bg-gray-100 border border-gray-300 py-2.5 rounded-lg font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
           >
             <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">

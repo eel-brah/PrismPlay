@@ -17,13 +17,8 @@ export function init_agario(io: SocketIOServer, fastify: FastifyInstance) {
       return next(new Error(parsed.error.message));
     }
 
-    const { sessionId, token, guestId } = parsed.data;
+    const { token, guestId } = parsed.data;
 
-    if (!sessionId) {
-      return next(new Error("Missing sessionId"));
-    }
-
-    socket.data.sessionId = sessionId;
     if (token) {
       try {
         socket.data.guestId = undefined;
