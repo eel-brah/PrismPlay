@@ -59,6 +59,7 @@ async function startRoom(world: World) {
   world.meta.status = "started";
 
   for (const s of Object.values(world.players)) {
+    s.startTime = world.meta.startedAt;
     s.input = null;
     s.splitRequested = false;
     s.ejectRequested = false;
