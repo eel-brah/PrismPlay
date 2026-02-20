@@ -631,8 +631,9 @@ async function deletePlayer(
       let leaderboard = undefined;
       try {
         if (world.meta.roomId) {
-          await finalizeRoomResultsDb(world.meta.roomId);
-          leaderboard = await getRoomLeaderboard(world.meta.roomId);
+          const roomUpdate = await finalizeRoomResultsDb(world.meta.roomId);
+          if (!roomUpdate.roomDeleted)
+            leaderboard = await getRoomLeaderboard(world.meta.roomId);
         } else logger.info("Room id is missing");
       } catch (err) {
         logger.error(

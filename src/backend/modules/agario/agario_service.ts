@@ -120,7 +120,11 @@ export async function finalizeRoomResultsDb(roomId: number) {
     });
 
     if (players.length === 0) {
-      return { updated: 0 };
+      await tx.room.delete({
+        where: { id: roomId },
+      });
+
+      return { updated: 0, roomDeleted: true };
     }
 
     const updates = players.map((player, index) => {
