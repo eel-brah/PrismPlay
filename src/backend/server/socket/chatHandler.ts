@@ -1,6 +1,7 @@
 import { Socket, Namespace } from "socket.io";
 import prisma from "../../utils/prisma.js";
 import { v4 as uuidv4 } from 'uuid';
+import { allowPrivateGame } from "./privateGameAllowlist.js";
 
 // ============================================================================
 // 1. TYPES & GLOBAL STATE
@@ -503,8 +504,9 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
         clearTimeout(invite.timeout);
         activeInvites.delete(inviteKey);
 
-        // Generate unique Game ID and redirect both players
+        // Generate unique Game ID, register both players in the allowlist, then redirect
         const gameId = uuidv4();
+        allowPrivateGame(gameId, payload.myId, payload.otherId);
         io.to(`user_${payload.myId}`).emit("game_start_redirect", { gameId });
         io.to(`user_${payload.otherId}`).emit("game_start_redirect", { gameId });
     });
