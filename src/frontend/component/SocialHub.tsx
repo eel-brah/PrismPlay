@@ -137,6 +137,7 @@ export default function SocialHub() {
     const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
     const [dmSearch, setDmSearch] = useState("");
     const [chatInput, setChatInput] = useState("");
+    const MAX_MESSAGE_LENGTH = 2000;
 
     // Channels (General) - KEPT AS REQUESTED
     const channels = useMemo(() => ["general"], []);
@@ -159,6 +160,7 @@ export default function SocialHub() {
     );
     const [unreadByDM, setUnreadByDM] = useState<Record<string, number>>({});
     const [typingStatus, setTypingStatus] = useState<Record<string, boolean>>({});
+    const [dmPreviews, setDmPreviews] = useState<Record<string, { text: string; ts: number; senderId: number }>>({});
 
     const [blockStatus, setBlockStatus] = useState({
         byMe: false,
@@ -173,6 +175,7 @@ export default function SocialHub() {
     const chatIdByOther = useRef<Record<string, number>>({});
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const chatMessagesRef = useRef<HTMLDivElement | null>(null);
+    const shouldScrollRef = useRef(false);
 
     const selectedFriendIdRef = useRef<string | null>(null);
     const activeTabRef = useRef<TabKey>("friends");
@@ -317,6 +320,11 @@ export default function SocialHub() {
 
                     s.emit("join_channel", "general");
                     s.emit("request_unread", me.id);
+                    s.emit("request_dm_previews", me.id);
+
+                    s.on("dm_previews", (previews: Record<string, { text: string; ts: number; senderId: number }>) => {
+                        setDmPreviews(previews);
+                    });
 
                     s.on("unread_counts", (counts: Record<string, number>) => {
                         const formatted: Record<string, number> = {};
@@ -386,25 +394,34 @@ export default function SocialHub() {
                         }
 
                         if (friendId) {
+                            const newMsg = {
+                                id: String(msg.id),
+                                author: msg.sender?.username || "",
+                                text: msg.content,
+                                ts: new Date(msg.createdAt).getTime(),
+                                senderId: msg.senderId,
+                                readAt: msg.readAt,
+                            };
                             setMessagesByDM((prev) => ({
                                 ...prev,
-                                [friendId]: [
-                                    ...(prev[friendId] || []),
-                                    {
-                                        id: String(msg.id),
-                                        author: msg.sender?.username || "",
-                                        text: msg.content,
-                                        ts: new Date(msg.createdAt).getTime(),
-                                        senderId: msg.senderId,
-                                        readAt: msg.readAt,
-                                    },
-                                ],
+                                [friendId]: [...(prev[friendId] || []), newMsg],
+                            }));
+
+                            // Update DM preview with latest message
+                            setDmPreviews((prev) => ({
+                                ...prev,
+                                [friendId]: { text: msg.content, ts: newMsg.ts, senderId: msg.senderId },
                             }));
 
                             const isViewing =
                                 activeTabRef.current === "chat" &&
                                 chatModeRef.current === "dm" &&
                                 selectedFriendIdRef.current === friendId;
+
+                            // Scroll to bottom when receiving a message from someone else
+                            if (isViewing && String(msg.senderId) != String(me.id)) {
+                                shouldScrollRef.current = true;
+                            }
 
                             if (!isViewing && String(msg.senderId) != String(me.id)) {
                                 setUnreadByDM((prev) => ({
@@ -459,6 +476,33 @@ export default function SocialHub() {
                         setPendingInviteId(null);
                         showNotification("User declined your invitation.");
                     });
+
+                    s.on("chat_error", (message: string) => {
+                        showNotification(message);
+                    });
+
+                    // Real-time block/unblock notifications
+                    s.on("user_blocked", (data: { blockerId: number; blockedId: number }) => {
+                        const currentFriend = selectedFriendIdRef.current;
+                        if (!currentFriend) return;
+                        const friendNum = Number(currentFriend);
+                        if (data.blockerId === me.id && data.blockedId === friendNum) {
+                            setBlockStatus((prev) => ({ ...prev, byMe: true }));
+                        } else if (data.blockerId === friendNum && data.blockedId === me.id) {
+                            setBlockStatus((prev) => ({ ...prev, byThem: true }));
+                        }
+                    });
+
+                    s.on("user_unblocked", (data: { unblockerId: number; unblockedId: number }) => {
+                        const currentFriend = selectedFriendIdRef.current;
+                        if (!currentFriend) return;
+                        const friendNum = Number(currentFriend);
+                        if (data.unblockerId === me.id && data.unblockedId === friendNum) {
+                            setBlockStatus((prev) => ({ ...prev, byMe: false }));
+                        } else if (data.unblockerId === friendNum && data.unblockedId === me.id) {
+                            setBlockStatus((prev) => ({ ...prev, byThem: false }));
+                        }
+                    });
                 }
             } catch (e) {
                 console.error("Init failed", e);
@@ -489,26 +533,25 @@ export default function SocialHub() {
         }
     }, [messagesByDM, selectedFriendId, chatMode, myUserId]);
 
+    // Auto-scroll: only when shouldScrollRef is true (set by specific events)
     useEffect(() => {
-        if (activeTab !== "chat") return;
+        if (!shouldScrollRef.current) return;
         const container = chatMessagesRef.current;
         if (!container) return;
-        const messageList =
-            chatMode === "channel"
-                ? messagesByChannel[selectedChannel] || []
-                : selectedFriendId
-                    ? messagesByDM[selectedFriendId] || []
-                    : [];
-        if (messageList.length === 0) return;
+        shouldScrollRef.current = false;
         container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
     }, [
-        activeTab,
-        chatMode,
-        selectedChannel,
-        selectedFriendId,
         messagesByChannel,
         messagesByDM,
     ]);
+
+    // For channels: always scroll on new messages 
+    useEffect(() => {
+        if (activeTab !== "chat" || chatMode !== "channel") return;
+        const container = chatMessagesRef.current;
+        if (!container) return;
+        container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    }, [activeTab, chatMode, messagesByChannel, selectedChannel]);
 
     useEffect(() => {
         if (
@@ -618,6 +661,7 @@ export default function SocialHub() {
                     }));
 
                     setMessagesByDM((prev) => ({ ...prev, [friendId]: msgs }));
+                    shouldScrollRef.current = true;
                     socketRef.current?.emit("mark_seen", {
                         chatId: payload.chatId,
                         userId: myUserId,
@@ -655,6 +699,10 @@ export default function SocialHub() {
     const sendMessage = () => {
         const text = chatInput.trim();
         if (!text) return;
+        if (text.length > MAX_MESSAGE_LENGTH) {
+            showNotification(`Message is too long (max ${MAX_MESSAGE_LENGTH} characters).`);
+            return;
+        }
 
         if (chatMode === "channel") {
             if (socketRef.current && myUserId) {
@@ -692,29 +740,21 @@ export default function SocialHub() {
 
     const blockUser = (friendIdToBlock: string) => {
         if (!friendIdToBlock) return;
-        const fID = Number(friendIdToBlock);
         if (socketRef.current && myUserId) {
             socketRef.current.emit("block_user", {
                 myId: myUserId,
-                otherId: Number(fID),
+                otherId: Number(friendIdToBlock),
             });
-        }
-        if (selectedFriendId === friendIdToBlock) {
-            setBlockStatus((prev) => ({ ...prev, byMe: true }));
         }
     };
 
     const UnBlockUser = (friendIdToBlock: string) => {
         if (!friendIdToBlock) return;
-        const fID = Number(friendIdToBlock);
         if (socketRef.current && myUserId) {
             socketRef.current.emit("unblock_user", {
                 myId: myUserId,
-                otherId: Number(fID),
+                otherId: Number(friendIdToBlock),
             });
-        }
-        if (selectedFriendId === friendIdToBlock) {
-            setBlockStatus((prev) => ({ ...prev, byMe: false }));
         }
     };
 
@@ -1091,13 +1131,15 @@ export default function SocialHub() {
                                             )
                                             .sort((a, b) => {
                                                 const lastA =
-                                                    (messagesByDM[a.id] || []).slice(-1)[0]?.ts || 0;
+                                                    (messagesByDM[a.id] || []).slice(-1)[0]?.ts || dmPreviews[a.id]?.ts || 0;
                                                 const lastB =
-                                                    (messagesByDM[b.id] || []).slice(-1)[0]?.ts || 0;
+                                                    (messagesByDM[b.id] || []).slice(-1)[0]?.ts || dmPreviews[b.id]?.ts || 0;
                                                 return lastB - lastA;
                                             })
                                             .map((f) => {
                                                 const last = (messagesByDM[f.id] || []).slice(-1)[0];
+                                                const preview = dmPreviews[f.id];
+                                                const lastText = last?.text || preview?.text || "";
                                                 const unread = unreadByDM[f.id] || 0;
                                                 return (
                                                     <li key={f.id}>
@@ -1129,7 +1171,7 @@ export default function SocialHub() {
                                                                     )}
                                                                 </div>
                                                                 <div className="text-xs text-gray-400 truncate">
-                                                                    {last ? last.text : "No messages yet"}
+                                                                    {lastText || ""}
                                                                 </div>
                                                             </div>
                                                         </button>
@@ -1200,23 +1242,7 @@ export default function SocialHub() {
                                         ? `${selectedChannel[0].toUpperCase()}${selectedChannel.slice(1)} Chat`
                                         : `${friends.find((x) => x.id === selectedFriendId)?.name || "Select a friend"}`}
                                 </div>
-                                <div className="text-xs text-gray-400">
-                                    {
-                                        (chatMode === "channel"
-                                            ? messagesByChannel[selectedChannel] || []
-                                            : selectedFriendId
-                                                ? messagesByDM[selectedFriendId] || []
-                                                : []
-                                        ).length
-                                    }{" "}
-                                    messages •{" "}
-                                    {
-                                        friends.filter(
-                                            (f) => f.status === "online" || f.status === "in_game",
-                                        ).length
-                                    }{" "}
-                                    online
-                                </div>
+
                                 <div className="mt-3">
                                     <div className="text-center text-xs text-gray-400">
                                         Welcome to PingPong Pro chat
@@ -1264,7 +1290,7 @@ export default function SocialHub() {
                                                     </span>
                                                 </div>
                                                 <div
-                                                    className={`px-4 py-2 rounded-2xl text-white ${isMe ? "bg-purple-600 rounded-tr-none" : "bg-gray-700 rounded-tl-none"}`}
+                                                    className={`px-4 py-2 rounded-2xl text-white break-all whitespace-pre-wrap ${isMe ? "bg-purple-600 rounded-tr-none" : "bg-gray-700 rounded-tl-none"}`}
                                                 >
                                                     {m.text}
                                                 </div>
@@ -1333,12 +1359,25 @@ export default function SocialHub() {
                                         }
                                         className={`flex-1 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none ${isChatLocked
                                             ? "cursor-not-allowed opacity-50 bg-gray-900"
-                                            : ""
+                                            : chatInput.trim().length > MAX_MESSAGE_LENGTH
+                                                ? "border-red-500"
+                                                : ""
                                             }`}
+                                        maxLength={MAX_MESSAGE_LENGTH + 50}
                                         disabled={
                                             chatMode === "dm" && (!selectedFriendId || isChatLocked)
                                         }
                                     />
+                                    {chatInput.length > 0 && (
+                                        <span className={`text-xs tabular-nums whitespace-nowrap ${chatInput.trim().length > MAX_MESSAGE_LENGTH
+                                            ? "text-red-400 font-bold"
+                                            : chatInput.trim().length > MAX_MESSAGE_LENGTH * 0.9
+                                                ? "text-yellow-400"
+                                                : "text-gray-500"
+                                            }`}>
+                                            {chatInput.trim().length}/{MAX_MESSAGE_LENGTH}
+                                        </span>
+                                    )}
                                     <button
                                         onClick={sendMessage}
                                         className="p-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
@@ -1386,6 +1425,6 @@ export default function SocialHub() {
             </div>
 
 
-        </div>
+        </div >
     );
 }

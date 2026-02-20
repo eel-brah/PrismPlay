@@ -20,8 +20,8 @@ export default function GameInviteOverlay() {
     };
 
     useEffect(() => {
-        const s = getChatSocket();
-        if (!s) return;
+        let s = getChatSocket();
+        let intervalId: ReturnType<typeof setInterval> | null = null;
 
         const onInviteReceived = (data: { fromId: number; username: string; avatarUrl: string }) => {
             setIncomingInvite({
@@ -30,43 +30,62 @@ export default function GameInviteOverlay() {
                 avatarUrl: data.avatarUrl,
             });
         };
-
-        const onInviteError = (message: string) => {
-            showNotification(message);
-        };
-
-        const onInviteExpired = () => {
-            setIncomingInvite(null);
-            showNotification("Game invite expired.");
-        };
-
-        const onInviteDeclined = () => {
-            showNotification("User declined your invitation.");
-        };
-
-        const onInviteCanceled = () => {
-            setIncomingInvite(null);
-        };
-
+        const onInviteError = (message: string) => { showNotification(message); };
+        const onInviteExpired = () => { setIncomingInvite(null); showNotification("Game invite expired."); };
+        const onInviteDeclined = () => { showNotification("User declined your invitation."); };
+        const onInviteCanceled = () => { setIncomingInvite(null); };
         const onGameStart = (data: { gameId: string }) => {
             setIncomingInvite(null);
             navigate(`/game/${data.gameId}`);
         };
 
-        s.on("game_invite_received", onInviteReceived);
-        s.on("invite_error", onInviteError);
-        s.on("invite_expired", onInviteExpired);
-        s.on("invite_declined", onInviteDeclined);
-        s.on("invite_canceled_by_sender", onInviteCanceled);
-        s.on("game_start_redirect", onGameStart);
+        function attachListeners(socket: NonNullable<ReturnType<typeof getChatSocket>>) {
+            // Remove first to avoid double-registration on reconnects
+            socket.off("game_invite_received", onInviteReceived);
+            socket.off("invite_error", onInviteError);
+            socket.off("invite_expired", onInviteExpired);
+            socket.off("invite_declined", onInviteDeclined);
+            socket.off("invite_canceled_by_sender", onInviteCanceled);
+            socket.off("game_start_redirect", onGameStart);
+
+            socket.on("game_invite_received", onInviteReceived);
+            socket.on("invite_error", onInviteError);
+            socket.on("invite_expired", onInviteExpired);
+            socket.on("invite_declined", onInviteDeclined);
+            socket.on("invite_canceled_by_sender", onInviteCanceled);
+            socket.on("game_start_redirect", onGameStart);
+
+            // Re-attach on every reconnect (avoids stale listeners after disconnect/reconnect)
+            socket.on("connect", () => attachListeners(socket));
+        }
+
+        if (s) {
+            // Socket already ready (dev mode / fast boot)
+            attachListeners(s);
+        } else {
+            // Production: socket not ready yet — poll until connectChat() has run
+            intervalId = setInterval(() => {
+                const found = getChatSocket();
+                if (found) {
+                    clearInterval(intervalId!);
+                    intervalId = null;
+                    s = found;
+                    attachListeners(found);
+                }
+            }, 100);
+        }
 
         return () => {
-            s.off("game_invite_received", onInviteReceived);
-            s.off("invite_error", onInviteError);
-            s.off("invite_expired", onInviteExpired);
-            s.off("invite_declined", onInviteDeclined);
-            s.off("invite_canceled_by_sender", onInviteCanceled);
-            s.off("game_start_redirect", onGameStart);
+            if (intervalId) clearInterval(intervalId);
+            const sock = s ?? getChatSocket();
+            if (!sock) return;
+            sock.off("game_invite_received", onInviteReceived);
+            sock.off("invite_error", onInviteError);
+            sock.off("invite_expired", onInviteExpired);
+            sock.off("invite_declined", onInviteDeclined);
+            sock.off("invite_canceled_by_sender", onInviteCanceled);
+            sock.off("game_start_redirect", onGameStart);
+            sock.off("connect");
         };
     }, [navigate]);
 
