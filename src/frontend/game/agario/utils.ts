@@ -17,7 +17,7 @@ export function drawGrid(ctx: CanvasRenderingContext2D, camera: Camera) {
   const width = camera.width;
   const height = camera.height;
 
-  ctx.strokeStyle = "rgba(255,255,255,0.18)"; // visible but not too bright
+  ctx.strokeStyle = "rgba(255,255,255,0.18)";// visible but not too bright
   ctx.lineWidth = 1;
 
   for (let x = startX; x < width; x += gridSize) {

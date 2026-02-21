@@ -143,6 +143,7 @@ export function GameOverPopup({
             </div>
 
             <div className="space-y-3">
+              {/* 👇 UPDATE: Conditionally render based on prop existence */}
               {onFindMatch && (
                 <button
                   onClick={onFindMatch}

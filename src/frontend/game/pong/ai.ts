@@ -59,12 +59,11 @@ export default function createAIOpponent({
 
     const movingTowardAI = isLeft
       ? ball.speedX < 0 && ball.x > paddleX
-      : ball.speedX > 0 && ball.x < paddleX; // remove the unnecessary check
-
+      : ball.speedX > 0 && ball.x < paddleX;
     if (!movingTowardAI) return canvas.height / 2;
 
     const dx = paddleX - ball.x;
-    const timex = dx / ball.speedX; // time to reach the paddle
+    const timex = dx / ball.speedX;
     const rawY = ball.y + ball.speedY * timex;
     return reflectY(rawY, canvas.height);
   }

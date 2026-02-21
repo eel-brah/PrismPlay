@@ -49,14 +49,12 @@ export interface Match {
   state: ServerGameState;
   inputs: MatchInputs;
   loop: NodeJS.Timeout | null;
-  // Reconnection state
   leftDisconnectedAt: number | null;
   rightDisconnectedAt: number | null;
   reconnectTimeout: NodeJS.Timeout | null;
   isPaused: boolean;
   startTime: number;
   isEnding: boolean;
-  // hasStarted: boolean;
 }
 
 export const RECONNECT_TIMEOUT_MS = 15000;
@@ -175,9 +173,8 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
 
       socket.data.profile = profile;
 
-      // ── Private invite path ──
+      // Block strangers who guessed the URL
       if (inviteId) {
-        // Block strangers who guessed the URL
         if (!isAllowedToJoin(inviteId, userId)) {
           socket.emit("match.error", {
             message: "You are not invited to this game.",
@@ -216,17 +213,17 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
 
         // Second player: match both together
         const opponentSocket = privateLobbies.get(inviteId)!;
-        if (opponentSocket.id === socket.id) return; // same tab reconnecting
+        if (opponentSocket.id === socket.id) return;
 
+        // Opponent disconnected before we joined — take their slot
         if (!opponentSocket.connected) {
-          // Opponent disconnected before we joined — take their slot
           privateLobbies.set(inviteId, socket);
           socket.emit("match.waiting");
           return;
         }
 
-        privateLobbies.delete(inviteId);
         // Remove from allowlist so no one else can join
+        privateLobbies.delete(inviteId);
         removePrivateGame(inviteId);
         await createMatch(opponentSocket, socket, inviteId);
         return;
@@ -263,8 +260,9 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       const existingInQueue = waitingQueue.findIndex(
         (s) => s.data.profile?.id === profile.id,
       );
+
+      // Kick the older socket
       if (existingInQueue >= 0) {
-        // Kick the older socket
         const oldSocket = waitingQueue[existingInQueue];
         waitingQueue.splice(existingInQueue, 1);
         oldSocket.emit("match.error", {
@@ -313,6 +311,7 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     socket.on("disconnect", (reason) => {
       fastify.log.info({ id: socket.id, reason }, "[pong] disconnected");
       removeFromQueue(socket);
+
       // Also clean up stale private lobby entry
       for (const [id, s] of privateLobbies.entries()) {
         if (s.id === socket.id) {
@@ -377,7 +376,6 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
       isPaused: false,
       startTime: Date.now(),
       isEnding: false,
-      // hasStarted: false,
     };
 
     match.loop = setInterval(() => tickMatch(match), 1000 / 60);
@@ -672,9 +670,9 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
   }
 
   function tickMatch(match: Match) {
-    // Guard: don't tick if paused or ending
+
     if (match.isPaused || match.isEnding) return;
-    // const prevPhase = match.state.phase;
+
     const dt = 1 / 60;
     stepServerGame(match.state, match.inputs, dt);
 
@@ -682,14 +680,14 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     match.left?.emit("game.state", snapshot);
     match.right?.emit("game.state", snapshot);
 
-    // Check for game over - use unified endMatch
+    // Check for game over
     if (match.state.phase === "gameover" && match.state.winner) {
       endMatch(match, match.state.winner, "score");
     }
   }
 
   function cleanupMatch(match: Match) {
-    // Loop should already be cleared, but just in case
+
     if (match.loop) {
       clearInterval(match.loop);
       match.loop = null;
@@ -704,7 +702,6 @@ export function init_pong(io: SocketIOServer, fastify: FastifyInstance) {
     playerMatchMap.delete(match.leftProfile.id);
     playerMatchMap.delete(match.rightProfile.id);
 
-    // If this was a private game, mark it finished so no one can re-join
     if (!match.id.startsWith("match_")) {
       finishedPrivateGames.add(match.id);
       setTimeout(() => finishedPrivateGames.delete(match.id), 5 * 60 * 1000);

@@ -437,8 +437,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
     const dpr = window.devicePixelRatio || 1;
     canvas.width = GAME_WIDTH * dpr;
     canvas.height = GAME_HEIGHT * dpr;
-    // canvas.style.width = `${GAME_WIDTH}px`;
-    // canvas.style.height = `${GAME_HEIGHT}px`;
+    
     ctx.scale(dpr, dpr);
 
     const draw = () => {
@@ -460,8 +459,8 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
         return;
       }
 
+      // no state yet
       if (!snap) {
-        // no state yet
         ctx.fillStyle = "#cdd6f4";
         ctx.font = "28px monospace";
         const msg =
@@ -523,7 +522,7 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
       ctx.fillStyle = "#89b4fa";
 
       const leftX = 40;
-      const rightX = GAME_WIDTH - 40 - 16; // matches server
+      const rightX = GAME_WIDTH - 40 - 16;
 
       ctx.fillRect(leftX, snap.left.y, 16, snap.left.height);
       ctx.fillRect(rightX, snap.right.y, 16, snap.right.height);
