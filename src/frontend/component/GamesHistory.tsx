@@ -4,6 +4,7 @@ import type { MatchHistoryItem } from "../api";
 import { AgarPlayerHistoryRow } from "./PlayerProfile";
 import { formatRoomDuration } from "@/game/agario/utils";
 import { Gamepad2 } from "lucide-react";
+import { DEFAULT_ROOM } from "../../shared/agario/config";
 
 interface AgarioHistoryProps {
   players: AgarPlayerHistoryRow[];
@@ -133,10 +134,10 @@ export function AgarioHistory({
                 p.rank === 1
                   ? "text-yellow-400"
                   : p.rank === 2
-                  ? "text-gray-300"
-                  : p.rank === 3
-                  ? "text-amber-500"
-                  : "text-gray-400";
+                    ? "text-gray-300"
+                    : p.rank === 3
+                      ? "text-amber-500"
+                      : "text-gray-400";
 
               return (
                 <div key={p.id} className="border-t border-white/5">
@@ -158,10 +159,6 @@ export function AgarioHistory({
                     `}
                   >
                     <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/profile/${p.name}`);
-                      }}
                       className="font-medium text-gray-200 truncate cursor-pointer hover:text-blue-400 transition"
                     >
                       {p.name}
@@ -173,7 +170,7 @@ export function AgarioHistory({
                     <div className="text-red-400">{p.kills}</div>
                     <div className="text-cyan-400">{p.maxMass}</div>
                     <div className={`font-semibold ${medalColor}`}>
-                      {p.rank}
+                      {p.rank ?? "—"}
                     </div>
                     <div>
                       {isWinner ? "🏆" : "—"}
@@ -199,7 +196,7 @@ export function AgarioHistory({
 
                           <div>
                             <div className="text-xs text-white/40">Duration</div>
-                            <div>{formatRoomDuration(selectedRoom)}</div>
+                            <div>{selectedRoom.name != DEFAULT_ROOM ? formatRoomDuration(selectedRoom) : "—"}</div>
                           </div>
 
                           <div>
@@ -241,7 +238,9 @@ export function AgarioHistory({
                                   }
                                   className="cursor-pointer hover:text-blue-400"
                                 >
-                                  {pl.name}
+                                  {pl.type === "user" && pl.trueName
+                                    ? pl.trueName
+                                    : pl.name}
                                 </div>
                                 <div>{pl.kills}</div>
                                 <div>{pl.maxMass}</div>
@@ -303,8 +302,8 @@ export function PongHistory({
                   <td className="px-3 py-2">
                     <span
                       className={`px-2 py-1 rounded ${isWin
-                          ? "bg-green-600/30 text-green-300"
-                          : "bg-red-600/30 text-red-300"
+                        ? "bg-green-600/30 text-green-300"
+                        : "bg-red-600/30 text-red-300"
                         }`}
                     >
                       {isWin ? "Win" : "Loss"}
