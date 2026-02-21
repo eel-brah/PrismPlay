@@ -173,7 +173,7 @@ model Message {
   channel String?
 
   senderId  Int
-  content   String   @db.Text
+  content   String   @db.VarChar(2001)
   createdAt DateTime  @default(now())
   readAt    DateTime?
 

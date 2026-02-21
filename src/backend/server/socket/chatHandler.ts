@@ -197,6 +197,11 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
             });
             if (!sender) return;
 
+
+            if (trimmedContent.length > MAX_MESSAGE_LENGTH)
+            {
+                throw ("Message too long");
+            }
             const savedMessage = await prisma.message.create({
                 data: {
                     content: trimmedContent,
@@ -264,7 +269,10 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
                     if (isBlocked) return; // Stop if blocked
                 }
             }
-
+            if (trimmedContent.length > MAX_MESSAGE_LENGTH)
+            {
+                throw ("Message too long");
+            }
             // Save and broadcast message
             const savedMessage = await prisma.message.create({
                 data: {
@@ -272,6 +280,7 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
                     senderId: payload.senderId,
                     content: trimmedContent,
                 },
+               
                 include: { sender: { select: { username: true } } }
             });
             io.to(`chat_${payload.chatId}`).emit("new_message", savedMessage);
