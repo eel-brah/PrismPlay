@@ -157,7 +157,7 @@ export default async function pongRoute(server: FastifyInstance) {
 
               const isWin = m.winnerId === user.id;
 
-              // Current streak: count consecutive wins from most recent
+              // Current streak
               if (!streakCounted) {
                 if (isWin) {
                   currentStreak++;
@@ -167,7 +167,7 @@ export default async function pongRoute(server: FastifyInstance) {
               }
             }
 
-            // Best streak: scan all matches oldest→newest
+            // Best streak
             let tempStreak = 0;
             for (let i = matches.length - 1; i >= 0; i--) {
               if (matches[i].winnerId === user.id) {
@@ -178,7 +178,7 @@ export default async function pongRoute(server: FastifyInstance) {
               }
             }
 
-            // Score = ELO-like composite
+            // Score
             const score = Math.round(wins * 10 - losses * 5 + currentStreak * 2);
 
             return {

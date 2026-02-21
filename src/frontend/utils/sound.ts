@@ -19,9 +19,9 @@ export function ensureAudioContext(): AudioContext | null {
 
 export function beepSound(
   enabled: boolean,
-  freq = 440, // A4
-  dur = 0.08, // seconds
-  vol = 0.25, // 0..1
+  freq = 440,
+  dur = 0.08,
+  vol = 0.25, 
 ): void {
   if (!enabled) return;
   const ctx = ensureAudioContext();
@@ -36,7 +36,8 @@ export function beepSound(
 
   const t = ctx.currentTime;
   g.gain.setValueAtTime(vol, t);
-  g.gain.exponentialRampToValueAtTime(0.01, t + dur); // smooth fade
+  // smooth fade
+  g.gain.exponentialRampToValueAtTime(0.01, t + dur);
 
   o.start(t);
   o.stop(t + dur);
