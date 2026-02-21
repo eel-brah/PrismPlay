@@ -5,7 +5,6 @@ import { setupAuth } from "./auth.js";
 import { PORT, HTTP_PORT, IP } from "./config.js";
 import loggingHook from "./loggingHook.js";
 import socketPlugin from "./socket/index.js"
-// import socketPlugin from "./socket"
 
 // Set up error handling
 setGlobalErrorHandler(server);

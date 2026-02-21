@@ -576,8 +576,7 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
       lastTime = now;
       update(dt, now);
       draw();
-    } catch (err) {
-      console.error("Game loop crashed:", err);
+    } catch {
       if (animationId) cancelAnimationFrame(animationId);
       return;
     }
