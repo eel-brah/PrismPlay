@@ -9,6 +9,8 @@ import HomePage from "./component/HomePage";
 import SocialHub from "./component/SocialHub";
 import GamePage from "./component/GamePage";
 import ErrorPage from "./component/ErrorPage";
+import PrivacyPolicy from "./component/PrivacyPolicy";
+import TermsOfService from "./component/TermsOfService";
 import axios from "axios";
 import PlayerProfile, { PublicPlayerProfile } from "./component/PlayerProfile";
 import {
@@ -292,6 +294,7 @@ export default function App() {
   const Layout = () => {
     const show = !hideTopBar;
     const [showTopBar, setShowTopBar] = useState(show);
+    const showFooter = showTopBar;
 
     return (
       <TopBarContext.Provider value={setShowTopBar}>
@@ -305,7 +308,35 @@ export default function App() {
           onReturn={handleReturn}
         />
 
-        <Outlet />
+        <div className="min-h-screen flex flex-col">
+          <div className={`flex-1 ${showFooter ? "pb-24" : ""}`}>
+            <Outlet />
+          </div>
+          {showFooter && (
+            <footer className="fixed bottom-0 left-0 right-0 border-t border-white/10 bg-black/40 backdrop-blur-2xl">
+              <div className="mx-auto max-w-6xl px-4 sm:px-6 py-4 sm:py-6 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 text-xs sm:text-sm text-gray-400">
+                <div className="text-center sm:text-left">
+                  © {new Date().getFullYear()} PrismPlay. Play fair, stay
+                  connected.
+                </div>
+                <div className="flex items-center gap-4">
+                  <Link
+                    to="/privacy"
+                    className="text-purple-300 hover:text-purple-200 transition"
+                  >
+                    Privacy Policy
+                  </Link>
+                  <Link
+                    to="/terms"
+                    className="text-purple-300 hover:text-purple-200 transition"
+                  >
+                    Terms of Service
+                  </Link>
+                </div>
+              </div>
+            </footer>
+          )}
+        </div>
       </TopBarContext.Provider>
     );
   };
@@ -829,6 +860,22 @@ export default function App() {
                 ) : (
                   <Navigate to="/login/form" replace />
                 )
+              }
+            />
+            <Route
+              path="/privacy"
+              element={
+                <div className={topPaddingClass}>
+                  <PrivacyPolicy />
+                </div>
+              }
+            />
+            <Route
+              path="/terms"
+              element={
+                <div className={topPaddingClass}>
+                  <TermsOfService />
+                </div>
               }
             />
             <Route path="/game/:gameId" element={<GamePage />} />
