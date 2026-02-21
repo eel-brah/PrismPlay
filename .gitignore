@@ -1,4 +1,4 @@
-.env
+ .env
 node_modules
 dist
 mytodo.txt
@@ -9,3 +9,5 @@ prisma/data/*
 .env
 uploads/*
 !./uploads/avatars/default.png
+Mehdi_notes.txt
+Mehdi_chat_system.txt

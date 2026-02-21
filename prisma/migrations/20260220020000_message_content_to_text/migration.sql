@@ -1,0 +1,1 @@
+-- AlterTable\nALTER TABLE \Message\ MODIFY \content\ TEXT NOT NULL;

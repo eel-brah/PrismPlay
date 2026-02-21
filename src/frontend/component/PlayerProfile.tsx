@@ -503,7 +503,7 @@ export default function PlayerProfile() {
       cancelled = true;
     };
   }, [user]);
-  if (meLoading) return <div>Loading...</div>;
+  if (meLoading) return <div></div>;
   if (meError) return <div>{meError}</div>;
   if (!user) return null;
   const gamesPlayed = stats?.totalGames ?? 0;
@@ -1162,7 +1162,7 @@ export function PublicPlayerProfile() {
     };
   }, [user]);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div></div>;
   if (notFound)
     return <ErrorPage code={404} title="Not Found" message={`User "${username ?? ""}" was not found.`} />;
   if (error) return <div>{error}</div>;

@@ -66,7 +66,7 @@ function PlayerStack({
         <div className="flex justify-center">
           <div className="relative">
             <img
-              src={avatarUrl ?? "/default-avatar.png"}
+              src={avatarUrl ?? "/default.png"}
               alt={displayName}
               className={`w-20 h-20 rounded-xl bg-gradient-to-br ${avatarBg} p-0.5 shadow-lg object-cover`}
             />

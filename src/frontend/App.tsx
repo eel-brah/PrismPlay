@@ -37,8 +37,8 @@ import AppBackground from "./component/Appbackground";
 import GlobalLeaderboard from "./component/GlobalLeaderboard";
 import GameInviteOverlay from "./component/GameInviteOverlay";
 import RoomsHistoryPage from "./component/agario/RoomsHistoryPage";
-import TopBar from "./component/TopBar";
 import { TopBarContext } from "./utils/topbar-controller";
+import { TopBar } from "./component/TopBar";
 
 export default function App() {
   const navigate = useNavigate();
@@ -57,26 +57,26 @@ export default function App() {
   const presenceRef = useRef<Socket | null>(null);
   const isAuthed = !bootingAuth && !!token;
 
-  function saveProfileDataForPlayerProfile(user: {
-    username: string;
-    email: string;
-    avatarUrl?: string | null;
-  }) {
-    const raw = localStorage.getItem("profile_data");
-    let previous: any = {};
-    try {
-      previous = raw ? JSON.parse(raw) : {};
-    } catch { }
+  // function saveProfileDataForPlayerProfile(user: {
+  //   username: string;
+  //   email: string;
+  //   avatarUrl?: string | null;
+  // }) {
+  //   // const raw = localStorage.getItem("profile_data");
+  //   let previous: any = {};
+  //   try {
+  //     previous = raw ? JSON.parse(raw) : {};
+  //   } catch { }
 
-    const next = {
-      ...previous,
-      username: user.username,
-      email: user.email,
-      avatarUrl: user.avatarUrl ?? previous.avatarUrl ?? "",
-    };
+  //   const next = {
+  //     ...previous,
+  //     username: user.username,
+  //     email: user.email,
+  //     avatarUrl: user.avatarUrl ?? previous.avatarUrl ?? "",
+  //   };
 
-    localStorage.setItem("profile_data", JSON.stringify(next));
-  }
+  //   // localStorage.setItem("profile_data", JSON.stringify(next));
+  // }
 
   // useEffect(() => {
   //   if (!token) return;
@@ -158,7 +158,7 @@ export default function App() {
         const me = await apiGetMe(saved);
         setToken(saved);
         setUser(me);
-        saveProfileDataForPlayerProfile(me);
+        // saveProfileDataForPlayerProfile(me);
       } catch (e: any) {
         const status = axios.isAxiosError(e) ? e.response?.status : undefined;
         if (status === 401 || status === 403) {
@@ -205,7 +205,7 @@ export default function App() {
     setToken(data.accessToken);
     setUser(data.user);
     // setSessionMode("user");
-    saveProfileDataForPlayerProfile(data.user);
+    // saveProfileDataForPlayerProfile(data.user);
 
     navigate("/home");
   }
@@ -353,8 +353,8 @@ export default function App() {
               path="/leaderboard"
               element={
                 bootingAuth ? (
-                  <div className="min-h-screen flex items-center justify-center text-white">
-                    Loading...
+                  <div className="min-h-screen flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                      Loading...
                   </div>
                 ) : isAuthed ? (
                   <div className={`min-h-screen ${topPaddingClass}`}>
@@ -370,7 +370,7 @@ export default function App() {
               path="/agario/history"
               element={
                 bootingAuth ? (
-                  <div className="min-h-screen flex items-center justify-center text-white">
+                  <div className="min-h-screen flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                     Loading...
                   </div>
                 ) : isAuthed ? (
@@ -689,7 +689,7 @@ export default function App() {
               path="/social"
               element={
                 bootingAuth ? (
-                  <div className="min-h-screen flex items-center justify-center text-white">
+                  <div className="min-h-screen flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                     Loading...
                   </div>
                 ) : isAuthed ? (
@@ -707,7 +707,7 @@ export default function App() {
               path="/profile"
               element={
                 bootingAuth ? (
-                  <div className="min-h-screen flex items-center justify-center text-white">
+                  <div className="min-h-screen flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                     Loading...
                   </div>
                 ) : isAuthed ? (
@@ -723,7 +723,7 @@ export default function App() {
               path="/profile/:username"
               element={
                 bootingAuth ? (
-                  <div className="min-h-screen flex items-center justify-center text-white">
+                  <div className="min-h-screen flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                     Loading...
                   </div>
                 ) : isAuthed ? (
@@ -817,7 +817,7 @@ export default function App() {
               path="/online"
               element={
                 bootingAuth ? (
-                  <div className="min-h-screen flex items-center justify-center text-white">
+                  <div className="min-h-screen flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                     Loading...
                   </div>
                 ) : isAuthed && user && token ? (
