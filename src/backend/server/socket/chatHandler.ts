@@ -1,6 +1,7 @@
 import { Socket, Namespace } from "socket.io";
 import prisma from "../../utils/prisma.js";
 import { v4 as uuidv4 } from 'uuid';
+import { allowPrivateGame } from "./privateGameAllowlist.js";
 
 // ============================================================================
 // 1. TYPES & GLOBAL STATE
@@ -75,6 +76,9 @@ interface PendingInvite {
     receiverId: number;
     timeout: NodeJS.Timeout;
 }
+
+// Maximum allowed message length (in characters)
+const MAX_MESSAGE_LENGTH = 2000;
 
 // Global Map to store active invites.
 // Key format: "senderId_receiverId" (e.g., "5_12")
@@ -162,7 +166,7 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
             // Send history to the user
             socket.emit("channel_history", {
                 channel: channelName,
-                messages: history.map(m => ({
+                messages: history.map((m: any) => ({
                     id: String(m.id),
                     author: m.sender.username,
                     text: m.content,
@@ -176,6 +180,17 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
     // Handle sending a message to a public channel
     socket.on("send_channel_message", async (payload: ChannelMessagePayload) => {
         try {
+            // --- Input validation ---
+            const trimmedContent = (payload.content ?? "").trim();
+            if (!trimmedContent) {
+                socket.emit("chat_error", "Message cannot be empty.");
+                return;
+            }
+            if (trimmedContent.length > MAX_MESSAGE_LENGTH) {
+                socket.emit("chat_error", `Message is too long (max ${MAX_MESSAGE_LENGTH} characters).`);
+                return;
+            }
+
             const sender = await prisma.user.findUnique({
                 where: { id: payload.senderId },
                 select: { username: true, avatarUrl: true }
@@ -184,7 +199,7 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
 
             const savedMessage = await prisma.message.create({
                 data: {
-                    content: payload.content,
+                    content: trimmedContent,
                     senderId: payload.senderId,
                     channel: payload.channel,
                 },
@@ -219,13 +234,24 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
     // Handle sending a private message
     socket.on("send_message", async (payload: MessagePayload) => {
         try {
+            // --- Input validation ---
+            const trimmedContent = (payload.content ?? "").trim();
+            if (!trimmedContent) {
+                socket.emit("chat_error", "Message cannot be empty.");
+                return;
+            }
+            if (trimmedContent.length > MAX_MESSAGE_LENGTH) {
+                socket.emit("chat_error", `Message is too long (max ${MAX_MESSAGE_LENGTH} characters).`);
+                return;
+            }
+
             // Security Check: Ensure users are not blocked
             const chat = await prisma.chat.findUnique({
                 where: { id: payload.chatId },
                 include: { participants: true },
             });
             if (chat) {
-                const otherParticipant = chat.participants.find((p) => p.userId !== payload.senderId);
+                const otherParticipant = chat.participants.find((p: any) => p.userId !== payload.senderId);
                 if (otherParticipant) {
                     const isBlocked = await prisma.block.findFirst({
                         where: {
@@ -244,7 +270,7 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
                 data: {
                     chatId: payload.chatId,
                     senderId: payload.senderId,
-                    content: payload.content,
+                    content: trimmedContent,
                 },
                 include: { sender: { select: { username: true } } }
             });
@@ -262,6 +288,15 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
             await prisma.block.create({
                 data: { blockerId: data.myId, blockedId: data.otherId },
             });
+            // Notify both users in real-time
+            io.to(`user_${data.myId}`).emit("user_blocked", {
+                blockerId: data.myId,
+                blockedId: data.otherId,
+            });
+            io.to(`user_${data.otherId}`).emit("user_blocked", {
+                blockerId: data.myId,
+                blockedId: data.otherId,
+            });
         } catch (e) { console.error("Block failed", e); }
     });
 
@@ -270,6 +305,15 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
         try {
             await prisma.block.deleteMany({
                 where: { blockerId: data.myId, blockedId: data.otherId },
+            });
+            // Notify both users in real-time
+            io.to(`user_${data.myId}`).emit("user_unblocked", {
+                unblockerId: data.myId,
+                unblockedId: data.otherId,
+            });
+            io.to(`user_${data.otherId}`).emit("user_unblocked", {
+                unblockerId: data.myId,
+                unblockedId: data.otherId,
             });
         } catch (e) { console.error("Unblock failed", e); }
     });
@@ -349,9 +393,44 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
                 _count: { id: true }
             });
             const payload: Record<number, number> = {};
-            unreadCounts.forEach((item) => { payload[item.senderId] = item._count.id; });
+            unreadCounts.forEach((item: any) => { payload[item.senderId] = item._count.id; });
             socket.emit("unread_counts", payload);
         } catch (e) { console.error("Error fetching unread counts:", e); }
+    });
+
+    // Fetch last message preview for each DM the user participates in
+    socket.on("request_dm_previews", async (uid: number) => {
+        try {
+            const chats = await prisma.chat.findMany({
+                where: {
+                    isGroup: false,
+                    participants: { some: { userId: uid } },
+                },
+                include: {
+                    participants: { select: { userId: true } },
+                    messages: {
+                        take: 1,
+                        orderBy: { createdAt: "desc" },
+                        include: { sender: { select: { username: true } } },
+                    },
+                },
+            });
+
+            const previews: Record<string, { text: string; ts: number; senderId: number }> = {};
+            for (const chat of chats) {
+                const otherParticipant = chat.participants.find((p: any) => p.userId !== uid);
+                if (!otherParticipant || chat.messages.length === 0) continue;
+                const lastMsg = chat.messages[0];
+                previews[String(otherParticipant.userId)] = {
+                    text: lastMsg.content,
+                    ts: new Date(lastMsg.createdAt).getTime(),
+                    senderId: lastMsg.senderId,
+                };
+            }
+            socket.emit("dm_previews", previews);
+        } catch (e) {
+            console.error("Error fetching DM previews:", e);
+        }
     });
 
     // ========================================================================
@@ -425,8 +504,9 @@ export function registerChatHandlers(io: Namespace, socket: Socket) {
         clearTimeout(invite.timeout);
         activeInvites.delete(inviteKey);
 
-        // Generate unique Game ID and redirect both players
+        // Generate unique Game ID, register both players in the allowlist, then redirect
         const gameId = uuidv4();
+        allowPrivateGame(gameId, payload.myId, payload.otherId);
         io.to(`user_${payload.myId}`).emit("game_start_redirect", { gameId });
         io.to(`user_${payload.otherId}`).emit("game_start_redirect", { gameId });
     });

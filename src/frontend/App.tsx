@@ -57,26 +57,26 @@ export default function App() {
   const presenceRef = useRef<Socket | null>(null);
   const isAuthed = !bootingAuth && !!token;
 
-  function saveProfileDataForPlayerProfile(user: {
-    username: string;
-    email: string;
-    avatarUrl?: string | null;
-  }) {
-    const raw = localStorage.getItem("profile_data");
-    let previous: any = {};
-    try {
-      previous = raw ? JSON.parse(raw) : {};
-    } catch { }
+  // function saveProfileDataForPlayerProfile(user: {
+  //   username: string;
+  //   email: string;
+  //   avatarUrl?: string | null;
+  // }) {
+  //   // const raw = localStorage.getItem("profile_data");
+  //   let previous: any = {};
+  //   try {
+  //     previous = raw ? JSON.parse(raw) : {};
+  //   } catch { }
 
-    const next = {
-      ...previous,
-      username: user.username,
-      email: user.email,
-      avatarUrl: user.avatarUrl ?? previous.avatarUrl ?? "",
-    };
+  //   const next = {
+  //     ...previous,
+  //     username: user.username,
+  //     email: user.email,
+  //     avatarUrl: user.avatarUrl ?? previous.avatarUrl ?? "",
+  //   };
 
-    localStorage.setItem("profile_data", JSON.stringify(next));
-  }
+  //   // localStorage.setItem("profile_data", JSON.stringify(next));
+  // }
 
   // useEffect(() => {
   //   if (!token) return;
@@ -158,7 +158,7 @@ export default function App() {
         const me = await apiGetMe(saved);
         setToken(saved);
         setUser(me);
-        saveProfileDataForPlayerProfile(me);
+        // saveProfileDataForPlayerProfile(me);
       } catch (e: any) {
         const status = axios.isAxiosError(e) ? e.response?.status : undefined;
         if (status === 401 || status === 403) {
@@ -205,7 +205,7 @@ export default function App() {
     setToken(data.accessToken);
     setUser(data.user);
     // setSessionMode("user");
-    saveProfileDataForPlayerProfile(data.user);
+    // saveProfileDataForPlayerProfile(data.user);
 
     navigate("/home");
   }
