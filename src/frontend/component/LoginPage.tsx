@@ -13,7 +13,6 @@ export default function LoginPage({ onContinue }: Props) {
       <p className="text-gray-300 mb-8">Choose how you want to start</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl">
-        {/* Login option */}
         <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-gray-700">
           <h2 className="text-xl font-semibold text-blue-400 mb-2">Log In</h2>
           <p className="text-gray-300 mb-4">Proceed with Account</p>
@@ -29,7 +28,6 @@ export default function LoginPage({ onContinue }: Props) {
           </button>
         </div>
 
-        {/* Guest option */}
         <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 shadow-2xl border border-gray-700">
           <h2 className="text-xl font-semibold text-green-400 mb-2">Enter as Guest</h2>
           <p className="text-gray-300 mb-4">Play without signing in</p>

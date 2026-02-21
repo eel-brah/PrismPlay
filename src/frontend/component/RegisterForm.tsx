@@ -11,10 +11,9 @@ type Props = {
 };
 
 export default function RegisterForm({ onSubmit }: Props) {
-    function handleGoogleRegister() {
-      // Redirect to backend Google OAuth endpoint
-      window.location.href = "/api/auth/google";
-    }
+  function handleGoogleRegister() {
+    window.location.href = "/api/auth/google";
+  }
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -46,7 +46,6 @@ const Agario = () => {
   const cameraRef = useRef<Camera | null>(null);
   const mouseRef = useRef<Mouse>({ x: 0, y: 0 });
   const enemiesRef = useRef<Record<string, Player>>({});
-  // const inputSeqRef = useRef(0);
   const isDeadRef = useRef(false);
   const isSpectatorRef = useRef(false);
 
@@ -57,8 +56,6 @@ const Agario = () => {
   const [hasJoined, setHasJoined] = useState(false);
   const [firstTime, setFirstTime] = useState(true);
 
-  // const pendingInputsRef = useRef<InputState[]>([]);
-  // const lastProcessedSeqRef = useRef<number>(0);
 
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const finalLeaderboard = useRef<FinalLeaderboardEntry[]>([]);
@@ -78,7 +75,6 @@ const Agario = () => {
   const [joinKey, setJoinKey] = useState("");
   const [createdKey, setCreatedKey] = useState("");
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
-  // const [lobbyPlayers, setLobbyPlayers] = useState<LobbyPlayer[]>([]);
   const roomStatusRef = useRef<"waiting" | "started" | "ended">("waiting");
   const [roomDuration, setRoomDuration] = useState<string>("");
   const roomStartedAt = useRef<number>(0);
@@ -133,11 +129,7 @@ const Agario = () => {
       };
     }
 
-    // socket.on("connect", () => {
-    // console.log("Connected to server with socket id:", socket.id);
-    // });
 
-    //TODO:
     roomListInterval.current = setInterval(() => {
       if (!hasJoined) socket.emit("agario:list-rooms");
     }, 1000);
@@ -159,12 +151,10 @@ const Agario = () => {
 
     socket.on("agario:room-info", (info: RoomInfo) => {
       setRoomInfo(info);
-      // setLobbyPlayers(info.players);
       roomStatusRef.current = info.status;
     });
 
     socket.on("agario:room-players", (data: { players: LobbyPlayer[]; hostId: string; spectatorCount: number }) => {
-      // setLobbyPlayers(data.players);
       setRoomInfo((prev) => (prev ? { ...prev, players: data.players, hostId: data.hostId, spectatorCount: data.spectatorCount } : prev));
     });
 
@@ -199,7 +189,6 @@ const Agario = () => {
     socket.on("agario:leaderboard", (leaderboard: FinalLeaderboardEntry[]) => {
       finalLeaderboard.current = leaderboard;
     });
-    // socket.on("leaderboard:final", setLeaderboard);
 
     socket.on("agario:left-room", () => {
       clearing(Object.keys(enemiesRef.current).length === 0
@@ -242,15 +231,12 @@ const Agario = () => {
       orbsRef.current = [];
       ejectsRef.current = [];
       virusesRef.current = [];
-      // pendingInputsRef.current = [];
-      // lastProcessedSeqRef.current = data.lastProcessedSeq;
 
       clearInterval(roomListInterval.current);
       roomListInterval.current = undefined;
       initCam();
     });
 
-    //TODO: prediction + reconciliation: remove?? 
     socket.on(
       "heartbeat",
       (data: { players: Record<string, PlayerData>; orbs: Orb[]; ejects: Eject[]; viruses: Virus[] }) => {
@@ -265,36 +251,8 @@ const Agario = () => {
             playerRef.current.updateFromData(myData);
           }
 
-          // lastProcessedSeqRef.current = myData.lastProcessedSeq;
 
-          // const remainingInputs = pendingInputsRef.current.filter(
-          //   (input) => input.seq > myData.lastProcessedSeq
-          // );
-          // pendingInputsRef.current = remainingInputs;
 
-          // const player = playerRef.current;
-          // const orbs = orbsRef.current;
-          // const ejects = ejectsRef.current;
-          // if (player) {
-          // const viruses = virusesRef.current;
-          //   for (const input of remainingInputs) {
-          //     const mouse: Mouse = { x: input.mouseX, y: input.mouseY };
-          //     //TODO: player.update(input.dt, mouse, orbs, [], false);
-          //     const [eatenOrbs, eatenEjects] = player.update(input.dt, mouse, orbs, ejects, false);
-          //     if (eatenOrbs.length > 0) {
-          //       const eatenSet = new Set(eatenOrbs);
-          //       orbsRef.current = orbsRef.current.filter(
-          //         (o) => !eatenSet.has(o.id),
-          //       );
-          //     }
-          //     if (eatenEjects.length > 0) {
-          //       const eatenSet = new Set(eatenEjects);
-          //       ejectsRef.current = ejectsRef.current.filter(
-          //         (e) => !eatenSet.has(e.id),
-          //       );
-          //     }
-          //   }
-          // }
         }
 
         for (const [id, pData] of Object.entries(data.players)) {
@@ -398,9 +356,6 @@ const Agario = () => {
 
       const player = playerRef.current;
       const camera = cameraRef.current;
-      // const orbs = orbsRef.current;
-      // const ejects = ejectsRef.current;
-      // const viruses = virusesRef.current;
 
       if (!canvas || !player || !camera) return;
 
@@ -409,21 +364,6 @@ const Agario = () => {
         y: mouseRef.current.y + camera.y,
       };
 
-      // local prediction 
-      // player.update(dt, worldMouse, [], [], isDeadRef.current);
-      // const [eatenOrbs, eatenEjects] = player.update(dt, worldMouse, orbs, ejects, isDeadRef.current);
-      // if (eatenOrbs.length > 0) {
-      //   const eatenSet = new Set(eatenOrbs);
-      //   orbsRef.current = orbsRef.current.filter(
-      //     (o) => !eatenSet.has(o.id),
-      //   );
-      // }
-      // if (eatenEjects.length > 0) {
-      //   const eatenSet = new Set(eatenEjects);
-      //   ejectsRef.current = ejectsRef.current.filter(
-      //     (e) => !eatenSet.has(e.id),
-      //   );
-      // }
 
       if (isSpectatorRef.current || isDeadRef.current) player.update(dt, worldMouse, [], [], true);
 
@@ -432,14 +372,11 @@ const Agario = () => {
 
       if (isSpectatorRef.current || isDeadRef.current) return;
 
-      // inputSeqRef.current += 1;
       const input: InputState = {
         x: worldMouse.x,
         y: worldMouse.y,
-        // seq: inputSeqRef.current,
         dt,
       };
-      // pendingInputsRef.current.push(input);
       socket.emit("input", input);
     }
 
@@ -490,7 +427,6 @@ const Agario = () => {
       }
       socket.disconnect();
       clearInterval(roomListInterval.current)
-      // clearInterval(interval);
     };
   }, []);
 
@@ -582,12 +518,8 @@ const Agario = () => {
     isDeadRef.current = false;
 
     setHasJoined(false);
-    // setDurationMin("");
     setRoomInfo(null);
-    // setLobbyPlayers([]);
     setLeaderboard([]);
-    // setFinalLeaderboard([]);
-    // isEmptyLeaderboard.current = true;
 
     setMenuMode(mode);
     setRoomName("");
@@ -705,7 +637,6 @@ const Agario = () => {
           <div className="grid grid-cols-3 gap-3">
             <button
               onClick={() => {
-                // clearAlert();
                 setMenuMode(MAIN_MENU);
                 setRoomName(DEFAULT_ROOM);
                 roomNameRef.current = DEFAULT_ROOM;
@@ -718,7 +649,6 @@ const Agario = () => {
 
             <button
               onClick={() => {
-                // clearAlert();
                 setMenuMode(menuMode != "join" ? "join" : MAIN_MENU);
               }}
               className={primaryBtn}
@@ -728,7 +658,6 @@ const Agario = () => {
 
             <button
               onClick={() => {
-                // clearAlert();
                 setMenuMode(menuMode != "create" ? "create" : MAIN_MENU);
               }}
               className={primaryBtn}
@@ -1076,10 +1005,6 @@ const Agario = () => {
 
               <button
                 onClick={() => {
-                  // isSpectatorRef.current = true;
-                  // playerRef.current = randomPlayer();
-                  // setAgError("");
-                  // setMenuMode(DEFAULT_ROOM);
                   handleJoinRoom("join", true);
                 }}
                 className="

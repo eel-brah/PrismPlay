@@ -71,7 +71,6 @@ export function GameOverPopup({
 
   const ResultIcon = isWinner ? Trophy : Frown;
 
-  // Get player names based on side
   const leftName = mySide === "left" ? myNickname : opponentNickname;
   const rightName = mySide === "right" ? myNickname : opponentNickname;
   const leftScore = mySide === "left" ? myScore : opponentScore;
@@ -79,15 +78,12 @@ export function GameOverPopup({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
 
-      {/* Popup */}
       <div className="relative z-10 w-full max-w-md mx-4">
         <div
           className={`bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-2xl border border-gray-700/50 shadow-2xl ${resultBgGlow} overflow-hidden`}
         >
-          {/* Header with result */}
           <div
             className={`bg-gradient-to-r ${resultColor} px-6 py-5 text-center`}
           >
@@ -100,11 +96,8 @@ export function GameOverPopup({
             </div>
           </div>
 
-          {/* Content */}
           <div className="p-6 space-y-6">
-            {/* Score display */}
             <div className="flex items-center justify-center gap-6">
-              {/* Left player */}
               <div className="text-center">
                 <p className="text-sm text-gray-400 mb-1 truncate max-w-[100px]">
                   {mySide === "left" ? "You" : leftName}
@@ -119,14 +112,12 @@ export function GameOverPopup({
                 <p className="text-xs text-gray-500 mt-1">LEFT</p>
               </div>
 
-              {/* VS divider */}
               <div className="flex flex-col items-center">
                 <div className="w-px h-8 bg-gray-700" />
                 <span className="text-gray-500 font-bold text-sm py-2">VS</span>
                 <div className="w-px h-8 bg-gray-700" />
               </div>
 
-              {/* Right player */}
               <div className="text-center">
                 <p className="text-sm text-gray-400 mb-1 truncate max-w-[100px]">
                   {mySide === "right" ? "You" : rightName}
@@ -142,7 +133,6 @@ export function GameOverPopup({
               </div>
             </div>
 
-            {/* Win reason */}
             <div className="flex items-center justify-center gap-2 py-3 px-4 bg-gray-800/50 rounded-lg border border-gray-700/40">
               <span className={isWinner ? "text-green-400" : "text-red-400"}>
                 {getWinReasonIcon(winReason)}
@@ -152,9 +142,7 @@ export function GameOverPopup({
               </span>
             </div>
 
-            {/* Action buttons */}
             <div className="space-y-3">
-              {/* 👇 UPDATE: Conditionally render based on prop existence */}
               {onFindMatch && (
                 <button
                   onClick={onFindMatch}
@@ -165,7 +153,6 @@ export function GameOverPopup({
                 </button>
               )}
 
-              {/* Visit profile */}
               <button
                 onClick={() => {
                   navigate("/profile/" + opponentNickname);
@@ -176,7 +163,6 @@ export function GameOverPopup({
                 <span>Opponent Profile</span>
               </button>
 
-              {/* Leave */}
               <button
                 onClick={onLeave}
                 className="w-full flex items-center justify-center gap-3 bg-transparent hover:bg-gray-800/50 text-gray-400 hover:text-gray-300 font-medium py-3 px-4 rounded-xl transition-all border border-transparent hover:border-gray-700/50"

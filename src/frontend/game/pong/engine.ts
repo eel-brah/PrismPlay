@@ -518,7 +518,6 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
     }
     ctx.globalAlpha = 1;
 
-    // Draw paddles with custom colors
     if (currentTheme.glowEnabled) {
       ctx.shadowBlur = 15;
       ctx.shadowColor = leftPlayer.paddleColor;
@@ -543,7 +542,6 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
     );
     ctx.shadowBlur = 0;
 
-    // Draw ball with custom color
     if (currentTheme.glowEnabled) {
       ctx.shadowBlur = 20;
       ctx.shadowColor = gameColors.ballColor;
@@ -554,13 +552,11 @@ export function runPongEngine(params: RunPongEngineParams): () => void {
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Scores
     ctx.font = "bold 48px monospace";
     ctx.fillStyle = currentTheme.scoreColor;
     ctx.fillText(leftPaddle.score.toString(), canvas.width / 4 - 12, 60);
     ctx.fillText(rightPaddle.score.toString(), (canvas.width * 3) / 4 - 12, 60);
 
-    // Combo display
     if (combo > 2 && phase === "playing") {
       ctx.font = "bold 24px monospace";
       ctx.fillStyle = currentTheme.comboColor;

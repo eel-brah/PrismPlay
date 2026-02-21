@@ -25,10 +25,7 @@ import {
 } from "../api";
 import { getPresenceSocket } from "@/presenceSocket";
 
-// ============================================================================
-// 1. TYPES & CONSTANTS
-// ============================================================================
-type TabKey = "friends" | "chat"; // Removed "groups"
+type TabKey = "friends" | "chat";
 
 type Message = {
   id: string;
@@ -38,8 +35,6 @@ type Message = {
   senderId?: number;
   readAt?: string | null;
 };
-
-// --- Socket event payload types ---
 
 interface ChannelHistoryPayload {
   channel: string;
@@ -97,15 +92,9 @@ interface GameInviteReceivedEvent {
 }
 
 export default function SocialHub() {
-  // ============================================================================
-  // 2. SYSTEM & GLOBAL STATE
-  // ============================================================================
   const [myUserId, setMyUserId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("friends");
 
-  // ============================================================================
-  // 3. FRIENDS FEATURE STATE
-  // ============================================================================
   const [friends, setFriends] = useState<
     {
       id: string;
@@ -130,16 +119,12 @@ export default function SocialHub() {
   const [addErr, setAddErr] = useState<string | null>(null);
   const [addLoading, setAddLoading] = useState(false);
 
-  // ============================================================================
-  // 4. CHAT FEATURE STATE (Includes "General" Channel)
-  // ============================================================================
   const [chatMode, setChatMode] = useState<"channel" | "dm">("channel");
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
   const [dmSearch, setDmSearch] = useState("");
   const [chatInput, setChatInput] = useState("");
   const MAX_MESSAGE_LENGTH = 2000;
 
-  // Channels (General) - KEPT AS REQUESTED
   const channels = useMemo(() => ["general"], []);
   const [selectedChannel, setSelectedChannel] = useState<string>(channels[0]);
   const [messagesByChannel, setMessagesByChannel] = useState<
@@ -169,10 +154,6 @@ export default function SocialHub() {
     byThem: false,
   });
   const isChatLocked = blockStatus.byMe || blockStatus.byThem;
-
-  // ============================================================================
-  // 5. REFERENCES
-  // ============================================================================
   const socketRef = useRef<Socket | null>(null);
   const chatIdByOther = useRef<Record<string, number>>({});
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -183,7 +164,6 @@ export default function SocialHub() {
   const activeTabRef = useRef<TabKey>("friends");
   const chatModeRef = useRef<string>("channel");
 
-  // Game Invite State
   const [pendingInviteId, setPendingInviteId] = useState<number | null>(null);
 
   const [notification, setNotification] = useState<string | null>(null);
@@ -209,9 +189,6 @@ export default function SocialHub() {
     chatModeRef.current = chatMode;
   }, [chatMode]);
 
-  // ============================================================================
-  // 6. INITIALIZATION & SOCKET LOGIC
-  // ============================================================================
   function timeAgo(dateString: string) {
     const date = new Date(dateString);
     const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
@@ -423,7 +400,6 @@ export default function SocialHub() {
                 [friendId]: [...(prev[friendId] || []), newMsg],
               }));
 
-              // Update DM preview with latest message
               setDmPreviews((prev) => ({
                 ...prev,
                 [friendId]: {
@@ -438,7 +414,6 @@ export default function SocialHub() {
                 chatModeRef.current === "dm" &&
                 selectedFriendIdRef.current === friendId;
 
-              // Scroll to bottom when receiving a message from someone else
               if (isViewing && String(msg.senderId) != String(me.id)) {
                 shouldScrollRef.current = true;
               }
@@ -501,7 +476,6 @@ export default function SocialHub() {
             showNotification(message);
           });
 
-          // Real-time block/unblock notifications
           s.on(
             "user_blocked",
             (data: { blockerId: number; blockedId: number }) => {
@@ -568,7 +542,6 @@ export default function SocialHub() {
     }
   }, [messagesByDM, selectedFriendId, chatMode, myUserId]);
 
-  // Auto-scroll: only when shouldScrollRef is true (set by specific events)
   useEffect(() => {
     if (!shouldScrollRef.current) return;
     const container = chatMessagesRef.current;
@@ -577,7 +550,6 @@ export default function SocialHub() {
     container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
   }, [messagesByChannel, messagesByDM]);
 
-  // For channels: always scroll on new messages
   useEffect(() => {
     if (activeTab !== "chat" || chatMode !== "channel") return;
     const container = chatMessagesRef.current;
@@ -609,9 +581,6 @@ export default function SocialHub() {
     }
   }, [selectedFriendId, chatMode, myUserId]);
 
-  // ============================================================================
-  // 7. ACTIONS (Friends & Chat)
-  // ============================================================================
   const sendFriendRequestByUsername = async () => {
     const token = getStoredToken();
     if (!token) return;
@@ -792,9 +761,6 @@ export default function SocialHub() {
     }
   };
 
-  // ============================================================================
-  // 8. RENDER (UI)
-  // ============================================================================
   return (
     <div className="w-full h-full text-white flex flex-col">
       {/* Toast Notification */}
