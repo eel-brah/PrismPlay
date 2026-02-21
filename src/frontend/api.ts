@@ -172,16 +172,31 @@ export async function apiUpdateMe(
   token: string,
   body: { username?: string; email?: string; password?: string },
 ) {
-  const res = await api.patch<User>("/users/me", body, withAuth(token));
-  return res.data;
+  try {
+    const res = await api.patch<User>("/users/me", body, withAuth(token));
+    return res.data;
+  } catch (e: unknown) {
+    if (axios.isAxiosError(e)) {
+      const serverMsg = (e.response?.data as any)?.message;
+      throw new Error(serverMsg ?? e.message ?? "Register failed");
+    }
+    throw new Error("Register failed");
+  }
 }
 
 export async function apiUploadAvatar(token: string, file: File) {
-  const form = new FormData();
-  form.append("avatar", file);
-
-  const res = await api.post("/users/avatar", form, withAuth(token));
-  return res.data;
+  try {
+    const form = new FormData();
+    form.append("avatar", file);
+    const res = await api.post("/users/avatar", form, withAuth(token));
+    return res.data;
+  } catch (e: unknown) {
+    if (axios.isAxiosError(e)) {
+      const serverMsg = (e.response?.data as any)?.message;
+      throw new Error(serverMsg ?? e.message ?? "Register failed");
+    }
+    throw new Error("Register failed");
+  }
 }
 
 // PONG
@@ -340,11 +355,7 @@ export async function apiGetGlobalLeaderboard(token: string) {
   return res.data;
 }
 
-export async function apiGetRoomsHistory(
-  token: string,
-  take = 20,
-  skip = 0,
-) {
+export async function apiGetRoomsHistory(token: string, take = 20, skip = 0) {
   const res = await api.get<RoomHistoryItem[]>(
     `/agario/history/rooms?take=${take}&skip=${skip}&onlyEnded=true`,
     withAuth(token),
