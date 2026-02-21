@@ -6,7 +6,6 @@ This project has been created as part of the 42 curriculum by moel-fat, amokhtar
 
 ft_transcendence (PrismPlay) is a full-stack web application featuring real-time multiplayer Pong, offline Pong modes with AI, an Agar.io-style arena, social hub , and player profiles. It includes a frontend, backend, and database, runs via Docker, and is compatible with the latest stable Chrome.
 
-
 ## Key Features
 
 - User authentication + profiles (avatar, stats, match history)
@@ -16,7 +15,6 @@ ft_transcendence (PrismPlay) is a full-stack web application featuring real-time
 - Agar.io arena with rooms history and leaderboards
 - Social hub: friends, requests, and chat
 
-
 ## Instructions
 
 ### Prerequisites
@@ -24,11 +22,10 @@ ft_transcendence (PrismPlay) is a full-stack web application featuring real-time
 - Docker + Docker Compose
 - `.env.production` file (see `.env_example`)
 
-
 ### Start
 
 ```bash
-cp .env_example .env.production #fill the needed fields 
+cp .env_example .env.production #fill the needed fields
 docker compose up --build
 ```
 
@@ -42,16 +39,15 @@ docker compose up --build
 - Tools: github , Git
 - Process: weekly sync, code reviews on critical PRs, shared Discord
 
-
 ## Team Information
 
-Member | Role(s) | Responsibilities
----        | --- | ---
-<eel-bah>  | PO - Dev  | vision, backlog, validation Dev, features, tests, docs
-<amokhtar> | PM - Dev | planning, blockers, deadlines ,Dev, features, tests, docs
-<mboughra> | Tech Lead - Dev | architecture, standards, reviews ,Dev, features, tests, docs
-<moel-fat> | Dev | features, tests, docs
-<meul-bak> | Dev | features, tests, docs
+| Member     | Role(s)  | Responsibilities                                             |
+| ---------- | -------- | ------------------------------------------------------------ |
+| <eel-bah>  | PO - Dev | vision, backlog, validation Dev, features, tests, docs       |
+| <amokhtar> | PM - Dev | planning, blockers, deadlines ,Dev, features, tests, docs    |
+| <mboughra> | TL - Dev | architecture, standards, reviews ,Dev, features, tests, docs |
+| <moel-fat> | Dev      | features, tests, docs                                        |
+| <meul-bak> | Dev      | features, tests, docs                                        |
 
 ## Technical Stack
 
@@ -59,8 +55,7 @@ Member | Role(s) | Responsibilities
 - Backend: Node.js + Fastify, Socket.IO.
 - Database: MariaDB + Prisma ORM.
 - Deployment: Docker .
-- Others: zod, axios, bcrypt, 
-
+- Others: zod, axios, bcrypt,
 
 ## Why this stack
 
@@ -70,7 +65,6 @@ Member | Role(s) | Responsibilities
 - Server-authoritative simulation for fairness
 - Prisma for type-safe DB access
 - Zod for validation
-
 
 ## System Architecture
 
@@ -122,6 +116,7 @@ erDiagram
 ### Tables / Models (Key Fields, Types, Relationships)
 
 #### `User`
+
 - **PK:** `id` (Int, auto-increment)
 - **Unique:** `username` (String), `email` (String), `googleId` (String?)
 - **Auth:** `passwordHash` (String?) for local users, `googleId` (String?) for OAuth
@@ -129,6 +124,7 @@ erDiagram
 - **Relations:** FriendRequests (sent/received), Friends (many-to-many), Rooms, PlayerHistory, PongMatches (left/right/winner), Messages, ChatParticipant, Blocks (sent/received)
 
 #### `FriendRequest`
+
 - **PK:** `id` (Int)
 - **FKs:** `fromUserId` → User, `toUserId` → User
 - `status` (enum FriendRequestStatus), `sentAt` (DateTime), `respondedAt` (DateTime?)
@@ -136,34 +132,40 @@ erDiagram
 - **Indexes:** `(toUserId, status)`, `(fromUserId, status)`
 
 #### `Friend` (many-to-many join)
+
 - **Composite PK:** `(userId, friendId)`
 - **FKs:** `userId` → User, `friendId` → User
 - `createdAt` (DateTime)
 - **Indexes:** `userId`, `friendId`
 
 #### `Block`
+
 - **PK:** `id` (Int)
 - **FKs:** `blockerId` → User, `blockedId` → User
 - `createdAt` (DateTime)
 - **Constraint:** unique `(blockerId, blockedId)`
 
 #### `Chat`
+
 - **PK:** `id` (Int)
 - `isGroup` (Boolean), `title` (String?)
 - **Relations:** participants via `ChatParticipant`, messages via `Message`
 
 #### `ChatParticipant` (join)
+
 - **Composite PK:** `(chatId, userId)`
 - **FKs:** `chatId` → Chat, `userId` → User
 - **Index:** `userId`
 
 #### `Message`
+
 - **PK:** `id` (Int)
 - **FKs:** `senderId` → User, `chatId` (Int?) → Chat
 - `channel` (String?), `content` (Text), `createdAt` (DateTime), `readAt` (DateTime?)
 - **Indexes:** `(chatId, createdAt)`, `chatId`, `senderId`
 
 #### `Room`
+
 - **PK:** `id` (Int)
 - `name` (String), `isDefault` (Boolean), `visibility` (String)
 - Optional limits: `maxDurationMin` (Int?), `maxPlayers` (Int?)
@@ -172,11 +174,13 @@ erDiagram
 - **Index:** `isDefault`
 
 #### `Guest`
+
 - **PK:** `id` (String, UUID)
 - `createdAt` (DateTime), `lastSeen` (DateTime, auto-updated)
 - **Relation:** PlayerHistory (one-to-many)
 
 #### `PlayerHistory`
+
 - **PK:** `id` (Int)
 - **FKs:** `roomId` → Room, `userId` (Int?) → User, `guestId` (String?) → Guest
 - Stats: `durationMs` (Int), `maxMass` (Int), `kills` (Int), `rank` (Int?), `isWinner` (Boolean)
@@ -184,12 +188,14 @@ erDiagram
 - **Indexes:** `guestId`, `(roomId, createdAt)`, `(userId, createdAt)`
 
 #### `PongMatch`
+
 - **PK:** `id` (Int)
 - **FKs:** `leftPlayerId` → User, `rightPlayerId` → User, `winnerId` → User
 - Scores: `leftScore` (Int), `rightScore` (Int)
 - `reason` (String), `duration` (Int?), `createdAt` (DateTime)
 
 #### `RevokedToken`
+
 - **PK:** `id` (Int)
 - **Unique:** `token` (String)
 - `revokedAt` (DateTime)
@@ -226,8 +232,9 @@ erDiagram
 - If timeout → opponent wins
 - Prevent race conditions with a single end-match lock
 
-## agario Implementation
+### for more Look at PongDuc in Documentation folder
 
+## agario Implementation
 
 ## Features List
 
@@ -236,7 +243,6 @@ erDiagram
 - Stats + match history persistence — <member>
 - Agar.io rooms + history/leaderboard — <member>
 - Privacy Policy + Terms of Service pages — <member> -->
-
 
 ## Modules (points) (edit to match what you truly implemented)
 
@@ -252,34 +258,39 @@ Web | ORM (Prisma) | 1
 User Mgmt | Game stats + match history | 1
 Gaming | Game customization (themes/settings) | 1 -->
 
-
-
 ## Individual Contributions (required)
 
-<!-- - <Member A>: …
+### - <meol-fat>: - Dev
+
+Owned features: Pong (local multiplay) matchmaking reconect history leaderboard Oauth(google)
+Key modules claimed:
+Main files/areas: /src /frontend(component/pong* - game/pong* - utils) , /backend(server/socket pong.ts pongserver.ts - module/pong) , /shared/pong\* , psirma
+Notable problems solved: (e.g., race condition, websocket disconnect handling, Prisma migration issue)
+
 - <Member B>: …
 - <Member C>: …
 - <Member D>: …
 
-(Include concrete features + files/components owned.) -->
-
+(Include concrete features + files/components owned.)
 
 ## Resources
 
 ### References
 
 - React docs, TypeScript handbook, MDN Canvas, Socket.IO docs, Prisma docs, fastify docs, Oauth 2.0,
+
 #### Links
+
 - https://fastify.dev/docs/latest/Guides/Getting-Started/
-- https://oauth.net/2/
 - https://react.dev/learn
 - https://www.prisma.io/docs
+- https://oauth.net/2/
 - https://developer.mozilla.org/en-US/docs/Web/HTML
 - https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial
 - https://docs.docker.com/
 - https://zod.dev/basics
 
-### AI Usage 
+### AI Usage
 
 - Used AI for: documentation rewriting, debugging explanations, refactoring suggestions and ideas
 - Not used to blindly generate core logic; all generated content was reviewed and understood by the team

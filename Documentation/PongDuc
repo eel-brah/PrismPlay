@@ -1,0 +1,164 @@
+# Pong Project Documentation
+
+## Overview
+This project implements Pong in two parts:
+
+- **Advanced Pong (Local/AI):** Modern Pong built with **React + TypeScript + Canvas**, featuring frame-rate independent physics, high-speed safe collision detection, customization, and AI opponents.
+- **Online Pong (Multiplayer):** Real-time Pong using **Socket.IO**, with **server-authoritative physics** to ensure fairness, matchmaking, reconnection handling, and match persistence (stats/history).
+
+## Technology Stack
+
+### Frontend
+- React + TypeScript  
+- HTML5 Canvas (rendering)  
+- Tailwind CSS (UI styling)  
+- Web Audio API (sound)
+
+### Backend (Online)
+- Node.js + Fastify  
+- Socket.IO (WebSockets)  
+- Prisma ORM + PostgreSQL (persistence)
+
+---
+
+# Part 1 — Advanced Pong (Local/AI)
+
+## Architecture
+
+### Presentation (React)
+- Screens: menu / setup / playing  
+- UI state only (settings, mode, pause, popups)
+
+### Game Engine (Pure TS)
+- Physics + rules independent from React  
+- Runs update steps and returns draw-ready state
+
+### AI Layer
+- Predicts ball landing Y and moves paddle based on difficulty parameters
+
+## Data Flow
+User input → React → Engine update → Canvas draw
+
+## Key Algorithms
+
+### 1) Delta-Time Physics
+Movement uses elapsed time to keep speed consistent across devices:
+- `pos += velocity * dt`
+
+### 2) Swept Collision Detection (Anti-tunneling)
+At high speed, overlap checks can miss collisions. Swept collision treats movement as a segment:
+- Expand paddle bounds by ball radius  
+- Compute intersection time `t ∈ [0..1]` (hit occurs during this frame)  
+- Move ball to contact point and reflect velocity
+
+### 3) Paddle Bounce Angle
+Bounce angle depends on where the ball hits the paddle (top/center/bottom) to create skill-based control.
+
+### 4) Predictive AI (Difficulty)
+AI estimates where the ball will reach the paddle:
+- compute time-to-reach from ball X velocity  
+- project Y and simulate wall reflections  
+- apply reaction delay + aim error depending on difficulty
+
+## Features (Local/AI)
+- Modes: Player vs AI, Local 2P, AI vs AI (if enabled)  
+- Customization: paddle/ball colors, themes, names/avatars (if enabled)  
+- Effects: trails/particles/glow (optional)  
+- Controls: W/S + arrows, Space start, P pause, ESC menu
+
+---
+
+# Part 2 — Online Multiplayer Pong
+
+## System Architecture (Server-authoritative)
+
+### Client
+- Captures keyboard input (up/down)  
+- Renders the latest server snapshot on Canvas  
+- Uses refs for high-frequency game state (avoids React re-render at 60Hz)
+
+### Server
+- Authenticates sockets via JWT  
+- Matchmaking queue → creates matches  
+- Runs authoritative physics at 60 ticks/sec  
+- Emits snapshots to both players
+
+### Database
+- Stores match history + updates win/loss stats
+
+## Game Flow (Online)
+- Client connects to `/pong` with JWT token  
+- Server authenticates, player joins matchmaking queue  
+- When two players available → create match, assign left/right, send opponent info  
+- Countdown → playing loop → scoring → gameover  
+- Persist match result → cleanup match resources
+
+## Game Loop (Online)
+
+### Server tick (60 TPS)
+- read current inputs (up/down)  
+- step physics + collision + scoring  
+- build snapshot  
+- emit `game.state` to both players  
+- if win condition → `game.over` + DB update
+
+### Client render loop
+- `requestAnimationFrame` draws current snapshot  
+- React state only updates for UI events (match found, disconnect, popup)
+
+## Events (Minimal List)
+
+### Client → Server
+- `match.join`  
+- `input.update` (up/down)  
+- `match.leave`  
+- `match.surrender`
+
+### Server → Client
+- `match.waiting`  
+- `match.found`  
+- `game.state` (60/sec)  
+- `game.over`  
+- Disconnect events (connection lost / reconnected / cancelled)
+
+---
+
+## Reliability & Edge Cases
+
+### Disconnection Handling (Grace Period)
+- If connection loss happens mid-match: pause match + start reconnection timer  
+- If player reconnects in time: restore match + resume  
+- If timer expires: opponent wins by disconnect
+
+### Race Condition Prevention
+Multiple triggers can try to end the match at once (score win + disconnect). Use a guard:
+- `if (match.isEnding) return; match.isEnding = true;`
+
+### Cleanup (Prevent Memory Leaks)
+- clear tick interval + reconnection timeout  
+- remove match from global maps  
+- reset socket match metadata
+
+### Input Validation
+Server never trusts client payload:
+- server determines which match + side a socket controls  
+- sanitize inputs using boolean coercion (e.g., `!!payload.up`)
+
+---
+
+## Performance Notes
+- Client stores snapshots in `useRef` to avoid 60 React re-renders/sec  
+- Snapshot contains only needed render data (positions, scores, phase, countdown)  
+- Canvas rendering does one clear + simple draws per frame
+
+## Security Considerations
+- Server-authoritative physics prevents cheating (clients send only input)  
+- JWT auth for socket connections  
+- DB writes wrapped in try/catch so match completion doesn’t crash on DB failure
+
+## Conclusion
+This project demonstrates real-time game engineering on the web:
+- deterministic physics loop (60 TPS)  
+- robust collision handling at high speed  
+- scalable multiplayer architecture with matchmaking and reconnection support  
+- clean separation of UI, networking, and engine logic
