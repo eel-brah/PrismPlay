@@ -1367,7 +1367,7 @@ export default function SocialHub() {
                 </div>
 
                 {/* Input Area */}
-                <div className="mt-4 flex items-center gap-2">
+                <div className="mt-4 flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => {
                       if (!selectedFriendId) return;
@@ -1377,7 +1377,7 @@ export default function SocialHub() {
                         blockUser(selectedFriendId);
                       }
                     }}
-                    className={`p-2 rounded-md text-white disabled:opacity-50 transition-colors ${
+                    className={`shrink-0 p-2 rounded-md text-white disabled:opacity-50 transition-colors ${
                       blockStatus.byMe
                         ? "bg-green-600 hover:bg-green-700"
                         : "bg-red-600 hover:bg-red-700"
@@ -1405,7 +1405,7 @@ export default function SocialHub() {
                           ? "You blocked this user. Unblock to chat."
                           : "Type your message..."
                     }
-                    className={`flex-1 px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none ${
+                    className={`flex-1 min-w-[180px] px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none ${
                       isChatLocked
                         ? "cursor-not-allowed opacity-50 bg-gray-900"
                         : chatInput.trim().length > MAX_MESSAGE_LENGTH
@@ -1419,7 +1419,7 @@ export default function SocialHub() {
                   />
                   {chatInput.length > 0 && (
                     <span
-                      className={`text-xs tabular-nums whitespace-nowrap ${
+                      className={`shrink-0 text-xs tabular-nums whitespace-nowrap ${
                         chatInput.trim().length > MAX_MESSAGE_LENGTH
                           ? "text-red-400 font-bold"
                           : chatInput.trim().length > MAX_MESSAGE_LENGTH * 0.9
@@ -1430,50 +1430,52 @@ export default function SocialHub() {
                       {chatInput.trim().length}/{MAX_MESSAGE_LENGTH}
                     </span>
                   )}
-                  <button
-                    onClick={sendMessage}
-                    className="p-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
-                    disabled={
-                      chatMode === "dm" && (!selectedFriendId || isChatLocked)
-                    }
-                  >
-                    <Send className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (pendingInviteId === Number(selectedFriendId)) {
-                        cancelGameInvite();
-                      } else {
-                        sendGameInvite();
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={sendMessage}
+                      className="p-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+                      disabled={
+                        chatMode === "dm" && (!selectedFriendId || isChatLocked)
                       }
-                    }}
-                    className={`p-2 rounded-md transition-colors text-white disabled:opacity-50 ${
-                      pendingInviteId === Number(selectedFriendId)
-                        ? "bg-red-500 hover:bg-red-600 animate-pulse" // Cancel State
-                        : "bg-orange-600 hover:bg-orange-700" // Invite State
-                    }`}
-                    disabled={
-                      chatMode !== "dm" ||
-                      !selectedFriendId ||
-                      isChatLocked ||
-                      friends.find((x) => x.id === selectedFriendId)?.status ===
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (pendingInviteId === Number(selectedFriendId)) {
+                          cancelGameInvite();
+                        } else {
+                          sendGameInvite();
+                        }
+                      }}
+                      className={`p-2 rounded-md transition-colors text-white disabled:opacity-50 ${
+                        pendingInviteId === Number(selectedFriendId)
+                          ? "bg-red-500 hover:bg-red-600 animate-pulse"
+                          : "bg-orange-600 hover:bg-orange-700"
+                      }`}
+                      disabled={
+                        chatMode !== "dm" ||
+                        !selectedFriendId ||
+                        isChatLocked ||
+                        friends.find((x) => x.id === selectedFriendId)?.status ===
+                          "offline"
+                      }
+                      title={
+                        friends.find((x) => x.id === selectedFriendId)?.status ===
                         "offline"
-                    }
-                    title={
-                      friends.find((x) => x.id === selectedFriendId)?.status ===
-                      "offline"
-                        ? "User is offline"
-                        : pendingInviteId === Number(selectedFriendId)
-                          ? "Cancel Invite"
-                          : "Invite to Game"
-                    }
-                  >
-                    {pendingInviteId === Number(selectedFriendId) ? (
-                      <span className="text-xs font-bold px-1">X</span>
-                    ) : (
-                      <Gamepad2 className="w-4 h-4" />
-                    )}
-                  </button>
+                          ? "User is offline"
+                          : pendingInviteId === Number(selectedFriendId)
+                            ? "Cancel Invite"
+                            : "Invite to Game"
+                      }
+                    >
+                      {pendingInviteId === Number(selectedFriendId) ? (
+                        <span className="text-xs font-bold px-1">X</span>
+                      ) : (
+                        <Gamepad2 className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
