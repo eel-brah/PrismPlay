@@ -94,6 +94,9 @@ Member | Role(s) | Responsibilities
 
 - Stores users, matches, stats/history, friends, and chat data
 
+## Database Schema
+
+```mermaid
 erDiagram
   User ||--o{ FriendRequest : "sent (fromUserId)"
   User ||--o{ FriendRequest : "received (toUserId)"
@@ -118,7 +121,6 @@ erDiagram
   User ||--o{ PongMatch : "LeftPlayer"
   User ||--o{ PongMatch : "RightPlayer"
   User ||--o{ PongMatch : "MatchWinner"
-
 
 ## Database Schema (minimal description)
 
