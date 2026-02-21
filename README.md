@@ -75,7 +75,7 @@ Member | Role(s) | Responsibilities
 - Prisma for type-safe DB access
 
 
-## System Architecture (high level)
+## System Architecture
 
 ### Client
 
@@ -90,11 +90,12 @@ Member | Role(s) | Responsibilities
 - Runs a fixed 60-tick loop (authoritative physics)
 - Broadcasts snapshots to clients
 
-### Database
-
-- Stores users, matches, stats/history, friends, and chat data
 
 ## Database Schema
+
+We use **MariaDB** with **Prisma ORM**. The schema is centered around `User` accounts, social interactions (friends/blocks), chat (DMs + groups), and game tracking (Pong matches + room-based player history).
+
+### ER Diagram (Mermaid)
 
 ```mermaid
 erDiagram
@@ -121,16 +122,82 @@ erDiagram
   User ||--o{ PongMatch : "LeftPlayer"
   User ||--o{ PongMatch : "RightPlayer"
   User ||--o{ PongMatch : "MatchWinner"
+```
 
-## Database Schema (minimal description)
+### Tables / Models (Key Fields, Types, Relationships)
 
-- User: id, username, email, avatarUrl, createdAt
-- PongMatch: id, players, score, winner, createdAt
-- PlayerHistory/Room: agario match history
-- Friend/FriendRequest/Chat/Message as social features
+#### `User`
+- **PK:** `id` (Int, auto-increment)
+- **Unique:** `username` (String), `email` (String), `googleId` (String?)
+- **Auth:** `passwordHash` (String?) for local users, `googleId` (String?) for OAuth
+- Other: `avatarUrl` (String?), `createdAt` (DateTime), `lastLogin` (DateTime?)
+- **Relations:** FriendRequests (sent/received), Friends (many-to-many), Rooms, PlayerHistory, PongMatches (left/right/winner), Messages, ChatParticipant, Blocks (sent/received)
 
-(Add a small ERD image or bullet relationships here.)
+#### `FriendRequest`
+- **PK:** `id` (Int)
+- **FKs:** `fromUserId` → User, `toUserId` → User
+- `status` (enum FriendRequestStatus), `sentAt` (DateTime), `respondedAt` (DateTime?)
+- **Constraints:** unique `(fromUserId, toUserId)`
+- **Indexes:** `(toUserId, status)`, `(fromUserId, status)`
 
+#### `Friend` (many-to-many join)
+- **Composite PK:** `(userId, friendId)`
+- **FKs:** `userId` → User, `friendId` → User
+- `createdAt` (DateTime)
+- **Indexes:** `userId`, `friendId`
+
+#### `Block`
+- **PK:** `id` (Int)
+- **FKs:** `blockerId` → User, `blockedId` → User
+- `createdAt` (DateTime)
+- **Constraint:** unique `(blockerId, blockedId)`
+
+#### `Chat`
+- **PK:** `id` (Int)
+- `isGroup` (Boolean), `title` (String?)
+- **Relations:** participants via `ChatParticipant`, messages via `Message`
+
+#### `ChatParticipant` (join)
+- **Composite PK:** `(chatId, userId)`
+- **FKs:** `chatId` → Chat, `userId` → User
+- **Index:** `userId`
+
+#### `Message`
+- **PK:** `id` (Int)
+- **FKs:** `senderId` → User, `chatId` (Int?) → Chat
+- `channel` (String?), `content` (Text), `createdAt` (DateTime), `readAt` (DateTime?)
+- **Indexes:** `(chatId, createdAt)`, `chatId`, `senderId`
+
+#### `Room`
+- **PK:** `id` (Int)
+- `name` (String), `isDefault` (Boolean), `visibility` (String)
+- Optional limits: `maxDurationMin` (Int?), `maxPlayers` (Int?)
+- `startedAt` (DateTime), `endedAt` (DateTime?)
+- **FK:** `createdById` (Int?) → User
+- **Index:** `isDefault`
+
+#### `Guest`
+- **PK:** `id` (String, UUID)
+- `createdAt` (DateTime), `lastSeen` (DateTime, auto-updated)
+- **Relation:** PlayerHistory (one-to-many)
+
+#### `PlayerHistory`
+- **PK:** `id` (Int)
+- **FKs:** `roomId` → Room, `userId` (Int?) → User, `guestId` (String?) → Guest
+- Stats: `durationMs` (Int), `maxMass` (Int), `kills` (Int), `rank` (Int?), `isWinner` (Boolean)
+- `name` (String), `createdAt` (DateTime)
+- **Indexes:** `guestId`, `(roomId, createdAt)`, `(userId, createdAt)`
+
+#### `PongMatch`
+- **PK:** `id` (Int)
+- **FKs:** `leftPlayerId` → User, `rightPlayerId` → User, `winnerId` → User
+- Scores: `leftScore` (Int), `rightScore` (Int)
+- `reason` (String), `duration` (Int?), `createdAt` (DateTime)
+
+#### `RevokedToken`
+- **PK:** `id` (Int)
+- **Unique:** `token` (String)
+- `revokedAt` (DateTime)
 
 ## Pong Implementation (what you must be able to explain)
 
@@ -167,11 +234,11 @@ erDiagram
 
 ## Features List
 
-<!-- - Auth (signup/login), JWT, protected routes — Profiles + avatar upload — <amokhtar>
+- Auth (signup/login), JWT, protected routes — Profiles + avatar upload — <amokhtar>
 - Pong Matchmaking queue + match lifecycle — Server-authoritative Pong engine - Client canvas renderer + input handler — <moel-fat>
 - Stats + match history persistence — <member>
 - Agar.io rooms + history/leaderboard — <member>
-- Privacy Policy + Terms of Service pages — <member> -->
+- Privacy Policy + Terms of Service pages — <member>
 
 
 ## Modules (points) (edit to match what you truly implemented)
