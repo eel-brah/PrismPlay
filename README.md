@@ -1,6 +1,6 @@
 # PrismPlay
 
-This project has been created as part of the 42 curriculum by moel-fat, amokhtar, eel-brah, mboughra, muel-bak.
+This project has been created as part of the 42 curriculum by <moel-fat>, <amokhtar>, <eel-brah>, <mboughra>, <muel-bak>.
 
 ## Description
 
