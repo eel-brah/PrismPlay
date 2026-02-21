@@ -37,8 +37,8 @@ import AppBackground from "./component/Appbackground";
 import GlobalLeaderboard from "./component/GlobalLeaderboard";
 import GameInviteOverlay from "./component/GameInviteOverlay";
 import RoomsHistoryPage from "./component/agario/RoomsHistoryPage";
-import TopBar from "./component/TopBar";
 import { TopBarContext } from "./utils/topbar-controller";
+import { TopBar } from "./component/TopBar";
 
 export default function App() {
   const navigate = useNavigate();
@@ -353,8 +353,8 @@ export default function App() {
               path="/leaderboard"
               element={
                 bootingAuth ? (
-                  <div className="min-h-screen flex items-center justify-center text-white">
-                    Loading...
+                  <div className="min-h-screen flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                      Loading...
                   </div>
                 ) : isAuthed ? (
                   <div className={`min-h-screen ${topPaddingClass}`}>
@@ -370,7 +370,7 @@ export default function App() {
               path="/agario/history"
               element={
                 bootingAuth ? (
-                  <div className="min-h-screen flex items-center justify-center text-white">
+                  <div className="min-h-screen flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                     Loading...
                   </div>
                 ) : isAuthed ? (
@@ -689,7 +689,7 @@ export default function App() {
               path="/social"
               element={
                 bootingAuth ? (
-                  <div className="min-h-screen flex items-center justify-center text-white">
+                  <div className="min-h-screen flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                     Loading...
                   </div>
                 ) : isAuthed ? (
@@ -707,7 +707,7 @@ export default function App() {
               path="/profile"
               element={
                 bootingAuth ? (
-                  <div className="min-h-screen flex items-center justify-center text-white">
+                  <div className="min-h-screen flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                     Loading...
                   </div>
                 ) : isAuthed ? (
@@ -723,7 +723,7 @@ export default function App() {
               path="/profile/:username"
               element={
                 bootingAuth ? (
-                  <div className="min-h-screen flex items-center justify-center text-white">
+                  <div className="min-h-screen flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                     Loading...
                   </div>
                 ) : isAuthed ? (
@@ -817,7 +817,7 @@ export default function App() {
               path="/online"
               element={
                 bootingAuth ? (
-                  <div className="min-h-screen flex items-center justify-center text-white">
+                  <div className="min-h-screen flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                     Loading...
                   </div>
                 ) : isAuthed && user && token ? (
