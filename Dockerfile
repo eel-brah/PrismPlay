@@ -32,9 +32,10 @@ RUN pnpm prisma generate
 
 COPY src ./src
 
+COPY uploads ./uploads
+
 COPY --from=builder /ft_transcendence/dist ./dist
 
-RUN mkdir -p uploads
 
 EXPOSE 9443 9000
 

@@ -1,12 +1,11 @@
 # ft_transcendence
 
-This project has been created as part of the 42 curriculum by <login1>[, <login2>[, <login3>[...]]].
+This project has been created as part of the 42 curriculum by moel-fat, amokhtar, eel-brah, mboughra, muel-bak.
 
 ## Description
 
-ft_transcendence (PrismPlay) is a full-stack web application featuring real-time multiplayer Pong, offline Pong modes with AI, an Agar.io-style arena, social features, and player profiles. It includes a frontend, backend, and database, runs via Docker, and is compatible with the latest stable Chrome.
+ft_transcendence (PrismPlay) is a full-stack web application featuring real-time multiplayer Pong, offline Pong modes with AI, an Agar.io-style arena, social hub , and player profiles. It includes a frontend, backend, and database, runs via Docker, and is compatible with the latest stable Chrome.
 
-en.subject
 
 ## Key Features
 
@@ -17,7 +16,6 @@ en.subject
 - Agar.io arena with rooms history and leaderboards
 - Social hub: friends, requests, and chat
 
-en.subject
 
 ## Instructions (Run)
 
@@ -26,7 +24,6 @@ en.subject
 - Docker + Docker Compose
 - `.env.production` file (see `.env_example`)
 
-en.subject
 
 ### Start
 
@@ -43,36 +40,31 @@ docker compose up --build
 
 Note: HTTPS is required on the backend, and the app must include accessible Privacy Policy and Terms of Service pages.
 
-en.subject
 
 ## Project Management
 
 - Tools: GitHub Issues / Trello (tasks), Git (meaningful commits from all members)
-- Process: weekly sync, code reviews on critical PRs, shared Discord/Slack channel
+- Process: weekly sync, code reviews on critical PRs, shared Discord
 
-en.subject
 
-## Team Information (fill this)
+## Team Information
 
 Member | Role(s) | Responsibilities
---- | --- | ---
-<name> | PO | vision, backlog, validation
-<name> | PM/Scrum | planning, blockers, deadlines
-<name> | Tech Lead | architecture, standards, reviews
-<name> | Dev | features, tests, docs
-
-(These roles must be documented.)
-
-en.subject
+---        | --- | ---
+<eel-bah>  | PO  | vision, backlog, validation Dev, features, tests, docs
+<amokhtar> | PM/Scrum | planning, blockers, deadlines ,Dev, features, tests, docs
+<mboughra> | Tech Lead | architecture, standards, reviews ,Dev, features, tests, docs
+<moel-fat> | Dev | features, tests, docs
+<meul-bak> | Dev | features, tests, docs
 
 ## Technical Stack
 
-- Frontend: React + TypeScript, Vite, HTML5 Canvas, Tailwind CSS
-- Backend: Node.js + Fastify, Socket.IO (WebSockets)
-- Database: MariaDB (MySQL) + Prisma ORM
-- Deployment: Docker (single command)
+- Frontend: React + TypeScript, Vite, HTML5 Canvas, Tailwind CSS.
+- Backend: Node.js + Fastify, Socket.IO.
+- Database: MariaDB + Prisma ORM.
+- Deployment: Docker .
+- Others: zod, axios, bcrypt, 
 
-en.subject
 
 ## Why this stack (short justification)
 
@@ -82,7 +74,6 @@ en.subject
 - Server-authoritative simulation for fairness
 - Prisma for type-safe DB access
 
-en.subject
 
 ## System Architecture (high level)
 
@@ -103,7 +94,31 @@ en.subject
 
 - Stores users, matches, stats/history, friends, and chat data
 
-en.subject
+erDiagram
+  User ||--o{ FriendRequest : "sent (fromUserId)"
+  User ||--o{ FriendRequest : "received (toUserId)"
+
+  User ||--o{ Friend : "userFriends (userId)"
+  User ||--o{ Friend : "userFriendsOf (friendId)"
+
+  User ||--o{ Room : "createdBy"
+  Room ||--o{ PlayerHistory : "has"
+  User ||--o{ PlayerHistory : "optional"
+  Guest ||--o{ PlayerHistory : "optional"
+
+  Chat ||--o{ ChatParticipant : "has"
+  User ||--o{ ChatParticipant : "joins"
+
+  Chat ||--o{ Message : "contains"
+  User ||--o{ Message : "sends"
+
+  User ||--o{ Block : "blocksSent (blockerId)"
+  User ||--o{ Block : "blocksReceived (blockedId)"
+
+  User ||--o{ PongMatch : "LeftPlayer"
+  User ||--o{ PongMatch : "RightPlayer"
+  User ||--o{ PongMatch : "MatchWinner"
+
 
 ## Database Schema (minimal description)
 
@@ -114,7 +129,6 @@ en.subject
 
 (Add a small ERD image or bullet relationships here.)
 
-en.subject
 
 ## Pong Implementation (what you must be able to explain)
 
@@ -148,20 +162,15 @@ en.subject
 - If timeout → opponent wins
 - Prevent race conditions with a single end-match lock
 
-en.subject
 
-## Features List (assign owners)
+## Features List
 
-- Auth (signup/login), JWT, protected routes — <member>
-- Profiles + avatar upload — <member>
-- Matchmaking queue + match lifecycle — <member>
-- Server-authoritative Pong engine (60 tick) — <member>
-- Client canvas renderer + input handler — <member>
+<!-- - Auth (signup/login), JWT, protected routes — Profiles + avatar upload — <amokhtar>
+- Pong Matchmaking queue + match lifecycle — Server-authoritative Pong engine - Client canvas renderer + input handler — <moel-fat>
 - Stats + match history persistence — <member>
 - Agar.io rooms + history/leaderboard — <member>
-- Privacy Policy + Terms of Service pages — <member>
+- Privacy Policy + Terms of Service pages — <member> -->
 
-en.subject
 
 ## Modules (points) (edit to match what you truly implemented)
 
@@ -179,7 +188,6 @@ Gaming | Game customization (themes/settings) | 1
 
 Keep only modules you can demo fully during evaluation.
 
-en.subject
 
 ## Individual Contributions (required)
 
@@ -190,15 +198,14 @@ en.subject
 
 (Include concrete features + files/components owned.)
 
-en.subject
 
-## Resources (and AI usage)
+## Resources
 
 ### References
 
-- React docs, TypeScript handbook, MDN Canvas, Socket.IO docs, Prisma docs
+- React docs, TypeScript handbook, MDN Canvas, Socket.IO docs, Prisma docs, fastify docs, Oauth 2.0, 
 
-### AI Usage (mandatory to disclose)
+### AI Usage 
 
 - Used AI for: documentation rewriting, debugging explanations, refactoring suggestions
 - Not used to blindly generate core logic; all generated content was reviewed and understood by the team
