@@ -13,8 +13,7 @@ export default function AppBackground({
       <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full 
         bg-purple-600/20 blur-[140px]" />
 
-      <div className="absolute -bottom-40 -left-40 w-[600px] h-[600px] rounded-full 
-        bg-blue-600/20 blur-[140px]" />
+      <div className="absolute -bottom-40 -left-40 w-[600px] h-[600px] rounded-full bg-blue-600/20 blur-[140px]" />
 
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(120,80,255,0.12),transparent_60%)]" />
 

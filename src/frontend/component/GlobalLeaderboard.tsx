@@ -104,7 +104,7 @@ export default function GlobalLeaderboard() {
                   className="rounded-xl p-4 text-center backdrop-blur-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.06] transition-all"
                 >
                   <img
-                    src={p.avatarUrl || "/default-avatar.png"}
+                    src={p.avatarUrl || "/default.png"}
                     className="w-14 h-14 rounded-full mx-auto mb-2 border border-white/20"
                   />
 
@@ -168,7 +168,7 @@ export default function GlobalLeaderboard() {
 
                   <div className="col-span-3 flex items-center gap-3">
                     <img
-                      src={p.avatarUrl || "/default-avatar.png"}
+                      src={p.avatarUrl || "/default.png"}
                       className="w-8 h-8 rounded-full border border-white/10"
                     />
                     <span className="text-gray-200 truncate">
@@ -203,7 +203,7 @@ export default function GlobalLeaderboard() {
 
                   <div className="col-span-3 flex items-center gap-3">
                     <img
-                      src={p.avatarUrl || "/default-avatar.png"}
+                      src={p.avatarUrl || "/default.png"}
                       className="w-8 h-8 rounded-full border border-white/10"
                     />
                     <span className="text-gray-200 truncate">

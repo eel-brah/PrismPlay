@@ -411,3 +411,73 @@ export async function getGlobalLeaderboard(
 
   return result.slice(0, take);
 }
+
+type AgarioPlayerStats = {
+  games: number;
+  wins: number;
+  totalKills: number;
+  bestMass: number;
+  averageRank: number;
+  totalDurationMs: number;
+  score: number;
+};
+export async function getAgarioPlayerStats(
+  userId: number,
+): Promise<AgarioPlayerStats> {
+  const [group, winsCount, avgRank] = await Promise.all([
+    prisma.playerHistory.groupBy({
+      by: ["userId"],
+      where: { userId },
+      _count: { _all: true },
+      _sum: { kills: true, durationMs: true },
+      _max: { maxMass: true },
+      _avg: { rank: true },
+    }),
+
+    prisma.playerHistory.count({
+      where: { userId, isWinner: true },
+    }),
+
+    prisma.playerHistory.aggregate({
+      where: { userId, rank: { not: null } },
+      _avg: { rank: true },
+    }),
+  ]);
+
+  if (!group.length) {
+    return {
+      games: 0,
+      wins: 0,
+      totalKills: 0,
+      bestMass: 0,
+      averageRank: 0,
+      totalDurationMs: 0,
+      score: 0,
+    };
+  }
+
+  const row = group[0];
+
+  const games = row._count._all;
+  const wins = winsCount;
+  const totalKills = row._sum.kills ?? 0;
+  const bestMass = row._max.maxMass ?? 0;
+  const totalDurationMs = row._sum.durationMs ?? 0;
+  const averageRank = avgRank._avg.rank ?? 0;
+
+  const score =
+    wins * 1000 +
+    totalKills * 5 +
+    bestMass * 0.002 +
+    (averageRank ? (10 - averageRank) * 50 : 0);
+
+  return {
+    games,
+    wins,
+    totalKills,
+    bestMass,
+    averageRank,
+    totalDurationMs,
+    score,
+  };
+}
