@@ -1100,8 +1100,8 @@ export default function SocialHub() {
 
         {/* --- CHAT TAB CONTENT --- */}
         {activeTab === "chat" && (
-          <div className="max-w-6xl mx-auto px-6 pb-24 sm:pb-20 h-full">
-            <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6 h-full min-h-0">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-24 sm:pb-20 h-full">
+            <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr] gap-6 h-full min-h-0">
               {/* Sidebar: Chat List */}
               <div className="space-y-6 h-full overflow-y-auto min-h-0 scrollbar-theme pr-2">
                 {/* 1. Global Channels (Always Visible) */}

@@ -112,198 +112,152 @@ export function AgarioHistory({
   return (
     <div>
       <div className="rounded-2xl overflow-hidden border border-white/10 bg-white/[0.04] backdrop-blur-xl">
+        <div className="overflow-x-auto">
+          <div className="min-w-[720px]">
+            <div className="grid grid-cols-7 px-4 py-3 text-xs font-semibold tracking-wide text-white/60 bg-gradient-to-r from-white/[0.06] to-white/[0.02]">
+              <div>Name</div>
+              <div>Duration</div>
+              <div>Kills</div>
+              <div>Mass</div>
+              <div>Rank</div>
+              <div>Winner</div>
+              <div>Room</div>
+            </div>
 
-        <div className="hidden md:grid grid-cols-7 px-4 py-3 text-xs font-semibold tracking-wide text-white/60 bg-gradient-to-r from-white/[0.06] to-white/[0.02]">
-          <div>Name</div>
-          <div>Duration</div>
-          <div>Kills</div>
-          <div>Mass</div>
-          <div>Rank</div>
-          <div>Winner</div>
-          <div>Room</div>
-        </div>
+            {players.map((p) => {
+              const isSelected = selectedId === p.id;
+              const isWinner = p.rank === 1;
+              const isLeaderboardOpen = isSelected && showLeaderboard;
 
-        {players.map((p) => {
-          const isSelected = selectedId === p.id;
-          const isWinner = p.rank === 1;
-          const isLeaderboardOpen = isSelected && showLeaderboard;
+              const medalColor =
+                p.rank === 1
+                  ? "text-yellow-400"
+                  : p.rank === 2
+                  ? "text-gray-300"
+                  : p.rank === 3
+                  ? "text-amber-500"
+                  : "text-gray-400";
 
-          const medalColor =
-            p.rank === 1
-              ? "text-yellow-400"
-              : p.rank === 2
-              ? "text-gray-300"
-              : p.rank === 3
-              ? "text-amber-500"
-              : "text-gray-400";
-
-          return (
-            <div key={p.id} className="border-t border-white/5">
-
-              <button
-                onClick={() => {
-                  if (isSelected) {
-                    setSelectedId(null);
-                    setShowLeaderboard(false);
-                    return;
-                  }
-                  setSelectedId(p.id);
-                  setShowLeaderboard(false);
-                }}
-                className={`
-                  hidden md:grid
-                  w-full grid-cols-7 px-4 py-3 text-sm items-center text-left
-                  transition-all duration-200
-                  hover:bg-gradient-to-r hover:from-purple-500/10 hover:to-blue-500/10
-                  ${isSelected ? "bg-white/10" : ""}
-                `}
-              >
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/profile/${p.name}`);
-                  }}
-                  className="font-medium text-gray-200 truncate cursor-pointer hover:text-blue-400 transition"
-                >
-                  {p.name}
-                </div>
-
-                <div className="text-purple-300">
-                  {msToMinSec(p.durationMs)}
-                </div>
-                <div className="text-red-400">{p.kills}</div>
-                <div className="text-cyan-400">{p.maxMass}</div>
-                <div className={`font-semibold ${medalColor}`}>
-                  {p.rank}
-                </div>
-                <div>
-                  {isWinner ? "🏆" : "—"}
-                </div>
-                <div className="text-white/70 truncate">
-                  {p.roomName}
-                </div>
-              </button>
-
-              <div
-                onClick={() => {
-                  if (isSelected) {
-                    setSelectedId(null);
-                    setShowLeaderboard(false);
-                  } else {
-                    setSelectedId(p.id);
-                    setShowLeaderboard(false);
-                  }
-                }}
-                className={`
-                  md:hidden
-                  p-4 space-y-2 cursor-pointer
-                  hover:bg-white/[0.06] transition
-                  ${isSelected ? "bg-white/10" : ""}
-                `}
-              >
-                <div className="flex justify-between items-center">
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/profile/${p.name}`);
+              return (
+                <div key={p.id} className="border-t border-white/5">
+                  <button
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedId(null);
+                        setShowLeaderboard(false);
+                        return;
+                      }
+                      setSelectedId(p.id);
+                      setShowLeaderboard(false);
                     }}
-                    className="font-semibold text-white hover:text-blue-400 transition"
+                    className={`
+                      w-full grid grid-cols-7 px-4 py-3 text-sm items-center text-left
+                      transition-all duration-200
+                      hover:bg-gradient-to-r hover:from-purple-500/10 hover:to-blue-500/10
+                      ${isSelected ? "bg-white/10" : ""}
+                    `}
                   >
-                    {p.name}
-                  </div>
-                  <div className={`text-sm ${medalColor}`}>
-                    #{p.rank}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-xs text-gray-300">
-                  <div>{msToMinSec(p.durationMs)}</div>
-                  <div>{p.kills} kills</div>
-                  <div>{p.maxMass} mass</div>
-                  <div>{p.roomName}</div>
-                </div>
-
-                {isWinner && (
-                  <div className="text-yellow-400 text-xs font-semibold">
-                    🏆 Winner
-                  </div>
-                )}
-              </div>
-
-              {isSelected && selectedRoom && (
-                <div className="px-4 sm:px-6 pb-6 pt-4 bg-white/[0.03] border-t border-white/5">
-
-                  <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 sm:p-5 mb-6">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-white/70">
-                      <div>
-                        <div className="text-xs text-white/40">Room</div>
-                        <div className="text-white">{selectedRoom.name}</div>
-                      </div>
-
-                      <div>
-                        <div className="text-xs text-white/40">Visibility</div>
-                        <div>{selectedRoom.visibility}</div>
-                      </div>
-
-                      <div>
-                        <div className="text-xs text-white/40">Duration</div>
-                        <div>{formatRoomDuration(selectedRoom)}</div>
-                      </div>
-
-                      <div>
-                        <div className="text-xs text-white/40">Players</div>
-                        <div>{selectedRoom.playersCount}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-center mb-6">
-                    <button
-                      onClick={() => setShowLeaderboard((prev) => !prev)}
-                      className="px-6 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-400 hover:to-blue-400 transition-all duration-200 shadow-lg"
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/profile/${p.name}`);
+                      }}
+                      className="font-medium text-gray-200 truncate cursor-pointer hover:text-blue-400 transition"
                     >
-                      Leaderboard
-                    </button>
-                  </div>
+                      {p.name}
+                    </div>
 
-                  {isLeaderboardOpen && (
-                    <div className="rounded-xl border border-white/10 bg-white/[0.04] overflow-x-auto">
-                      <div className="min-w-[500px]">
-                        <div className="grid grid-cols-5 px-4 py-3 text-xs text-white/60">
-                          <div>Rank</div>
-                          <div>Player</div>
-                          <div>Kills</div>
-                          <div>Mass</div>
-                          <div>Duration</div>
-                        </div>
+                    <div className="text-purple-300">
+                      {msToMinSec(p.durationMs)}
+                    </div>
+                    <div className="text-red-400">{p.kills}</div>
+                    <div className="text-cyan-400">{p.maxMass}</div>
+                    <div className={`font-semibold ${medalColor}`}>
+                      {p.rank}
+                    </div>
+                    <div>
+                      {isWinner ? "🏆" : "—"}
+                    </div>
+                    <div className="text-white/70 truncate">
+                      {p.roomName}
+                    </div>
+                  </button>
 
-                        {selectedRoom.leaderboard.map((pl) => (
-                          <div
-                            key={`${pl.id}-${pl.rank}`}
-                            className="grid grid-cols-5 px-4 py-3 text-sm border-t border-white/5"
-                          >
-                            <div>{pl.rank}</div>
-                            <div
-                              onClick={() =>
-                                navigate(`/profile/${pl.name}`)
-                              }
-                              className="cursor-pointer hover:text-blue-400"
-                            >
-                              {pl.name}
-                            </div>
-                            <div>{pl.kills}</div>
-                            <div>{pl.maxMass}</div>
-                            <div>{msToMinSec(pl.durationMs)}</div>
+                  {isSelected && selectedRoom && (
+                    <div className="px-4 sm:px-6 pb-6 pt-4 bg-white/[0.03] border-t border-white/5">
+                      <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 sm:p-5 mb-6">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-white/70">
+                          <div>
+                            <div className="text-xs text-white/40">Room</div>
+                            <div className="text-white">{selectedRoom.name}</div>
                           </div>
-                        ))}
+
+                          <div>
+                            <div className="text-xs text-white/40">Visibility</div>
+                            <div>{selectedRoom.visibility}</div>
+                          </div>
+
+                          <div>
+                            <div className="text-xs text-white/40">Duration</div>
+                            <div>{formatRoomDuration(selectedRoom)}</div>
+                          </div>
+
+                          <div>
+                            <div className="text-xs text-white/40">Players</div>
+                            <div>{selectedRoom.playersCount}</div>
+                          </div>
+                        </div>
                       </div>
+
+                      <div className="flex justify-center mb-6">
+                        <button
+                          onClick={() => setShowLeaderboard((prev) => !prev)}
+                          className="px-6 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-400 hover:to-blue-400 transition-all duration-200 shadow-lg"
+                        >
+                          Leaderboard
+                        </button>
+                      </div>
+
+                      {isLeaderboardOpen && (
+                        <div className="rounded-xl border border-white/10 bg-white/[0.04] overflow-x-auto">
+                          <div className="min-w-[500px]">
+                            <div className="grid grid-cols-5 px-4 py-3 text-xs text-white/60">
+                              <div>Rank</div>
+                              <div>Player</div>
+                              <div>Kills</div>
+                              <div>Mass</div>
+                              <div>Duration</div>
+                            </div>
+
+                            {selectedRoom.leaderboard.map((pl) => (
+                              <div
+                                key={`${pl.id}-${pl.rank}`}
+                                className="grid grid-cols-5 px-4 py-3 text-sm border-t border-white/5"
+                              >
+                                <div>{pl.rank}</div>
+                                <div
+                                  onClick={() =>
+                                    navigate(`/profile/${pl.name}`)
+                                  }
+                                  className="cursor-pointer hover:text-blue-400"
+                                >
+                                  {pl.name}
+                                </div>
+                                <div>{pl.kills}</div>
+                                <div>{pl.maxMass}</div>
+                                <div>{msToMinSec(pl.durationMs)}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -319,7 +273,7 @@ export function PongHistory({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="min-w-[520px] w-full text-sm">
         <thead>
           <tr className="text-left text-gray-400">
             <th className="px-3 py-2">Opponent</th>

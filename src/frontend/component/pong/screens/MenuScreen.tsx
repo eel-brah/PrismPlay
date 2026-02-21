@@ -22,35 +22,35 @@ export default function MenuScreen({
   setAiPos: (p: AiPos) => void;
 }) {
   return (
-    <div className="w-full max-w-6xl mx-auto px-6 py-8 text-white">
+    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 text-white">
 
-      <div className="text-center mb-10">
-        <div className="text-sm tracking-widest text-purple-300 mb-1">
+      <div className="text-center mb-8 sm:mb-10">
+        <div className="text-xs sm:text-sm tracking-widest text-purple-300 mb-1">
           PONG ARENA
         </div>
 
-        <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
           Game Setup
         </h1>
 
-        <p className="text-gray-400 mt-2 text-sm">
+        <p className="text-gray-400 mt-2 text-xs sm:text-sm">
           Choose how you want to play
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-[1fr_320px] gap-8 items-start">
+      <div className="grid lg:grid-cols-[1fr_320px] gap-6 sm:gap-8 items-start">
 
-        <div className="grid sm:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
 
           <button
             onClick={() => startGame("single")}
-            className="group rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-6 text-left hover:border-blue-400/40 hover:scale-[1.02] transition-all"
+            className="group rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-4 sm:p-6 text-left hover:border-blue-400/40 hover:scale-[1.02] transition-all"
           >
-            <div className="text-blue-300 text-lg font-semibold mb-1">
+            <div className="text-blue-300 text-base sm:text-lg font-semibold mb-1">
               Single Player
             </div>
 
-            <div className="text-gray-400 text-sm mb-4">
+            <div className="text-gray-400 text-xs sm:text-sm mb-4">
               Play against AI opponent
             </div>
 
@@ -69,13 +69,13 @@ export default function MenuScreen({
 
           <button
             onClick={() => startGame("two")}
-            className="group rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-6 text-left hover:border-purple-400/40 hover:scale-[1.02] transition-all"
+            className="group rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-4 sm:p-6 text-left hover:border-purple-400/40 hover:scale-[1.02] transition-all"
           >
-            <div className="text-purple-300 text-lg font-semibold mb-1">
+            <div className="text-purple-300 text-base sm:text-lg font-semibold mb-1">
               Two Players
             </div>
 
-            <div className="text-gray-400 text-sm mb-4">
+            <div className="text-gray-400 text-xs sm:text-sm mb-4">
               Local multiplayer match
             </div>
 
@@ -94,13 +94,13 @@ export default function MenuScreen({
 
           <button
             onClick={() => startGame("ai")}
-            className="group rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-6 text-left hover:border-cyan-400/40 hover:scale-[1.02] transition-all"
+            className="group rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-4 sm:p-6 text-left hover:border-cyan-400/40 hover:scale-[1.02] transition-all"
           >
-            <div className="text-cyan-300 text-lg font-semibold mb-1">
+            <div className="text-cyan-300 text-base sm:text-lg font-semibold mb-1">
               AI vs AI
             </div>
 
-            <div className="text-gray-400 text-sm mb-4">
+            <div className="text-gray-400 text-xs sm:text-sm mb-4">
               Watch bots battle
             </div>
 
@@ -120,7 +120,7 @@ export default function MenuScreen({
           {onReturn && (
             <button
               onClick={onReturn}
-              className="sm:col-span-3 mt-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] py-3 text-gray-300 hover:text-white transition"
+              className="sm:col-span-2 lg:col-span-3 mt-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] py-3 text-gray-300 hover:text-white transition"
             >
               ← Return
             </button>

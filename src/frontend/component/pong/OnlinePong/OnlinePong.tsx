@@ -439,8 +439,8 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
     const dpr = window.devicePixelRatio || 1;
     canvas.width = GAME_WIDTH * dpr;
     canvas.height = GAME_HEIGHT * dpr;
-    canvas.style.width = `${GAME_WIDTH}px`;
-    canvas.style.height = `${GAME_HEIGHT}px`;
+    // canvas.style.width = `${GAME_WIDTH}px`;
+    // canvas.style.height = `${GAME_HEIGHT}px`;
     ctx.scale(dpr, dpr);
 
     const draw = () => {
@@ -677,38 +677,41 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
           loadingLeft={loadingStats}
           loadingRight={loadingStats}
         >
-          <div
-            className="
-          relative rounded-xl p-[6px]
-          bg-gradient-to-r from-purple-500/30 via-blue-500/30 to-purple-500/30
-        "
-          >
-            <div className="rounded-lg bg-black/70 backdrop-blur-sm">
-              <canvas
-                ref={canvasRef}
-                width={GAME_WIDTH}
-                height={GAME_HEIGHT}
-                className="rounded-lg shadow-[0_0_40px_rgba(120,80,255,0.25)]"
-              />
+          <div className="w-full max-w-[810px] aspect-[810/600] relative">
+            <div
+              className="
+            relative rounded-xl p-[6px]
+            bg-gradient-to-r from-purple-500/30 via-blue-500/30 to-purple-500/30
+            h-full
+          "
+            >
+              <div className="rounded-lg bg-black/70 backdrop-blur-sm h-full">
+                <canvas
+                  ref={canvasRef}
+                  width={GAME_WIDTH}
+                  height={GAME_HEIGHT}
+                  className="w-full h-full rounded-lg shadow-[0_0_40px_rgba(120,80,255,0.25)]"
+                />
+              </div>
             </div>
-          </div>
 
-          {!side && (
-            <div className="absolute inset-x-0 bottom-6 flex justify-center pointer-events-none">
-              <div
-                className="
+            {!side && (
+              <div className="absolute inset-x-0 bottom-6 flex justify-center pointer-events-none">
+                <div
+                  className="
               flex items-center gap-3
               bg-black/40 backdrop-blur-md
               border border-white/10
               text-gray-300
               px-4 py-2 rounded-lg
             "
-              >
-                <div className="w-2 h-2 bg-purple-400 rounded-full animate-ping" />
-                <span>Waiting for an opponent...</span>
+                >
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-ping" />
+                  <span>Waiting for an opponent...</span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </OnlinePongHUD>
       </div>
 

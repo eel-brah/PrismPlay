@@ -51,48 +51,54 @@ function PlayerStack({
 
   return (
     <div
-      className={`w-[160px] bg-gray-900/80 backdrop-blur-sm rounded-lg border-2 ${borderColor} overflow-hidden shrink-0`}
+      className={`w-full max-w-[280px] md:w-[160px] md:max-w-none bg-gray-900/80 backdrop-blur-sm rounded-lg border-2 ${borderColor} overflow-hidden shrink-0 flex md:block items-center md:items-stretch`}
     >
       {/* Header with side indicator */}
       <div
-        className={`${headerBg} ${sideLabelColor} text-xs font-bold tracking-widest uppercase px-4 py-2 text-center border-b ${borderColor}`}
+        className={`${headerBg} ${sideLabelColor} text-[10px] md:text-xs font-bold tracking-widest uppercase px-2 md:px-4 py-1.5 md:py-2 text-center border-r md:border-r-0 md:border-b ${borderColor} w-16 md:w-auto flex items-center justify-center shrink-0 h-full md:h-auto`}
       >
-        {sideLabel} PLAYER
+        <span className="md:inline hidden">{sideLabel} PLAYER</span>
+        <span className="md:hidden inline">{sideLabel[0]}</span>
       </div>
 
       {/* Player Info Section */}
-      <div className="p-4 space-y-3">
+      <div className="flex-1 p-2 md:p-4 flex md:block items-center gap-3 md:gap-0 min-w-0">
         {/* Avatar */}
-        <div className="flex justify-center">
+        <div className="flex justify-center shrink-0">
           <div className="relative">
             <img
               src={avatarUrl ?? "/default.png"}
               alt={displayName}
-              className={`w-20 h-20 rounded-xl bg-gradient-to-br ${avatarBg} p-0.5 shadow-lg object-cover`}
+              className={`w-10 h-10 md:w-20 md:h-20 rounded-lg md:rounded-xl bg-gradient-to-br ${avatarBg} p-0.5 shadow-lg object-cover`}
             />
           </div>
         </div>
 
         {/* Name + (You) badge */}
-        <div className="text-center space-y-1">
-          <div className={`font-semibold text-sm truncate ${nameColor}`}>
+        <div className="flex-1 md:text-center space-y-0.5 md:space-y-1 min-w-0 md:mt-3">
+          <div className={`font-semibold text-xs md:text-sm truncate ${nameColor}`}>
             {displayName}
           </div>
           {isMe && (
-            <span className="inline-block text-xs bg-gray-700/60 text-gray-300 px-2 py-0.5 rounded-full">
+            <span className="inline-block text-[10px] md:text-xs bg-gray-700/60 text-gray-300 px-1.5 md:px-2 py-0.5 rounded-full">
               You
             </span>
           )}
+          {/* Mobile Status */}
+          <div className="md:hidden flex items-center gap-1.5 text-[10px] text-gray-400">
+            <span className={`w-1.5 h-1.5 ${statusColor} rounded-full`} />
+            <span>{statusText}</span>
+          </div>
         </div>
 
-        {/* Connection status */}
-        <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400 pb-3 border-b border-gray-700/50">
+        {/* Desktop Connection status */}
+        <div className="hidden md:flex items-center justify-center gap-1.5 text-xs text-gray-400 pb-3 border-b border-gray-700/50 mt-3 mb-3">
           <span className={`w-2 h-2 ${statusColor} rounded-full`} />
           <span>{statusText}</span>
         </div>
 
         {/* Stats Table */}
-        <div className="bg-gray-800/50 rounded-lg border border-gray-700/40 overflow-hidden">
+        <div className="hidden md:block bg-gray-800/50 rounded-lg border border-gray-700/40 overflow-hidden">
           <div className="px-3 py-1.5 bg-gray-800/80 border-b border-gray-700/40">
             <div className="text-xs font-semibold text-gray-400 text-center">
               STATISTICS
@@ -135,7 +141,7 @@ function PlayerStack({
         </div>
 
         {/* Optional controls */}
-        {controls && <div className="pt-2">{controls}</div>}
+        {controls && <div className="pt-2 md:pt-2">{controls}</div>}
       </div>
     </div>
   );
@@ -169,7 +175,7 @@ export function OnlinePongHUD({
   children,
 }: OnlinePongHUDProps) {
   return (
-    <div className="flex items-center justify-center gap-4 md:gap-8 p-4">
+    <div className="flex flex-col md:flex-row items-center justify-center gap-6 w-full max-w-[1200px] p-4">
       {/* Left */}
       {showPlayers ? (
         <PlayerStack
@@ -183,11 +189,13 @@ export function OnlinePongHUD({
           isMe={mySide === "left"}
         />
       ) : (
-        <div className="w-[160px] shrink-0" />
+        <div className="w-[160px] shrink-0 hidden md:block" />
       )}
 
       {/* Center */}
-      <div className="relative">{children}</div>
+      <div className="flex-1 min-w-0 flex items-center justify-center w-full">
+        {children}
+      </div>
 
       {/* Right */}
       {showPlayers ? (
@@ -202,7 +210,7 @@ export function OnlinePongHUD({
           isMe={mySide === "right"}
         />
       ) : (
-        <div className="w-[160px] shrink-0" />
+        <div className="w-[160px] shrink-0 hidden md:block" />
       )}
     </div>
   );

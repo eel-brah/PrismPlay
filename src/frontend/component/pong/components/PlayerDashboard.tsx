@@ -25,12 +25,12 @@ export default function PlayerDashboard({
   const aiBadge = isLeft ? "bg-blue-600" : "bg-pink-600";
 
   return (
-    <div className="flex flex-col items-center gap-3 w-[110px] md:w-[120px] shrink-0">
+    <div className="flex flex-col items-center gap-3 w-[90px] sm:w-[110px] md:w-[120px] shrink-0">
       <div className="relative">
         <img
           src={getAvatarUrl(player.avatar)}
           alt={displayName}
-          className={`w-16 h-16 md:w-20 md:h-20 rounded-xl bg-gradient-to-br ${avatarBg} p-0.5 shadow-lg`}
+          className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl bg-gradient-to-br ${avatarBg} p-0.5 shadow-lg`}
         />
         {isAIForThisSide && (
           <div className={`absolute -top-2 -right-2 ${aiBadge} text-white text-xs px-2 py-0.5 rounded-full font-bold`}>
@@ -40,7 +40,7 @@ export default function PlayerDashboard({
       </div>
 
       <div className="text-center">
-        <p className={`${nameColor} font-bold text-sm truncate max-w-[100px]`}>{displayName}</p>
+        <p className={`${nameColor} font-bold text-xs sm:text-sm truncate max-w-[90px] sm:max-w-[100px]`}>{displayName}</p>
         <p className="text-gray-500 text-xs uppercase tracking-wider">
           {isLeft ? "Left" : "Right"}
         </p>

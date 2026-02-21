@@ -123,110 +123,78 @@ export default function GlobalLeaderboard() {
       )}
 
       <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl overflow-hidden">
-
-        <div className="hidden md:grid">
-          {game === "agario" ? (
-            <div className="grid grid-cols-14 bg-white/[0.05] px-4 py-3 text-sm text-gray-300">
-              <div className="col-span-1 text-center">#</div>
-              <div className="col-span-3">Player</div>
-              <div className="col-span-2 text-center">Wins</div>
-              <div className="col-span-2 text-center">Kills</div>
-              <div className="col-span-2 text-center">Top Mass</div>
-              <div className="col-span-2 text-center">Games</div>
-              <div className="col-span-2 text-right">Score</div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-12 bg-white/[0.05] px-4 py-3 text-sm text-gray-300">
-              <div className="col-span-1 text-center">#</div>
-              <div className="col-span-3">Player</div>
-              <div className="col-span-2 text-center">Wins</div>
-              <div className="col-span-2 text-center">Win Rate</div>
-              <div className="col-span-2 text-center">Games</div>
-              <div className="col-span-2 text-right">Score</div>
-            </div>
-          )}
-        </div>
-
-        {rest.map((p: any, i) => (
-          <div
-            key={p.userId}
-            onClick={() => navigate(`/profile/${p.username}`)}
-            className="cursor-pointer border-t border-white/5 hover:bg-white/[0.06] transition-all"
-          >
-
-            <div className={`hidden md:grid px-4 py-3 items-center ${game === "agario" ? "grid-cols-14" : "grid-cols-12"
-              }`}>
-
-              <div className="col-span-1 text-center text-gray-400">
-                #{i + 4}
+        
+        {/* Scrollable container for the table */}
+        <div className="overflow-x-auto">
+          {/* Table Header */}
+          <div className="min-w-[600px]">
+            {game === "agario" ? (
+              <div className="grid grid-cols-14 bg-white/[0.05] px-4 py-3 text-sm text-gray-300">
+                <div className="col-span-1 text-center">#</div>
+                <div className="col-span-3">Player</div>
+                <div className="col-span-2 text-center">Wins</div>
+                <div className="col-span-2 text-center">Kills</div>
+                <div className="col-span-2 text-center">Top Mass</div>
+                <div className="col-span-2 text-center">Games</div>
+                <div className="col-span-2 text-right">Score</div>
               </div>
-
-              <div className="col-span-3 flex items-center gap-3">
-                <img
-                  src={p.avatarUrl || "/default.png"}
-                  className="w-8 h-8 rounded-full border border-white/10"
-                />
-                <span className="text-gray-200 truncate">{p.username}</span>
+            ) : (
+              <div className="grid grid-cols-12 bg-white/[0.05] px-4 py-3 text-sm text-gray-300">
+                <div className="col-span-1 text-center">#</div>
+                <div className="col-span-3">Player</div>
+                <div className="col-span-2 text-center">Wins</div>
+                <div className="col-span-2 text-center">Win Rate</div>
+                <div className="col-span-2 text-center">Games</div>
+                <div className="col-span-2 text-right">Score</div>
               </div>
+            )}
+          </div>
 
-              {game === "agario" ? (
-                <>
-                  <div className="col-span-2 text-center text-green-400">{p.wins}</div>
-                  <div className="col-span-2 text-center text-red-400">{p.totalKills}</div>
-                  <div className="col-span-2 text-center text-cyan-400">{p.bestMass}</div>
-                  <div className="col-span-2 text-center text-gray-400">{p.games}</div>
-                </>
-              ) : (
-                <>
-                  <div className="col-span-2 text-center text-green-400">{p.wins}</div>
-                  <div className="col-span-2 text-center text-cyan-400">{p.winRate}%</div>
-                  <div className="col-span-2 text-center text-gray-400">{p.totalGames}</div>
-                </>
-              )}
+          {/* Table Body */}
+          <div className="min-w-[600px]">
+            {rest.map((p: any, i) => (
+              <div
+                key={p.userId}
+                onClick={() => navigate(`/profile/${p.username}`)}
+                className="cursor-pointer border-t border-white/5 hover:bg-white/[0.06] transition-all grid items-center px-4 py-3 text-sm"
+              >
+                <div className={`grid items-center ${game === "agario" ? "grid-cols-14" : "grid-cols-12"}`}>
 
-              <div className="col-span-2 text-right font-bold text-purple-300">
-                {p.score}
-              </div>
-            </div>
+                  <div className="col-span-1 text-center text-gray-400">
+                    #{i + 4}
+                  </div>
 
-            <div className="md:hidden p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={p.avatarUrl || "/default.png"}
-                    className="w-9 h-9 rounded-full border border-white/10"
-                  />
-                  <div className="font-semibold text-gray-200 truncate">
-                    {p.username}
+                  <div className="col-span-3 flex items-center gap-3 overflow-hidden">
+                    <img
+                      src={p.avatarUrl || "/default.png"}
+                      className="w-8 h-8 rounded-full border border-white/10 shrink-0"
+                    />
+                    <span className="text-gray-200 truncate">{p.username}</span>
+                  </div>
+
+                  {game === "agario" ? (
+                    <>
+                      <div className="col-span-2 text-center text-green-400">{p.wins}</div>
+                      <div className="col-span-2 text-center text-red-400">{p.totalKills}</div>
+                      <div className="col-span-2 text-center text-cyan-400">{p.bestMass}</div>
+                      <div className="col-span-2 text-center text-gray-400">{p.games}</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="col-span-2 text-center text-green-400">{p.wins}</div>
+                      <div className="col-span-2 text-center text-cyan-400">{p.winRate}%</div>
+                      <div className="col-span-2 text-center text-gray-400">{p.totalGames}</div>
+                    </>
+                  )}
+
+                  <div className="col-span-2 text-right font-bold text-purple-300">
+                    {p.score}
                   </div>
                 </div>
-                <div className="text-purple-300 font-bold">
-                  #{i + 4}
-                </div>
               </div>
-
-              {game === "agario" ? (
-                <div className="text-xs text-gray-300 grid grid-cols-2 gap-2">
-                  <div>Wins {p.wins}</div>
-                  <div>Kills {p.totalKills}</div>
-                  <div>Mass {p.bestMass}</div>
-                  <div>Games {p.games}</div>
-                </div>
-              ) : (
-                <div className="text-xs text-gray-300 grid grid-cols-2 gap-2">
-                  <div>Wins {p.wins}</div>
-                  <div>Win Rate {p.winRate}%</div>
-                  <div>Games {p.totalGames}</div>
-                </div>
-              )}
-
-              <div className="text-right font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-                {p.score}
-              </div>
-            </div>
-
+            ))}
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );

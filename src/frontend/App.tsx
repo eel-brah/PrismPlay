@@ -507,13 +507,13 @@ export default function App() {
               path="/games"
               element={
                 <div className={`min-h-screen  ${topPaddingClass}`}>
-                  <div className="max-w-5xl mx-auto px-6 py-14">
+                  <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
                     <div className="text-center mb-12">
-                      <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                      <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                         Game Launcher
                       </h1>
 
-                      <p className="text-gray-300 mt-3 text-lg">
+                      <p className="text-gray-300 mt-3 text-base sm:text-lg">
                         Select a game mode and start playing
                       </p>
 
@@ -529,15 +529,15 @@ export default function App() {
                         onClick={() =>
                           navigate(!isAuthed ? "/guest" : "/landing")
                         }
-                        className="group text-left rounded-3xl border bg-white/[0.04] border-white/10 hover:border-purple-400/40 backdrop-blur-xl p-7 shadow-xl hover:scale-[1.03] hover:border-purple-400/60 transition-all"
+                        className="group text-left rounded-3xl border bg-white/[0.04] border-white/10 hover:border-purple-400/40 backdrop-blur-xl p-5 sm:p-7 shadow-xl hover:scale-[1.03] hover:border-purple-400/60 transition-all"
                       >
                         <div className="flex items-center gap-5 mb-5">
-                          <div className="w-16 h-16 rounded-2xl bg-purple-600/30 border border-purple-400/50 flex items-center justify-center text-3xl group-hover:scale-110 transition">
+                          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-purple-600/30 border border-purple-400/50 flex items-center justify-center text-2xl sm:text-3xl group-hover:scale-110 transition">
                             🏓
                           </div>
 
                           <div>
-                            <div className="text-2xl font-semibold text-purple-300">
+                            <div className="text-xl sm:text-2xl font-semibold text-purple-300">
                               Pong Arena
                             </div>
                             <div className="text-gray-400 text-sm">
@@ -566,15 +566,15 @@ export default function App() {
 
                       <Link
                         to="/agario"
-                        className="group text-left rounded-3xl border bg-white/[0.04] border-white/10 hover:border-blue-400/40 backdrop-blur-xl p-7 shadow-xl hover:scale-[1.03] hover:border-blue-400/60 transition-all"
+                      className="group text-left rounded-3xl border bg-white/[0.04] border-white/10 hover:border-blue-400/40 backdrop-blur-xl p-5 sm:p-7 shadow-xl hover:scale-[1.03] hover:border-blue-400/60 transition-all"
                       >
                         <div className="flex items-center gap-5 mb-5">
-                          <div className="w-16 h-16 rounded-2xl bg-purple-600/30 border border-purple-400/50 flex items-center justify-center text-3xl group-hover:scale-110 transition">
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-purple-600/30 border border-purple-400/50 flex items-center justify-center text-2xl sm:text-3xl group-hover:scale-110 transition">
                             🔵
                           </div>
 
                           <div>
-                            <div className="text-2xl font-semibold text-blue-300">
+                          <div className="text-xl sm:text-2xl font-semibold text-blue-300">
                               Agar Arena
                             </div>
                             <div className="text-gray-400 text-sm">
@@ -610,17 +610,17 @@ export default function App() {
               element={
                 isAuthed ? (
                   <div className={`min-h-screen ${topPaddingClass}`}>
-                    <div className="max-w-4xl mx-auto px-6 py-16">
+                    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
                       <div className="text-center mb-14">
                         <div className="text-sm text-purple-300 mb-2 tracking-wide">
                           Pong Arena
                         </div>
 
-                        <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                           Choose How You Play
                         </h1>
 
-                        <p className="text-gray-300 mt-4 text-lg">
+                        <p className="text-gray-300 mt-4 text-base sm:text-lg">
                           Practice against AI or compete against real players
                         </p>
                       </div>
@@ -628,11 +628,11 @@ export default function App() {
                       <div className="grid md:grid-cols-2 gap-8">
                         <button
                           onClick={() => navigate("/offline")}
-                          className="group text-left rounded-3xl bg-white/[0.05] border border-white/10 backdrop-blur-xl p-7 hover:border-blue-400/40 hover:scale-[1.02] transition-all"
+                          className="group text-left rounded-3xl bg-white/[0.05] border border-white/10 backdrop-blur-xl p-5 sm:p-7 hover:border-blue-400/40 hover:scale-[1.02] transition-all"
                         >
                           <div className="flex items-center gap-4 mb-5">
                             <div
-                              className="w-14 h-14 rounded-2xl flex items-center justify-center
+                              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center
                                 bg-blue-500/10 border border-blue-400/40 text-2xl
                                 group-hover:scale-110 transition"
                             >
@@ -640,7 +640,7 @@ export default function App() {
                             </div>
 
                             <div>
-                              <div className="text-2xl font-semibold text-blue-300">
+                              <div className="text-xl sm:text-2xl font-semibold text-blue-300">
                                 Offline Mode
                               </div>
                               <div className="text-gray-400 text-sm">
@@ -669,11 +669,11 @@ export default function App() {
 
                         <button
                           onClick={() => navigate("/online")}
-                          className="group text-left rounded-3xl bg-white/[0.05] border border-white/10 backdrop-blur-xl p-7 hover:border-purple-400/40 hover:scale-[1.02] transition-all"
+                          className="group text-left rounded-3xl bg-white/[0.05] border border-white/10 backdrop-blur-xl p-5 sm:p-7 hover:border-purple-400/40 hover:scale-[1.02] transition-all"
                         >
                           <div className="flex items-center gap-4 mb-5">
                             <div
-                              className="w-14 h-14 rounded-2xl flex items-center justify-center
+                              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center
                                 bg-purple-500/10 border border-purple-400/40 text-2xl
                                 group-hover:scale-110 transition"
                             >
@@ -681,7 +681,7 @@ export default function App() {
                             </div>
 
                             <div>
-                              <div className="text-2xl font-semibold text-purple-300">
+                              <div className="text-xl sm:text-2xl font-semibold text-purple-300">
                                 Online Match
                               </div>
 
@@ -770,18 +770,18 @@ export default function App() {
               path="/guest"
               element={
                 <div className={`min-h-screen ${topPaddingClass}`}>
-                  <div className="max-w-4xl mx-auto px-6 py-16">
+                  <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
 
                     <div className="text-center mb-14">
                       <div className="text-sm text-purple-300 mb-2 tracking-wide">
                         Pong Arena
                       </div>
 
-                      <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                      <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                         Guest Mode
                       </h1>
 
-                      <p className="text-gray-300 mt-4 text-lg">
+                      <p className="text-gray-300 mt-4 text-base sm:text-lg">
                         Play offline without creating an account
                       </p>
                     </div>
@@ -837,8 +837,10 @@ export default function App() {
             <Route
               path="/offline"
               element={
-                <div className={`h-screen overflow-hidden ${topPaddingClass}`}>
-                  <div className="h-full min-h-0 flex items-center">
+                <div
+                  className={`min-h-screen overflow-y-auto overflow-x-hidden ${topPaddingClass}`}
+                >
+                  <div className="min-h-screen flex items-start py-6">
                     <Pong onReturn={handleReturn} />
                   </div>
                 </div>

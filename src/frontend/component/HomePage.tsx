@@ -20,11 +20,11 @@ export default function HomePage({
   onSocial,
 }: HomePageProps) {
   const cardBtn =
-    "group w-full text-left rounded-2xl border border-white/10 bg-gray-900/50 backdrop-blur-md shadow-xl p-6 transition-all hover:scale-[1.02] hover:bg-gray-800/70 focus:outline-none focus:ring-2 focus:ring-purple-500/60";
+    "group w-full text-left rounded-2xl border border-white/10 bg-gray-900/50 backdrop-blur-md shadow-xl p-4 sm:p-6 transition-all hover:scale-[1.02] hover:bg-gray-800/70 focus:outline-none focus:ring-2 focus:ring-purple-500/60";
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-12 min-h-[calc(100vh-4rem)] flex items-center justify-center">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 sm:py-12 min-h-[calc(100vh-4rem)] flex items-center justify-center">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-10 items-center">
 
         <div className="text-center">
 
@@ -34,7 +34,7 @@ export default function HomePage({
             </div>
           )}
 
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-gray-900/50 px-4 py-2 text-sm text-gray-200">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-gray-900/50 px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-200">
             {loggedIn ? (
               <>
                 <span className="text-green-400 font-semibold">Player Mode</span>
@@ -48,19 +48,19 @@ export default function HomePage({
             )}
           </div>
 
-          <h1 className="mt-5 text-3xl md:text-5xl font-bold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+          <h1 className="mt-5 text-2xl sm:text-3xl md:text-5xl font-bold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
             {loggedIn
               ? "Continue Your Competitive Journey"
               : "PrismPlay is Competitive Arcade Platform"}
           </h1>
 
-          <p className="mt-4 text-gray-300 text-lg">
+          <p className="mt-4 text-gray-300 text-base sm:text-lg">
             {loggedIn
               ? "Your stats are being tracked. Improve your ranking and challenge players."
               : "Play instantly as a guest or create an account to unlock more futures."}
           </p>
 
-          <p className="mt-2 text-gray-400 max-w-xl mx-auto">
+          <p className="mt-2 text-gray-400 text-sm sm:text-base max-w-xl mx-auto">
             {loggedIn
               ? "Multiplayer, leaderboard tracking, and social systems are fully available."
               : "Guest mode allows gameplay only. Accounts unlock social features, history, and rankings."}
@@ -69,7 +69,7 @@ export default function HomePage({
           <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
             <button
               onClick={onPlay}
-              className="px-8 w-full sm:w-auto py-3 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold shadow-lg transition-all transform hover:scale-[1.02]"
+              className="px-6 sm:px-8 w-full sm:w-auto py-3 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold shadow-lg transition-all transform hover:scale-[1.02]"
             >
               {loggedIn ? "Continue Playing" : "Play as Guest"}
             </button>
@@ -77,14 +77,14 @@ export default function HomePage({
             {!loggedIn ? (
               <button
                 onClick={onRegester}
-                className="px-8 w-full sm:w-auto py-3 rounded-xl border border-green-400/40 text-green-300 hover:bg-green-500/10 transition"
+                className="px-6 sm:px-8 w-full sm:w-auto py-3 rounded-xl border border-green-400/40 text-green-300 hover:bg-green-500/10 transition"
               >
                 Create Account (Unlock Features)
               </button>
             ) : (
               <button
                 onClick={onSocial}
-                className="px-8 w-full sm:w-auto py-3 rounded-xl border border-blue-400/40 text-blue-300 hover:bg-blue-500/10 transition"
+                className="px-6 sm:px-8 w-full sm:w-auto py-3 rounded-xl border border-blue-400/40 text-blue-300 hover:bg-blue-500/10 transition"
               >
                 Open Social Hub
               </button>

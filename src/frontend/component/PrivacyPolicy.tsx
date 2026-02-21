@@ -6,7 +6,7 @@ export default function PrivacyPolicy() {
           <div className="text-sm text-purple-300 mb-2 tracking-wide">
             PrismPlay
           </div>
-          <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+          <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 leading-tight pb-1">
             Privacy Policy
           </h1>
           <p className="text-gray-300 mt-4 text-lg">
