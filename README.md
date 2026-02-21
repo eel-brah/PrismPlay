@@ -270,7 +270,14 @@ Gaming | Game customization (themes/settings) | 1 -->
 
 - React docs, TypeScript handbook, MDN Canvas, Socket.IO docs, Prisma docs, fastify docs, Oauth 2.0,
 #### Links
--
+- https://fastify.dev/docs/latest/Guides/Getting-Started/
+- https://oauth.net/2/
+- https://react.dev/learn
+- https://www.prisma.io/docs
+- https://developer.mozilla.org/en-US/docs/Web/HTML
+- https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial
+- https://docs.docker.com/
+- https://zod.dev/basics
 
 ### AI Usage 
 
