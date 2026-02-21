@@ -44,8 +44,8 @@ export interface ServerGameState {
   ball: Ball;
   left: Paddle;
   right: Paddle;
-  countdown: number; // seconds remaining
-  countdownTimer: number; // internal timer accumulator
+  countdown: number;
+  countdownTimer: number;
 }
 
 export interface MatchInputs {
@@ -58,9 +58,9 @@ function randomDirection() {
 }
 
 
+// Random angle between -27° and +27° (0.3 * 90°)
 function createBall(): Ball {
   const dirX = randomDirection();
-  // Random angle between -27° and +27° (0.3 * 90°)
   const angle = (Math.random() * 0.6 - 0.3) * (Math.PI / 2);
   const speed = INITIAL_BALL_SPEED;
 
@@ -183,32 +183,32 @@ function handlePaddleCollision(
   state.maxCombo = Math.max(state.maxCombo, state.combo);
 }
 
+// Create fresh ball with initial speed
+// Reset paddles to center position
+// Start countdown phase between rounds
 function resetBall(state: ServerGameState) {
-  // Create fresh ball with initial speed (not carried over from previous round)
   state.ball = createBall();
   state.combo = 0;
-  // Reset paddles to center position
   state.left.y = (GAME_HEIGHT - state.left.height) / 2;
   state.right.y = (GAME_HEIGHT - state.right.height) / 2;
-  // Start countdown phase between rounds
   state.phase = "countdown";
   state.countdown = COUNTDOWN_SECONDS;
   state.countdownTimer = 0;
 }
 
+// Handle countdown phase - no paddle control allowed
+// Transition to playing when countdown finishes
 export function stepServerGame(
   state: ServerGameState,
   inputs: MatchInputs,
   dt: number
 ) {
-  // Handle countdown phase - no paddle control allowed
   if (state.phase === "countdown") {
     state.countdownTimer += dt;
     if (state.countdownTimer >= 1) {
       state.countdownTimer -= 1;
       state.countdown -= 1;
     }
-    // Transition to playing when countdown finishes
     if (state.countdown <= 0) {
       state.phase = "playing";
       state.countdown = 0;
