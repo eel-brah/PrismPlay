@@ -1,4 +1,4 @@
-# ft_transcendence
+# PrismPlay
 
 This project has been created as part of the 42 curriculum by moel-fat, amokhtar, eel-brah, mboughra, muel-bak.
 
@@ -17,7 +17,7 @@ ft_transcendence (PrismPlay) is a full-stack web application featuring real-time
 - Social hub: friends, requests, and chat
 
 
-## Instructions (Run)
+## Instructions
 
 ### Prerequisites
 
@@ -28,7 +28,7 @@ ft_transcendence (PrismPlay) is a full-stack web application featuring real-time
 ### Start
 
 ```bash
-cp .env_example .env.production
+cp .env_example .env.production #fill the needed fields 
 docker compose up --build
 ```
 
@@ -36,14 +36,10 @@ docker compose up --build
 
 - App (HTTPS): https://localhost:9443
 - HTTP redirect: http://localhost:9000 → HTTPS
-- Database: localhost:3307
-
-Note: HTTPS is required on the backend, and the app must include accessible Privacy Policy and Terms of Service pages.
-
 
 ## Project Management
 
-- Tools: GitHub Issues / Trello (tasks), Git (meaningful commits from all members)
+- Tools: github , Git
 - Process: weekly sync, code reviews on critical PRs, shared Discord
 
 
@@ -51,9 +47,9 @@ Note: HTTPS is required on the backend, and the app must include accessible Priv
 
 Member | Role(s) | Responsibilities
 ---        | --- | ---
-<eel-bah>  | PO  | vision, backlog, validation Dev, features, tests, docs
-<amokhtar> | PM/Scrum | planning, blockers, deadlines ,Dev, features, tests, docs
-<mboughra> | Tech Lead | architecture, standards, reviews ,Dev, features, tests, docs
+<eel-bah>  | PO - Dev  | vision, backlog, validation Dev, features, tests, docs
+<amokhtar> | PM - Dev | planning, blockers, deadlines ,Dev, features, tests, docs
+<mboughra> | Tech Lead - Dev | architecture, standards, reviews ,Dev, features, tests, docs
 <moel-fat> | Dev | features, tests, docs
 <meul-bak> | Dev | features, tests, docs
 
@@ -66,13 +62,14 @@ Member | Role(s) | Responsibilities
 - Others: zod, axios, bcrypt, 
 
 
-## Why this stack (short justification)
+## Why this stack
 
 - React/TS for maintainable UI + safety
 - Canvas for fast 2D rendering
 - Socket.IO for real-time low-latency multiplayer
 - Server-authoritative simulation for fairness
 - Prisma for type-safe DB access
+- Zod for validation
 
 
 ## System Architecture
@@ -87,9 +84,7 @@ Member | Role(s) | Responsibilities
 
 - Authenticates sockets (JWT)
 - Matchmaking queue → creates matches
-- Runs a fixed 60-tick loop (authoritative physics)
 - Broadcasts snapshots to clients
-
 
 ## Database Schema
 
@@ -199,14 +194,14 @@ erDiagram
 - **Unique:** `token` (String)
 - `revokedAt` (DateTime)
 
-## Pong Implementation (what you must be able to explain)
+## Pong Implementation
 
 ### Game Loop
 
 - Server tick: setInterval(..., 1000/60)
 - Each tick: apply inputs → update physics → collision checks → score → snapshot emit
 
-### Collision (high-speed safe)
+### Collision
 
 - Uses swept collision to avoid tunneling at high ball speeds
 - Treat movement as a segment and compute intersection time t ∈ [0..1]
@@ -217,7 +212,7 @@ erDiagram
 - Predicts ball landing Y using time-to-reach + wall reflection
 - Adds reaction delay and error to avoid perfect play
 
-### Online Multiplayer Flow (short)
+### Online Multiplayer Flow
 
 - Client connects to /pong namespace (JWT)
 - Server puts player in queue
@@ -231,19 +226,21 @@ erDiagram
 - If timeout → opponent wins
 - Prevent race conditions with a single end-match lock
 
+## agario Implementation
+
 
 ## Features List
 
-- Auth (signup/login), JWT, protected routes — Profiles + avatar upload — <amokhtar>
+<!-- - Auth (signup/login), JWT, protected routes — Profiles + avatar upload — <amokhtar>
 - Pong Matchmaking queue + match lifecycle — Server-authoritative Pong engine - Client canvas renderer + input handler — <moel-fat>
 - Stats + match history persistence — <member>
 - Agar.io rooms + history/leaderboard — <member>
-- Privacy Policy + Terms of Service pages — <member>
+- Privacy Policy + Terms of Service pages — <member> -->
 
 
 ## Modules (points) (edit to match what you truly implemented)
 
-Category | Module | Points
+<!-- Category | Module | Points
 --- | --- | ---
 Web | Frameworks frontend+backend | 2
 Web | Real-time features (WebSockets / Socket.IO) | 2
@@ -253,28 +250,29 @@ AI | AI Opponent (human-like, beatable) | 2
 User Mgmt | Standard user management (profile, avatar, etc.) | 2
 Web | ORM (Prisma) | 1
 User Mgmt | Game stats + match history | 1
-Gaming | Game customization (themes/settings) | 1
+Gaming | Game customization (themes/settings) | 1 -->
 
-Keep only modules you can demo fully during evaluation.
 
 
 ## Individual Contributions (required)
 
-- <Member A>: …
+<!-- - <Member A>: …
 - <Member B>: …
 - <Member C>: …
 - <Member D>: …
 
-(Include concrete features + files/components owned.)
+(Include concrete features + files/components owned.) -->
 
 
 ## Resources
 
 ### References
 
-- React docs, TypeScript handbook, MDN Canvas, Socket.IO docs, Prisma docs, fastify docs, Oauth 2.0, 
+- React docs, TypeScript handbook, MDN Canvas, Socket.IO docs, Prisma docs, fastify docs, Oauth 2.0,
+#### Links
+-
 
 ### AI Usage 
 
-- Used AI for: documentation rewriting, debugging explanations, refactoring suggestions
+- Used AI for: documentation rewriting, debugging explanations, refactoring suggestions and ideas
 - Not used to blindly generate core logic; all generated content was reviewed and understood by the team
