@@ -61,13 +61,6 @@ export async function loginHandler(
   req: FastifyRequest<{ Body: LoginInput }>,
   rep: FastifyReply,
 ) {
-  // const { email, password } = req.body;
-
-  // const user = await findUserByEmail(email);
-  // if (!user)
-  //   return rep.code(401).send({ message: "Invalid email or password" });
-
-  // const ok = await verifyPassword(password, user.passwordHash);
 
   const { email, password } = req.body;
   const user = await findUserByEmail(email);
