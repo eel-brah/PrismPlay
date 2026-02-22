@@ -25,7 +25,7 @@ ft_transcendence (PrismPlay) is a full-stack web application featuring real-time
 ### Start
 
 ```bash
-cp .env_example .env.production #fill the needed fields
+cp .env_example .env.production #fill the needed fieldsPong
 docker compose up --build
 ```
 
@@ -236,6 +236,28 @@ erDiagram
 
 ## agario Implementation
 
+### Engine & Game Loop
+- Global Tick Loop: Uses a unified, recursive setTimeout loop running at exactly 50 ticks per second (TICK_RATE = 50), iterating
+ synchronously through all active rooms in the worldByRoom Map to optimize server resources.
+- State Interpolation: Includes an accumulator and a max-catchup step limit (MAX_CATCHUP_STEPS = 5) to ensure game physics remain perfectly stable even if the server lags briefly.
+- State Broadcast: Emits a highly optimized heartbeat payload to clients containing serialized players, orbs, ejected mass, and viruses.
+
+### Collision & Physics
+- AABB & Circular Intersection: Calculates entity overlap using standard distance math (Math.hypot(dx, dy)).
+- Strict Consumption Ratios: A cell can only consume another if it is 25% larger (SINGLE_EAT_FACTOR = 1.25). If the attacking player has split their cells, the penalty increases, requiring them to be 33% larger (SPLIT_EAT_FACTOR = 1.33).
+- Friction & Decay: Ejected mass and split cells utilize realistic exponential decay functions (e.g., Math.exp(-EJECT_FRICTION * dt)) to simulate friction and gradually slow down across the map.
+
+### Advanced Mechanics (Viruses & Ejecting)
+- Virus Feeding: Players can eject mass (w key) into viruses. If a virus is fed 7 times (VIRUS_MAX_FEED = 7), it duplicates and
+fires a new virus in the opposite direction at high speed.
+- Virus Penalties: The engine tracks a 2-minute penalty window (VIRUS_PENALTY_WINDOW_MS = 120000). If a player consumes too many viruses within this window (VIRUS_EAT_THRESHOLD = 2), a harsh mass-decay multiplier (up to 6x) is applied to their cell.
+- Cell Limits: Players can split up to a strict hard cap of 16 individual blobs (MAX_BLOBS_PER_PLAYER = 16).
+
+### Room Management & Death Handling
+- Host Migration: If the creator/host of a private room is eaten or disconnects, the engine dynamically reassigns the host role to another active user in the room.
+- Database Integration: Upon a player's death, if their survival time meets the minimum logging threshold, the engine asynchronously saves their duration, max mass, kills, and identity directly to the PostgreSQL database (createPlayerHistoryDb).
+- Room Finalization: Once a room's time limit is reached, the engine gracefully pauses physics, processes all final player saves, finalizes the room leaderboard, and cleanly flushes the room from server memory.
+
 ## Features List
 
 User Authentication (amokhtar - moel-fat): Signup, login, JWT, OAuth (Google), token revocation, protected routes
@@ -243,15 +265,15 @@ User Profiles (amokhtar): Avatar upload, stats, achievements, match history
 Real-time Multiplayer Pong (meol-fat - mboughra): Online matchmaking, server-authoritative game state, reconnection handling, match lifecycle, statistics, private matchmaking
 Offline Pong Modes (moel-fat - eel-brah): Local multiplayer, AI opponent with adjustable difficulty
 Agario (eel-brah): Real-time multiplayer, rooms, history, leaderboards, spectator mode
-Social Hub (mboughra): Friends, friend requests, blocking, chat (DMs, channels), online status
-Game Statistics (eel-brah): Player stats, match history, leaderboards
+Social Hub (mboughra - muel-bak): Friends, friend requests, blocking, chat (DMs, channels), online status
+Game Statistics (eel-brah - muel-bak): Player stats, match history, leaderboards
 Privacy Policy & Terms of Service (): Dedicated pages
 Database (eel-brah, mboughra): MariaDB with Prisma ORM
 Deployment (meol-fat): Docker - Docker Compose
 Advanced Chat Features (mboughra): Channels, DMs, typing indicators, message read status
-Game Customization Options (moel-fat): Themes, settings
-Global Leaderboards (eel-brah - mboughra): For Pong and Agario
-Room History (eel-brah): Agario rooms history
+Game Customization Options (moel-fat - muel-bak): Themes, settings
+Global Leaderboards (eel-brah - mboughra - muel-bak): For Pong and Agario
+Room History (eel-brah - muel-bak): Agario rooms history
 
 ## Modules (points)
 Category | Module | Points
@@ -271,7 +293,7 @@ web      | Implement remote authentication with OAuth 2.0  | 1
 web      | Advanced chat features | 1
 web      | Game customization options. | 1
 web      | Implement spectator mode for games. | 1
-<!-- web | Full compatibility with at least 2 additional browsers | 1  #check check -->
+web      | Full compatibility with at least 2 additional browsers | 1
 
 
 ## Individual Contributions
@@ -297,10 +319,19 @@ Notable problems solved:
 
 - <muel-bak>: - Frontend
 
-Owned features: App shell, navigation/routes, auth UI flows, home/games landing UIs, social/profile pages, leaderboard UI, UI state handling, responsive layout, visual polish
-Key modules claimed:
-Main files/areas: /src/frontend (App.tsx, component/*, style.css, Appbackground, TopBar, HomePage, SocialHub, GlobalLeaderboard, PlayerProfile, Login/Register)
-Notable problems solved: Layout scroll/overflow fixes, fixed header/footer spacing, responsive grid tuning, UI state edge cases
+Contributions:
+- home/games landing UIs, UI state handling, social/profile pages, leaderboard UI social hub App shell
+- navigation/routes, auth UI flows, responsive layout, visual polish
+- Real-time chat (Global channels and private DMs)
+- Friend system
+claimed modules:
+- Frameworks Frontend
+- Advanced chat features
+- ORM (Prisma)
+- Full compatibility with at least 2 additional browsers
+Notable problems solved:
+- Prisma migration/runtime issues
+- Frontend/backend message validation mismatches
 
 <eel-brah>: 
 Contributions:
