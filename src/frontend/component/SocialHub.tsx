@@ -124,7 +124,7 @@ export default function SocialHub() {
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
   const [dmSearch, setDmSearch] = useState("");
   const [chatInput, setChatInput] = useState("");
-  const MAX_MESSAGE_LENGTH = 2000;
+  const MAX_MESSAGE_LENGTH = 141;
 
   const channels = useMemo(() => ["general"], []);
   const [selectedChannel, setSelectedChannel] = useState<string>(channels[0]);
