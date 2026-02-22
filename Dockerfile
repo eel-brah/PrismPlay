@@ -24,6 +24,9 @@ RUN npm install -g pnpm
 
 COPY package.json pnpm-lock.yaml ./
 
+# add openssl for cert generation
+RUN apk add --no-cache openssl
+
 RUN pnpm install --prod --frozen-lockfile
 
 COPY prisma ./prisma
@@ -32,11 +35,14 @@ RUN pnpm prisma generate
 
 COPY src ./src
 
+
 COPY uploads ./uploads
 
 COPY --from=builder /ft_transcendence/dist ./dist
 
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x /ft_transcendence/entrypoint.sh
 
 EXPOSE 9443 9000
 
-CMD ["sh", "-c", "pnpm prisma migrate deploy && pnpm start"]
+ENTRYPOINT [ "/ft_transcendence/entrypoint.sh" ]

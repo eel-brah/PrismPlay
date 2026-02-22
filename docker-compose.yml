@@ -26,7 +26,7 @@ services:
     env_file:
       - .env.production
     volumes:
-      - ./config:/ft_transcendence/config:ro
+      - ssl_data:/ft_transcendence/config:rw
       - ./uploads:/ft_transcendence/uploads
     depends_on:
       mariadb:
@@ -35,6 +35,7 @@ services:
 
 volumes:
   db_data:
+  ssl_data:
 
 networks:
   default:
