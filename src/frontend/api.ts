@@ -141,31 +141,63 @@ export async function apiLogin(email: string, password: string) {
 }
 
 export async function apiLogout(token: string) {
-  const res = await api.post<{ message: string }>(
-    "/auth/logout",
-    {},
-    withAuth(token),
-  );
-  return res.data;
+  try {
+    const res = await api.post<{ message: string }>(
+      "/auth/logout",
+      {},
+      withAuth(token),
+    );
+    return res.data;
+  } catch (e: unknown) {
+    if (axios.isAxiosError(e)) {
+      const serverMsg = (e.response?.data as any)?.message;
+      throw new Error(serverMsg ?? e.message ?? "logout failed");
+    }
+    throw new Error("logout failed");
+  }
 }
 
 // USERS
 export async function apiGetMe(token: string) {
-  const res = await api.get<User>("/users/me", withAuth(token));
-  return res.data;
+  try {
+    const res = await api.get<User>("/users/me", withAuth(token));
+    return res.data;
+  } catch (e: unknown) {
+    if (axios.isAxiosError(e)) {
+      const serverMsg = (e.response?.data as any)?.message;
+      throw new Error(serverMsg ?? e.message ?? "Reuqest failed");
+    }
+    throw new Error("Reuqest failed");
+  }
 }
 
 export async function apiGetUserById(token: string, userId: string | number) {
-  const res = await api.get<PublicUser>(`/users/${userId}`, withAuth(token));
-  return res.data;
+  try {
+    const res = await api.get<PublicUser>(`/users/${userId}`, withAuth(token));
+    return res.data;
+  } catch (e: unknown) {
+    if (axios.isAxiosError(e)) {
+      const serverMsg = (e.response?.data as any)?.message;
+      throw new Error(serverMsg ?? e.message ?? "Reuqest failed");
+    }
+    throw new Error("Reuqest failed");
+  }
 }
 
 export async function apiGetUserByUsername(token: string, username: string) {
-  const res = await api.get<PublicUser>(
-    `/users/username/${encodeURIComponent(username)}`,
-    withAuth(token),
-  );
-  return res.data;
+  try {
+    const res = await api.get<PublicUser>(
+      `/users/username/${encodeURIComponent(username)}`,
+      withAuth(token),
+    );
+    return res.data;
+  } catch (e: unknown) {
+    if (axios.isAxiosError(e)) {
+      const serverMsg = (e.response?.data as any)?.message;
+      throw new Error(serverMsg ?? e.message ?? "Reuqest failed");
+    }
+    throw new Error("Reuqest failed");
+  }
 }
 
 export async function apiUpdateMe(
@@ -178,7 +210,7 @@ export async function apiUpdateMe(
   } catch (e: unknown) {
     if (axios.isAxiosError(e)) {
       const serverMsg = (e.response?.data as any)?.message;
-      throw new Error(serverMsg ?? e.message ?? "Register failed");
+      throw new Error(serverMsg ?? e.message ?? "Update failed");
     }
     throw new Error("Register failed");
   }
@@ -193,7 +225,7 @@ export async function apiUploadAvatar(token: string, file: File) {
   } catch (e: unknown) {
     if (axios.isAxiosError(e)) {
       const serverMsg = (e.response?.data as any)?.message;
-      throw new Error(serverMsg ?? e.message ?? "Register failed");
+      throw new Error(serverMsg ?? e.message ?? "Upload failed");
     }
     throw new Error("Register failed");
   }
@@ -274,52 +306,100 @@ export async function apiGetAgarioRoomLeaderboard(
 
 // FRIENDS
 export async function apiListFriends(token: string) {
-  const res = await api.get<FriendRow[]>("/friend/", withAuth(token));
-  return res.data;
+  try {
+    const res = await api.get<FriendRow[]>("/friend/", withAuth(token));
+    return res.data;
+  } catch (e: unknown) {
+    if (axios.isAxiosError(e)) {
+      const serverMsg = (e.response?.data as any)?.message;
+      throw new Error(serverMsg ?? e.message ?? "Reuqest failed");
+    }
+    throw new Error("Reuqest failed");
+  }
 }
 
 export async function apiIncomingRequests(token: string) {
-  const res = await api.get<FriendRequest[]>(
-    "/friend/requests/incoming",
-    withAuth(token),
-  );
-  return res.data;
+  try {
+    const res = await api.get<FriendRequest[]>(
+      "/friend/requests/incoming",
+      withAuth(token),
+    );
+    return res.data;
+  } catch (e: unknown) {
+    if (axios.isAxiosError(e)) {
+      const serverMsg = (e.response?.data as any)?.message;
+      throw new Error(serverMsg ?? e.message ?? "Reuqest failed");
+    }
+    throw new Error("Reuqest failed");
+  }
 }
 
 export async function apiAcceptFriend(token: string, id: string) {
-  const res = await api.post<FriendRequest[]>(
-    `/friend/requests/${id}/accept`,
-    {},
-    withAuth(token),
-  );
-  return res.data;
+  try {
+    const res = await api.post<FriendRequest[]>(
+      `/friend/requests/${id}/accept`,
+      {},
+      withAuth(token),
+    );
+    return res.data;
+  } catch (e: unknown) {
+    if (axios.isAxiosError(e)) {
+      const serverMsg = (e.response?.data as any)?.message;
+      throw new Error(serverMsg ?? e.message ?? "Reuqest failed");
+    }
+    throw new Error("Reuqest failed");
+  }
 }
 
 export async function apiDeclineFriend(token: string, id: string) {
-  const res = await api.post<FriendRequest[]>(
-    `/friend/requests/${id}/decline`,
-    {},
-    withAuth(token),
-  );
-  return res.data;
+  try {
+    const res = await api.post<FriendRequest[]>(
+      `/friend/requests/${id}/decline`,
+      {},
+      withAuth(token),
+    );
+    return res.data;
+  } catch (e: unknown) {
+    if (axios.isAxiosError(e)) {
+      const serverMsg = (e.response?.data as any)?.message;
+      throw new Error(serverMsg ?? e.message ?? "Reuqest failed");
+    }
+    throw new Error("Reuqest failed");
+  }
 }
 
 export async function apiRemoveFriend(token: string, id: string) {
-  const res = await api.delete<FriendRequest[]>(
-    `/friend/${id}`,
-    withAuth(token),
-  );
-  return res.data;
+  try {
+    const res = await api.delete<FriendRequest[]>(
+      `/friend/${id}`,
+      withAuth(token),
+    );
+    return res.data;
+  } catch (e: unknown) {
+    if (axios.isAxiosError(e)) {
+      const serverMsg = (e.response?.data as any)?.message;
+      throw new Error(serverMsg ?? e.message ?? "Reuqest failed");
+    }
+    throw new Error("Reuqest failed");
+  }
 }
 
 type PendingResponse = { pending: boolean };
 
 export async function apiIsFrienddPending(token: string, id: number) {
-  const res = await api.get<PendingResponse>(
-    `/friend/requests/pending/${id}`,
-    withAuth(token),
-  );
-  return !!res.data.pending;
+  try {
+    const res = await api.get<PendingResponse>(
+      `/friend/requests/pending/${id}`,
+      withAuth(token),
+    );
+    return !!res.data.pending;
+  } catch (e: unknown) {
+    if (axios.isAxiosError(e)) {
+      const serverMsg = (e.response?.data as any)?.message;
+      throw new Error(serverMsg ?? e.message ?? "Reuqest failed");
+    }
+    throw new Error("Reuqest failed");
+  }
 }
 
 export async function apiAddFriend(token: string, username: string) {
@@ -339,15 +419,6 @@ export async function apiAddFriend(token: string, username: string) {
   }
 }
 
-// PING
-export async function apiPingMe(token: string) {
-  const res = await api.post<{ ok: boolean; lastLogin: string | null }>(
-    "/users/me/ping",
-    {},
-    withAuth(token),
-  );
-  return res.data;
-}
 
 export async function apiGetGlobalLeaderboard(token: string) {
   const res = await api.get("/agario/leaderboard/global", withAuth(token));
