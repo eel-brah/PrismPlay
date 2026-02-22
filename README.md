@@ -12,7 +12,7 @@ ft_transcendence (PrismPlay) is a full-stack web application featuring real-time
 - Real-time Pong (online matchmaking, server-authoritative game state)
 - Disconnection handling (pause + reconnection window)
 - Game modes: local/AI + online multiplayer Pong
-- Agar.io arena with rooms history and leaderboards
+- Agario with rooms history and leaderboards
 - Social hub: friends, requests, and chat
 
 ## Instructions
@@ -242,18 +242,18 @@ User Authentication: Signup, login, JWT, OAuth (Google), token revocation, prote
 User Profiles: Avatar upload, stats, achievements, match history
 Real-time Multiplayer Pong: Online matchmaking, server-authoritative game state, reconnection handling, match lifecycle, statistics
 Offline Pong Modes: Local multiplayer, AI opponent with adjustable difficulty
-Agar.io Arena: Real-time multiplayer, rooms, history, leaderboards, spectator mode
+Agario: Real-time multiplayer, rooms, history, leaderboards, spectator mode
 Social Hub: Friends, friend requests, blocking, chat (DMs, channels), online status
 Game Statistics: Player stats, match history, leaderboards
 Customization: Game themes, avatar upload
-Spectator Mode: For games like Agar.io
+Spectator Mode: For Agario
 Privacy Policy & Terms of Service: Dedicated pages
 Database: MariaDB with Prisma ORM
 Deployment: Docker, Docker Compose
 Advanced Chat Features: Channels, DMs, typing indicators, message read status
 Game Customization Options: Themes, settings
-Global Leaderboards: For Pong and Agar.io
-Room History: Agar.io rooms history
+Global Leaderboards: For Pong and Agario
+Room History: Agario rooms history
 
 ## Modules (points)
 Category | Module | Points
@@ -279,7 +279,7 @@ web      | Implement spectator mode for games. | 1
 
 ## Individual Contributions
 
-### - <meol-fat>: - Dev
+ - <meol-fat>: - Dev
 
 Owned features: Pong (local multiplay) matchmaking reconect history leaderboard Oauth(google)
 Key modules claimed:
@@ -293,6 +293,40 @@ Key modules claimed:
 Main files/areas: /src/frontend (App.tsx, component/*, style.css, Appbackground, TopBar, HomePage, SocialHub, GlobalLeaderboard, PlayerProfile, Login/Register)
 Notable problems solved: Layout scroll/overflow fixes, fixed header/footer spacing, responsive grid tuning, UI state edge cases
 
+ - <eel-brah>: 
+Contributions:
+    - Agario: Real-time multiplayer, rooms (public and private), history, leaderboard, spectator mode
+    - Pong AI opponent
+    - Fastify server setup
+claimed modules:
+    - Remote players
+    - Multiplayer game
+    - Add another game with user history and matchmaking
+    - AI Opponent 
+    - ORM (Prisma)
+    - Game statistics and match history 
+    - Implement spectator mode for games
+    - Frameworks backend
+Notable problems solved:
+    - Race conditions
+    - websocket reconnection
+
+### <mboughra>:
+Contributions:
+- Real-time chat (Global channels and private DMs)
+- Friend and block system
+- Live typing indicators and unread message receipts
+- Private game matchmaking (secure 1v1 lobby invites)
+- Database schema design and queries using Prisma
+claimed modules:
+- User interaction
+- Frameworks backend
+- Frameworks Frontend
+- Advanced chat features
+- ORM (Prisma)
+Notable problems solved:
+- Game invite race conditions and spam
+- Frontend/backend message validation mismatches
 - <Member C>: …
 - <Member D>: …
 
