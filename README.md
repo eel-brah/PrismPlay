@@ -240,20 +240,18 @@ erDiagram
 
 User Authentication (amokhtar - moel-fat): Signup, login, JWT, OAuth (Google), token revocation, protected routes
 User Profiles (amokhtar): Avatar upload, stats, achievements, match history
-Real-time Multiplayer Pong (meol-fat): Online matchmaking, server-authoritative game state, reconnection handling, match lifecycle, statistics
-Offline Pong Modes (moel-fat): Local multiplayer, AI opponent with adjustable difficulty
+Real-time Multiplayer Pong (meol-fat - mboughra): Online matchmaking, server-authoritative game state, reconnection handling, match lifecycle, statistics, private matchmaking
+Offline Pong Modes (moel-fat - eel-brah): Local multiplayer, AI opponent with adjustable difficulty
 Agario (eel-brah): Real-time multiplayer, rooms, history, leaderboards, spectator mode
-Social Hub (): Friends, friend requests, blocking, chat (DMs, channels), online status
-Game Statistics (): Player stats, match history, leaderboards
-Customization (moel-fat): Game themes, avatar upload
-Spectator Mode (): For Agario
+Social Hub (mboughra): Friends, friend requests, blocking, chat (DMs, channels), online status
+Game Statistics (eel-brah): Player stats, match history, leaderboards
 Privacy Policy & Terms of Service (): Dedicated pages
-Database (): MariaDB with Prisma ORM
-Deployment (): Docker, Docker Compose
-Advanced Chat Features (): Channels, DMs, typing indicators, message read status
-Game Customization Options (): Themes, settings
-Global Leaderboards (): For Pong and Agario
-Room History (): Agario rooms history
+Database (eel-brah, mboughra): MariaDB with Prisma ORM
+Deployment (meol-fat): Docker - Docker Compose
+Advanced Chat Features (mboughra): Channels, DMs, typing indicators, message read status
+Game Customization Options (moel-fat): Themes, settings
+Global Leaderboards (eel-brah - mboughra): For Pong and Agario
+Room History (eel-brah): Agario rooms history
 
 ## Modules (points)
 Category | Module | Points
@@ -304,7 +302,7 @@ Key modules claimed:
 Main files/areas: /src/frontend (App.tsx, component/*, style.css, Appbackground, TopBar, HomePage, SocialHub, GlobalLeaderboard, PlayerProfile, Login/Register)
 Notable problems solved: Layout scroll/overflow fixes, fixed header/footer spacing, responsive grid tuning, UI state edge cases
 
- - <eel-brah>: 
+<eel-brah>: 
 Contributions:
     - Agario: Real-time multiplayer, rooms (public and private), history, leaderboard, spectator mode
     - Pong AI opponent
@@ -322,7 +320,7 @@ Notable problems solved:
     - Race conditions
     - websocket reconnection
 
-### <mboughra>:
+<mboughra>:
 Contributions:
 - Real-time chat (Global channels and private DMs)
 - Friend and block system
