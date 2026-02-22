@@ -523,6 +523,23 @@ export default function SocialHub() {
         ps.off("presence:snapshot", applySnapshot);
         ps.off("presence:update", applyUpdate);
       }
+      if (socketRef.current) {
+        const s = socketRef.current;
+        s.off("dm_previews");
+        s.off("unread_counts");
+        s.off("channel_history");
+        s.off("channel_message");
+        s.off("dm_joined");
+        s.off("new_message");
+        s.off("user_typing");
+        s.off("messages_seen");
+        s.off("invite_error");
+        s.off("invite_expired");
+        s.off("invite_declined");
+        s.off("chat_error");
+        s.off("user_blocked");
+        s.off("user_unblocked");
+      }
     };
   }, []);
 
