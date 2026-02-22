@@ -238,22 +238,22 @@ erDiagram
 
 ## Features List
 
-User Authentication: Signup, login, JWT, OAuth (Google), token revocation, protected routes
-User Profiles: Avatar upload, stats, achievements, match history
-Real-time Multiplayer Pong: Online matchmaking, server-authoritative game state, reconnection handling, match lifecycle, statistics
-Offline Pong Modes: Local multiplayer, AI opponent with adjustable difficulty
-Agario: Real-time multiplayer, rooms, history, leaderboards, spectator mode
-Social Hub: Friends, friend requests, blocking, chat (DMs, channels), online status
-Game Statistics: Player stats, match history, leaderboards
-Customization: Game themes, avatar upload
-Spectator Mode: For Agario
-Privacy Policy & Terms of Service: Dedicated pages
-Database: MariaDB with Prisma ORM
-Deployment: Docker, Docker Compose
-Advanced Chat Features: Channels, DMs, typing indicators, message read status
-Game Customization Options: Themes, settings
-Global Leaderboards: For Pong and Agario
-Room History: Agario rooms history
+User Authentication (amokhtar - moel-fat): Signup, login, JWT, OAuth (Google), token revocation, protected routes
+User Profiles (amokhtar): Avatar upload, stats, achievements, match history
+Real-time Multiplayer Pong (meol-fat): Online matchmaking, server-authoritative game state, reconnection handling, match lifecycle, statistics
+Offline Pong Modes (moel-fat): Local multiplayer, AI opponent with adjustable difficulty
+Agario (eel-brah): Real-time multiplayer, rooms, history, leaderboards, spectator mode
+Social Hub (): Friends, friend requests, blocking, chat (DMs, channels), online status
+Game Statistics (): Player stats, match history, leaderboards
+Customization (): Game themes, avatar upload
+Spectator Mode (): For Agario
+Privacy Policy & Terms of Service (): Dedicated pages
+Database (): MariaDB with Prisma ORM
+Deployment (): Docker, Docker Compose
+Advanced Chat Features (): Channels, DMs, typing indicators, message read status
+Game Customization Options (): Themes, settings
+Global Leaderboards (): For Pong and Agario
+Room History (): Agario rooms history
 
 ## Modules (points)
 Category | Module | Points
@@ -263,13 +263,13 @@ Web      | Real-time features (WebSockets / Socket.IO) | 2
 Web      | Allow users to interact with other users | 2
 web      | Standard user management and authentication. | 2
 Gaming   | Remote players (real-time multiplayer + reconnection) | 2
-Gaming   |  Multiplayer game (more than two players). | 2 
+Gaming   | Multiplayer game (more than two players). | 2 
 gaming   | Add another game with user history and matchmaking. | 2
 AI       | AI Opponent (human-like, beatable) | 2
-web      |  Introduce an AI Opponent for games. | 2
+web      | Introduce an AI Opponent for games. | 2
 Gaming   | Web-based game (Pong) | 2
 Web      | ORM (Prisma) | 1
-Gaming   |  Game statistics and match history | 1
+Gaming   | Game statistics and match history | 1
 web      | Implement remote authentication with OAuth 2.0  | 1
 web      | Advanced chat features | 1
 web      | Game customization options. | 1
