@@ -271,7 +271,7 @@ web      | Implement remote authentication with OAuth 2.0  | 1
 web      | Advanced chat features | 1
 web      | Game customization options. | 1
 web      | Implement spectator mode for games. | 1
-<!-- web | Full compatibility with at least 2 additional browsers | 1  #check check -->
+web      | Full compatibility with at least 2 additional browsers | 1
 
 
 ## Individual Contributions
@@ -297,10 +297,19 @@ Notable problems solved:
 
 - <muel-bak>: - Frontend
 
-Owned features: App shell, navigation/routes, auth UI flows, home/games landing UIs, social/profile pages, leaderboard UI, UI state handling, responsive layout, visual polish
-Key modules claimed:
-Main files/areas: /src/frontend (App.tsx, component/*, style.css, Appbackground, TopBar, HomePage, SocialHub, GlobalLeaderboard, PlayerProfile, Login/Register)
-Notable problems solved: Layout scroll/overflow fixes, fixed header/footer spacing, responsive grid tuning, UI state edge cases
+Contributions:
+- home/games landing UIs, UI state handling, social/profile pages, leaderboard UI social hub App shell
+- navigation/routes, auth UI flows, responsive layout, visual polish
+- Real-time chat (Global channels and private DMs)
+- Friend system
+claimed modules:
+- Frameworks Frontend
+- Advanced chat features
+- ORM (Prisma)
+- Full compatibility with at least 2 additional browsers
+Notable problems solved:
+- Prisma migration/runtime issues
+- Frontend/backend message validation mismatches
 
 <eel-brah>: 
 Contributions:
