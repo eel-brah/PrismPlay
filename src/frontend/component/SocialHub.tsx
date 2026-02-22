@@ -23,7 +23,7 @@ import {
   apiRemoveFriend,
   apiAddFriend,
 } from "../api";
-import { getPresenceSocket } from "@/presenceSocket";
+import { getPresenceSocket, connectPresence } from "@/presenceSocket";
 
 type TabKey = "friends" | "chat";
 
@@ -291,7 +291,7 @@ export default function SocialHub() {
         const me = await apiGetMe(token);
         setMyUserId(me.id);
         await reload();
-        const ps = getPresenceSocket();
+        const ps = connectPresence(token);
         if (!ps) return;
 
         ps.on("presence:snapshot", applySnapshot);

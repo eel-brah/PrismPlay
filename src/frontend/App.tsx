@@ -286,7 +286,7 @@ export default function App() {
               path="/agario"
               element={
                 <div
-                  className={`${topPaddingClass} min-h-screen overflow-y-auto`}
+                  className={`${topPaddingClass} min-h-[calc(100vh-8rem)] overflow-y-auto`}
                 >
                   <Agario />
                 </div>
@@ -297,11 +297,11 @@ export default function App() {
               path="/leaderboard"
               element={
                 bootingAuth ? (
-                  <div className="min-h-screen flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                  <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                     Loading...
                   </div>
                 ) : isAuthed ? (
-                  <div className={`min-h-screen ${topPaddingClass}`}>
+                  <div className={`min-h-[calc(100vh-8rem)] ${topPaddingClass}`}>
                     <GlobalLeaderboard />
                   </div>
                 ) : (
@@ -314,11 +314,11 @@ export default function App() {
               path="/agario/history"
               element={
                 bootingAuth ? (
-                  <div className="min-h-screen flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                  <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                     Loading...
                   </div>
                 ) : isAuthed ? (
-                  <div className={`min-h-screen ${topPaddingClass}`}>
+                  <div className={`min-h-[calc(100vh-8rem)] ${topPaddingClass}`}>
                     <RoomsHistoryPage />
                   </div>
                 ) : (
@@ -333,7 +333,7 @@ export default function App() {
             <Route
               path="/login/form"
               element={
-                <div className="min-h-screen  flex items-center justify-center px-6">
+                <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-6">
                   <div className="w-full max-w-5xl grid md:grid-cols-2 gap-10 items-center">
                     <div className="hidden md:block text-white">
                       <h1 className="text-4xl font-bold mb-4">Welcome Back</h1>
@@ -377,7 +377,7 @@ export default function App() {
             <Route
               path="/register"
               element={
-                <div className="min-h-screen  flex items-center justify-center px-6">
+                <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-6">
                   <div className="w-full max-w-5xl grid md:grid-cols-2 gap-10 items-center">
                     <div className="hidden md:block text-white">
                       <h1 className="text-4xl font-bold mb-4">
@@ -419,7 +419,7 @@ export default function App() {
             <Route
               path="/games"
               element={
-                <div className={`min-h-screen  ${topPaddingClass}`}>
+                <div className={`min-h-[calc(100vh-8rem)]  ${topPaddingClass}`}>
                   <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
                     <div className="text-center mb-12">
                       <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
@@ -522,7 +522,7 @@ export default function App() {
               path="/landing"
               element={
                 isAuthed ? (
-                  <div className={`min-h-screen ${topPaddingClass}`}>
+                  <div className={`min-h-[calc(100vh-8rem)] ${topPaddingClass}`}>
                     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
                       <div className="text-center mb-14">
                         <div className="text-sm text-purple-300 mb-2 tracking-wide">
@@ -633,12 +633,12 @@ export default function App() {
               path="/social"
               element={
                 bootingAuth ? (
-                  <div className="min-h-screen flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                  <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                     Loading...
                   </div>
                 ) : isAuthed ? (
                   <div
-                    className={`relative h-screen overflow-hidden  ${topPaddingClass}`}
+                    className={`relative h-[calc(100vh-8rem)] overflow-hidden  ${topPaddingClass}`}
                   >
                     <SocialHub />
                   </div>
@@ -651,11 +651,11 @@ export default function App() {
               path="/profile"
               element={
                 bootingAuth ? (
-                  <div className="min-h-screen flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                  <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                     Loading...
                   </div>
                 ) : isAuthed ? (
-                  <div className={`min-h-screen ${topPaddingClass}`}>
+                  <div className={`min-h-[calc(100vh-8rem)] ${topPaddingClass}`}>
                     <PlayerProfile />
                   </div>
                 ) : (
@@ -667,11 +667,11 @@ export default function App() {
               path="/profile/:username"
               element={
                 bootingAuth ? (
-                  <div className="min-h-screen flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                  <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                     Loading...
                   </div>
                 ) : isAuthed ? (
-                  <div className={`min-h-screen ${topPaddingClass}`}>
+                  <div className={`min-h-[calc(100vh-8rem)] ${topPaddingClass}`}>
                     <PublicPlayerProfile />
                   </div>
                 ) : (
@@ -682,7 +682,7 @@ export default function App() {
             <Route
               path="/guest"
               element={
-                <div className={`min-h-screen ${topPaddingClass}`}>
+                <div className={`min-h-[calc(100vh-8rem)] ${topPaddingClass}`}>
                   <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
 
                     <div className="text-center mb-14">
