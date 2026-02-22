@@ -23,7 +23,7 @@ export default function HomePage({
     "group w-full text-left rounded-2xl border border-white/10 bg-gray-900/50 backdrop-blur-md shadow-xl p-4 sm:p-6 transition-all hover:scale-[1.02] hover:bg-gray-800/70 focus:outline-none focus:ring-2 focus:ring-purple-500/60";
 
   return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 sm:py-12 min-h-[calc(100vh-4rem)] flex items-center justify-center">
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 sm:py-12 min-h-[calc(100vh-8rem)] flex items-center justify-center">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-10 items-center">
 
         <div className="text-center">
