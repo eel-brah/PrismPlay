@@ -97,7 +97,6 @@ export function storeToken(token: string) {
 
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
-  console.log("has been called ");
 }
 
 // AUTH

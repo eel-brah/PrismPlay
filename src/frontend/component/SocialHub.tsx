@@ -585,14 +585,6 @@ export default function SocialHub() {
     if (!token) return;
     const username = addUsername.trim();
     if (!username) return;
-
-    if (
-      friends.some((f) => f.name.toLowerCase() == username.toLocaleLowerCase())
-    ) {
-      setAddErr("you are already friend with this user");
-      setAddMsg(null);
-      return;
-    }
     try {
       setAddLoading(true);
       setAddErr(null);
