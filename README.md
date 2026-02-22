@@ -12,7 +12,7 @@ ft_transcendence (PrismPlay) is a full-stack web application featuring real-time
 - Real-time Pong (online matchmaking, server-authoritative game state)
 - Disconnection handling (pause + reconnection window)
 - Game modes: local/AI + online multiplayer Pong
-- Agario with rooms history and leaderboards
+- Agario with rooms history and leaderboard
 - Social hub: friends, requests, and chat
 
 ## Instructions
@@ -45,17 +45,17 @@ docker compose up --build
 | ---------- | -------- | ------------------------------------------------------------ |
 | <eel-bah>  | PO - Dev | vision, backlog, validation Dev, features, tests, docs       |
 | <amokhtar> | PM - Dev | planning, blockers, deadlines ,Dev, features, tests, docs    |
-| <mboughra> | TL - Dev | architecture, standards, reviews ,Dev, features, tests, docs |
-| <moel-fat> | Dev      | features, tests, docs                                        |
-| <meul-bak> | Dev      | features, tests, docs                                        |
+| <moel-fat> | TL - Dev | architecture, standards, reviews ,Dev, features, tests, docs |
+| <mboughra> | Dev      | features, tests, docs                                        |
+| <meul-bak> | Dev      | validation Dev, features, tests, docs                        |
 
 ## Technical Stack
 
-- Frontend: React + TypeScript, Vite, HTML5 Canvas, Tailwind CSS.
-- Backend: Node.js + Fastify, Socket.IO.
-- Database: MariaDB + Prisma ORM.
-- Deployment: Docker .
-- Others: zod, axios, bcrypt,
+- Frontend: React + TypeScript, Vite, HTML5 Canvas, Tailwind CSS
+- Backend: Node.js + Fastify, Socket.IO
+- Database: MariaDB + Prisma ORM
+- Deployment: Docker
+- Others: zod, axios, bcrypt
 
 ## Why this stack
 
@@ -266,7 +266,6 @@ Gaming   | Remote players (real-time multiplayer + reconnection) | 2
 Gaming   | Multiplayer game (more than two players). | 2 
 gaming   | Add another game with user history and matchmaking. | 2
 AI       | AI Opponent (human-like, beatable) | 2
-web      | Introduce an AI Opponent for games. | 2
 Gaming   | Web-based game (Pong) | 2
 Web      | ORM (Prisma) | 1
 Gaming   | Game statistics and match history | 1
@@ -279,14 +278,21 @@ web      | Implement spectator mode for games. | 1
 
 ## Individual Contributions
 
-### - <meol-fat>: - Dev
+- <meol-fat>: - Dev
 
 Owned features: Pong (local multiplay) matchmaking reconect history leaderboard Oauth(google)
 Key modules claimed:
 Main files/areas: /src /frontend(component/pong* - game/pong* - utils) , /backend(server/socket pong.ts pongserver.ts - module/pong) , /shared/pong\* , psirma
 Notable problems solved: (e.g., race condition, websocket disconnect handling, Prisma migration issue)
 
-### - <eel-brah>: 
+- <muel-bak>: - Frontend
+
+Owned features: App shell, navigation/routes, auth UI flows, home/games landing UIs, social/profile pages, leaderboard UI, UI state handling, responsive layout, visual polish
+Key modules claimed:
+Main files/areas: /src/frontend (App.tsx, component/*, style.css, Appbackground, TopBar, HomePage, SocialHub, GlobalLeaderboard, PlayerProfile, Login/Register)
+Notable problems solved: Layout scroll/overflow fixes, fixed header/footer spacing, responsive grid tuning, UI state edge cases
+
+ - <eel-brah>: 
 Contributions:
     - Agario: Real-time multiplayer, rooms (public and private), history, leaderboard, spectator mode
     - Pong AI opponent
@@ -304,9 +310,24 @@ Notable problems solved:
     - Race conditions
     - websocket reconnection
 
-- <Member B>: …
-- <Member C>: …
-- <Member D>: …
+### <mboughra>:
+Contributions:
+- Real-time chat (Global channels and private DMs)
+- Friend and block system
+- Live typing indicators and unread message receipts
+- Private game matchmaking (secure 1v1 lobby invites)
+- Database schema design and queries using Prisma
+claimed modules:
+- User interaction
+- Frameworks backend
+- Frameworks Frontend
+- Advanced chat features
+- ORM (Prisma)
+Notable problems solved:
+- Game invite race conditions and spam
+- Frontend/backend message validation mismatches
+
+<Member C>: …
 
 (Include concrete features + files/components owned.)
 
