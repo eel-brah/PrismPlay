@@ -5,3 +5,4 @@ read subject and correction sheet
 add the commits to the projet
 remove the console.err
 and log only what is needed 
+Bakhakh Remove unused Err in catch
