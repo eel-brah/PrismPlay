@@ -917,7 +917,7 @@ export function PublicPlayerProfile() {
         }
       } catch (e) {
         if (!cancelled) {
-          const status = e?.response?.status;
+          const status = (e as any)?.response?.status;
           if (status === 404) {
             setNotFound(true);
             setError("");
