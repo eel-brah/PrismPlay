@@ -45,9 +45,9 @@ docker compose up --build
 | ---------- | -------- | ------------------------------------------------------------ |
 | <eel-bah>  | PO - Dev | vision, backlog, validation Dev, features, tests, docs       |
 | <amokhtar> | PM - Dev | planning, blockers, deadlines ,Dev, features, tests, docs    |
-| <mboughra> | TL - Dev | architecture, standards, reviews ,Dev, features, tests, docs |
-| <moel-fat> | Dev      | features, tests, docs                                        |
-| <meul-bak> | Dev      | features, tests, docs                                        |
+| <moel-fat> | TL - Dev | architecture, standards, reviews ,Dev, features, tests, docs |
+| <mboughra> | Dev      | features, tests, docs                                        |
+| <meul-bak> | Dev      | validation Dev, features, tests, docs                                        |
 
 ## Technical Stack
 
@@ -286,7 +286,13 @@ Key modules claimed:
 Main files/areas: /src /frontend(component/pong* - game/pong* - utils) , /backend(server/socket pong.ts pongserver.ts - module/pong) , /shared/pong\* , psirma
 Notable problems solved: (e.g., race condition, websocket disconnect handling, Prisma migration issue)
 
-- <Member B>: …
+### - <muel-bak>: - Frontend
+
+Owned features: App shell, navigation/routes, auth UI flows, home/games landing UIs, social/profile pages, leaderboard UI, UI state handling, responsive layout, visual polish
+Key modules claimed:
+Main files/areas: /src/frontend (App.tsx, component/*, style.css, Appbackground, TopBar, HomePage, SocialHub, GlobalLeaderboard, PlayerProfile, Login/Register)
+Notable problems solved: Layout scroll/overflow fixes, fixed header/footer spacing, responsive grid tuning, UI state edge cases
+
 - <Member C>: …
 - <Member D>: …
 
