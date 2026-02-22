@@ -215,7 +215,8 @@ export async function findOrCreateGoogleUser(input: {
   }
 
   // Create new user — ensure unique username
-  let username = input.username.replace(/\s+/g, "_");
+  // let username = input.username.replace(/\s+/g, "_");
+  let username = input.username.replace(/[^a-zA-Z0-9]/g, "");
   const taken = await prisma.user.findUnique({ where: { username } });
   if (taken) username = `${username}_${Date.now()}`;
 

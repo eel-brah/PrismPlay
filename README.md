@@ -244,21 +244,22 @@ erDiagram
 - Agar.io rooms + history/leaderboard — <member>
 - Privacy Policy + Terms of Service pages — <member> -->
 
-## Modules (points) (edit to match what you truly implemented)
-
-<!-- Category | Module | Points
+## Modules (points)
+Category | Module | Points
 --- | --- | ---
 Web | Frameworks frontend+backend | 2
 Web | Real-time features (WebSockets / Socket.IO) | 2
+Web | Allow users to interact with other users | 2
+Web | ORM (Prisma) | 1
+
+Gaming | Game customization (themes/settings) | 1
 Gaming | Web-based game (Pong) | 2
 Gaming | Remote players (real-time multiplayer + reconnection) | 2
 AI | AI Opponent (human-like, beatable) | 2
 User Mgmt | Standard user management (profile, avatar, etc.) | 2
-Web | ORM (Prisma) | 1
 User Mgmt | Game stats + match history | 1
-Gaming | Game customization (themes/settings) | 1 -->
 
-## Individual Contributions (required)
+## Individual Contributions
 
 ### - <meol-fat>: - Dev
 

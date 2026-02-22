@@ -298,7 +298,7 @@ export async function googleCallbackHandler(
     googleId: googleUser.id,
     email: googleUser.email,
     username: googleUser.name,
-    avatarUrl: googleUser.picture,
+    avatarUrl: googleUser.picture ?? "./uploads/avatars/default.png",
   });
 
   // 4. Issue your JWT
