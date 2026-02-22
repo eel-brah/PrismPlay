@@ -117,6 +117,7 @@ export default function SocialHub() {
   const [addUsername, setAddUsername] = useState("");
   const [addMsg, setAddMsg] = useState<string | null>(null);
   const [addErr, setAddErr] = useState<string | null>(null);
+  const [socialError, setSocialError] = useState<string | null>(null);
   const [addLoading, setAddLoading] = useState(false);
 
   const [chatMode, setChatMode] = useState<"channel" | "dm">("channel");
@@ -513,7 +514,7 @@ export default function SocialHub() {
             },
           );
         }
-      } catch (_) { }
+      } catch (_) {}
     };
     init();
     return () => {
@@ -614,7 +615,9 @@ export default function SocialHub() {
       await apiAcceptFriend(token, id);
       await reload();
     } catch (e) {
-      console.log(e);
+      setSocialError(
+        e instanceof Error ? e.message : "Failed to Remove Friend",
+      );
     }
   };
 
@@ -625,7 +628,9 @@ export default function SocialHub() {
       await apiDeclineFriend(token, id);
       await reload();
     } catch (e) {
-      console.log(e);
+      setSocialError(
+        e instanceof Error ? e.message : "Failed to Remove Friend",
+      );
     }
   };
 
@@ -636,7 +641,9 @@ export default function SocialHub() {
       await apiRemoveFriend(token, id);
       await reload();
     } catch (e) {
-      console.log(e);
+      setSocialError(
+        e instanceof Error ? e.message : "Failed to Remove Friend",
+      );
     }
   };
 
@@ -801,10 +808,11 @@ export default function SocialHub() {
                     setSelectedFriendId(null);
                   }
                 }}
-                className={`px-4 py-1 rounded-full text-sm transition-colors ${activeTab === key
+                className={`px-4 py-1 rounded-full text-sm transition-colors ${
+                  activeTab === key
                     ? "bg-blue-600 text-white"
                     : "text-gray-300 hover:bg-gray-800"
-                  }`}
+                }`}
               >
                 {key[0].toUpperCase() + key.slice(1)}
               </button>
@@ -835,10 +843,11 @@ export default function SocialHub() {
                   <button
                     key={t}
                     onClick={() => setFriendsSubTab(t)}
-                    className={`px-4 py-1 rounded-full text-sm transition-colors ${friendsSubTab === t
+                    className={`px-4 py-1 rounded-full text-sm transition-colors ${
+                      friendsSubTab === t
                         ? "bg-blue-600 text-white"
                         : "text-gray-300 hover:bg-gray-800"
-                      }`}
+                    }`}
                   >
                     {t === "friends" && `Friends (${friends.length})`}
                     {t === "requests" && `Requests (${requests.length})`}
@@ -850,173 +859,207 @@ export default function SocialHub() {
 
             {/* Friend List Grid */}
             {friendsSubTab === "friends" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {friends
-                  .filter((f) =>
-                    f.name.toLowerCase().includes(friendSearch.toLowerCase()),
-                  )
-                  .map((f) => {
-                    const pill =
-                      f.status === "online"
-                        ? { text: "Online", cls: "bg-green-600 text-white" }
-                        : f.status === "in_game"
-                          ? { text: "In Game", cls: "bg-blue-600 text-white" }
-                          : f.status === "away"
-                            ? { text: "Away", cls: "bg-yellow-600 text-black" }
-                            : {
-                              text: "Offline",
-                              cls: "bg-gray-600 text-white",
-                            };
-                    return (
-                      <div
-                        key={f.id}
-                        className="rounded-2xl border border-white/10 bg-gray-900/60 shadow-xl p-5"
-                      >
-                        <div className="flex items-start justify-between">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              navigate(`/profile/${encodeURIComponent(f.name)}`)
-                            }
-                            className="flex items-center gap-3 text-left"
-                          >
-                            <div className="flex items-center gap-3">
-                              {f.avatarUrl ? (
-                                <img
-                                  src={f.avatarUrl}
-                                  alt={f.name}
-                                  className="w-10 h-10 rounded-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
-                              )}
-                              <div>
-                                <div className="font-semibold text-gray-100">
-                                  {f.name}
-                                </div>
-                                {f.lastLogin && pill.text === "Offline" && (
-                                  <div className="text-xs text-gray-400 flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    <span>
-                                      {timeAgo(f.lastLogin)}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </button>
-                          <span
-                            className={`text-xs px-2 py-1 rounded-full ${pill.cls}`}
-                          >
-                            {pill.text}
-                          </span>
-                        </div>
-                        <div className="mt-5 flex items-center gap-3">
-                          <button
-                            onClick={() => handleStartDirectMessage(f.id)}
-                            className="px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white"
-                          >
-                            Chat
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (pendingInviteId === Number(f.id)) {
-                                cancelGameInvite();
-                              } else {
-                                sendGameInvite(f.id);
+              <>
+                {socialError && (
+                  <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex items-center justify-between">
+                    <span>{socialError}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSocialError("")}
+                      className="ml-3 text-red-200/80 hover:text-red-100 underline"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {friends
+                    .filter((f) =>
+                      f.name.toLowerCase().includes(friendSearch.toLowerCase()),
+                    )
+                    .map((f) => {
+                      const pill =
+                        f.status === "online"
+                          ? { text: "Online", cls: "bg-green-600 text-white" }
+                          : f.status === "in_game"
+                            ? { text: "In Game", cls: "bg-blue-600 text-white" }
+                            : f.status === "away"
+                              ? {
+                                  text: "Away",
+                                  cls: "bg-yellow-600 text-black",
+                                }
+                              : {
+                                  text: "Offline",
+                                  cls: "bg-gray-600 text-white",
+                                };
+                      return (
+                        <div
+                          key={f.id}
+                          className="rounded-2xl border border-white/10 bg-gray-900/60 shadow-xl p-5"
+                        >
+                          <div className="flex items-start justify-between">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                navigate(
+                                  `/profile/${encodeURIComponent(f.name)}`,
+                                )
                               }
-                            }}
-                            className={`p-2 rounded-md transition-colors text-white disabled:opacity-50 ${pendingInviteId === Number(f.id)
-                                ? "bg-red-500 hover:bg-red-600 animate-pulse"
-                                : "bg-orange-600 hover:bg-orange-700"
+                              className="flex items-center gap-3 text-left"
+                            >
+                              <div className="flex items-center gap-3">
+                                {f.avatarUrl ? (
+                                  <img
+                                    src={f.avatarUrl}
+                                    alt={f.name}
+                                    className="w-10 h-10 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
+                                )}
+                                <div>
+                                  <div className="font-semibold text-gray-100">
+                                    {f.name}
+                                  </div>
+                                  {f.lastLogin && pill.text === "Offline" && (
+                                    <div className="text-xs text-gray-400 flex items-center gap-1">
+                                      <Clock className="w-3 h-3" />
+                                      <span>{timeAgo(f.lastLogin)}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                            <span
+                              className={`text-xs px-2 py-1 rounded-full ${pill.cls}`}
+                            >
+                              {pill.text}
+                            </span>
+                          </div>
+                          <div className="mt-5 flex items-center gap-3">
+                            <button
+                              onClick={() => handleStartDirectMessage(f.id)}
+                              className="px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white"
+                            >
+                              Chat
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (pendingInviteId === Number(f.id)) {
+                                  cancelGameInvite();
+                                } else {
+                                  sendGameInvite(f.id);
+                                }
+                              }}
+                              className={`p-2 rounded-md transition-colors text-white disabled:opacity-50 ${
+                                pendingInviteId === Number(f.id)
+                                  ? "bg-red-500 hover:bg-red-600 animate-pulse"
+                                  : "bg-orange-600 hover:bg-orange-700"
                               }`}
-                            disabled={
-                              f.status === "offline" ||
-                              (pendingInviteId !== null &&
-                                pendingInviteId !== Number(f.id))
-                            }
-                            title={
-                              f.status === "offline"
-                                ? "User is offline"
-                                : pendingInviteId === Number(f.id)
-                                  ? "Cancel Invite"
-                                  : "Invite to Game"
-                            }
-                          >
-                            {pendingInviteId === Number(f.id) ? (
-                              <span className="text-xs font-bold px-1">X</span>
-                            ) : (
-                              <Gamepad2 className="w-4 h-4" />
-                            )}
-                          </button>
-                          <button
-                            onClick={() => removeFriend(f.id)}
-                            className="ml-auto p-2 rounded-md bg-gray-800/60 hover:bg-gray-800 text-gray-300"
-                          >
-                            <UserMinus className="w-4 h-4" />
-                          </button>
+                              disabled={
+                                f.status === "offline" ||
+                                (pendingInviteId !== null &&
+                                  pendingInviteId !== Number(f.id))
+                              }
+                              title={
+                                f.status === "offline"
+                                  ? "User is offline"
+                                  : pendingInviteId === Number(f.id)
+                                    ? "Cancel Invite"
+                                    : "Invite to Game"
+                              }
+                            >
+                              {pendingInviteId === Number(f.id) ? (
+                                <span className="text-xs font-bold px-1">
+                                  X
+                                </span>
+                              ) : (
+                                <Gamepad2 className="w-4 h-4" />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => removeFriend(f.id)}
+                              className="ml-auto p-2 rounded-md bg-gray-800/60 hover:bg-gray-800 text-gray-300"
+                            >
+                              <UserMinus className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-              </div>
+                      );
+                    })}
+                </div>
+              </>
             )}
 
             {/* Friend Requests Grid */}
             {friendsSubTab === "requests" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {requests
-                  .filter((r) =>
-                    r.name.toLowerCase().includes(friendSearch.toLowerCase()),
-                  )
-                  .map((r) => (
-                    <div
-                      key={r.id}
-                      className="rounded-2xl border border-white/10 bg-gray-900/60 shadow-xl p-5"
+              <>
+                {socialError && (
+                  <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex items-center justify-between">
+                    <span>{socialError}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSocialError("")}
+                      className="ml-3 text-red-200/80 hover:text-red-100 underline"
                     >
-                      <div className="flex items-center gap-3">
-                        {r.avatarUrl ? (
-                          <img
-                            src={r.avatarUrl}
-                            alt={r.name}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
-                        )}
-                        <div>
-                          <div className="font-semibold text-gray-100">
-                            {r.name}
+                      Dismiss
+                    </button>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {requests
+                    .filter((r) =>
+                      r.name.toLowerCase().includes(friendSearch.toLowerCase()),
+                    )
+                    .map((r) => (
+                      <div
+                        key={r.id}
+                        className="rounded-2xl border border-white/10 bg-gray-900/60 shadow-xl p-5"
+                      >
+                        <div className="flex items-center gap-3">
+                          {r.avatarUrl ? (
+                            <img
+                              src={r.avatarUrl}
+                              alt={r.name}
+                              className="w-10 h-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
+                          )}
+                          <div>
+                            <div className="font-semibold text-gray-100">
+                              {r.name}
+                            </div>
                           </div>
                         </div>
+                        <div className="mt-4 flex gap-3">
+                          <button
+                            onClick={() => {
+                              acceptFriend(r.id);
+                              setRequests((prev) =>
+                                prev.filter((x) => x.id !== r.id),
+                              );
+                            }}
+                            className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            Accept
+                          </button>
+                          <button
+                            onClick={() => {
+                              declineFriend(r.id);
+                              setRequests((prev) =>
+                                prev.filter((x) => x.id !== r.id),
+                              );
+                            }}
+                            className="px-4 py-2 rounded-md bg-gray-800/80 hover:bg-gray-800 text-gray-200"
+                          >
+                            Decline
+                          </button>
+                        </div>
                       </div>
-                      <div className="mt-4 flex gap-3">
-                        <button
-                          onClick={() => {
-                            acceptFriend(r.id);
-                            setRequests((prev) =>
-                              prev.filter((x) => x.id !== r.id),
-                            );
-                          }}
-                          className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white"
-                        >
-                          Accept
-                        </button>
-                        <button
-                          onClick={() => {
-                            declineFriend(r.id);
-                            setRequests((prev) =>
-                              prev.filter((x) => x.id !== r.id),
-                            );
-                          }}
-                          className="px-4 py-2 rounded-md bg-gray-800/80 hover:bg-gray-800 text-gray-200"
-                        >
-                          Decline
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
+                    ))}
+                </div>
+              </>
             )}
             {/* Add Friend Form */}
             {friendsSubTab === "add" && (
@@ -1081,10 +1124,11 @@ export default function SocialHub() {
                           if (socketRef.current)
                             socketRef.current.emit("join_channel", c);
                         }}
-                        className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center gap-3 ${chatMode === "channel" && selectedChannel === c
+                        className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center gap-3 ${
+                          chatMode === "channel" && selectedChannel === c
                             ? "bg-blue-600/20 text-blue-100"
                             : "hover:bg-gray-800/60 text-gray-300"
-                          }`}
+                        }`}
                       >
                         <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 font-bold">
                           #
@@ -1151,10 +1195,11 @@ export default function SocialHub() {
                           <li key={f.id}>
                             <button
                               onClick={() => handleStartDirectMessage(f.id)}
-                              className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center gap-3 ${chatMode === "dm" && selectedFriendId === f.id
+                              className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center gap-3 ${
+                                chatMode === "dm" && selectedFriendId === f.id
                                   ? "bg-blue-600/20"
                                   : "hover:bg-gray-800/60"
-                                }`}
+                              }`}
                             >
                               {f.avatarUrl ? (
                                 <img
@@ -1206,13 +1251,13 @@ export default function SocialHub() {
                             ? { text: "Online", cls: "bg-green-600 text-white" }
                             : f.status === "in_game"
                               ? {
-                                text: "In Game",
-                                cls: "bg-blue-600 text-white",
-                              }
+                                  text: "In Game",
+                                  cls: "bg-blue-600 text-white",
+                                }
                               : {
-                                text: "Away",
-                                cls: "bg-yellow-600 text-black",
-                              };
+                                  text: "Away",
+                                  cls: "bg-yellow-600 text-black",
+                                };
                         return (
                           <div key={f.id} className="flex items-center gap-3">
                             {f.avatarUrl ? (
@@ -1271,9 +1316,9 @@ export default function SocialHub() {
                       new Date().toDateString() === date.toDateString();
                     const displayTime = isToday
                       ? date.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
                       : date.toLocaleDateString();
                     const isMe = m.senderId === myUserId;
                     const isMyLastMessage =
@@ -1336,10 +1381,11 @@ export default function SocialHub() {
                         blockUser(selectedFriendId);
                       }
                     }}
-                    className={`shrink-0 p-2 rounded-md text-white disabled:opacity-50 transition-colors ${blockStatus.byMe
+                    className={`shrink-0 p-2 rounded-md text-white disabled:opacity-50 transition-colors ${
+                      blockStatus.byMe
                         ? "bg-green-600 hover:bg-green-700"
                         : "bg-red-600 hover:bg-red-700"
-                      }`}
+                    }`}
                     disabled={chatMode !== "dm" || !selectedFriendId}
                     title={blockStatus.byMe ? "Unblock User" : "Block User"}
                   >
@@ -1363,12 +1409,13 @@ export default function SocialHub() {
                           ? "You blocked this user. Unblock to chat."
                           : "Type your message..."
                     }
-                    className={`flex-1 min-w-[180px] px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none ${isChatLocked
+                    className={`flex-1 min-w-[180px] px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none ${
+                      isChatLocked
                         ? "cursor-not-allowed opacity-50 bg-gray-900"
                         : chatInput.trim().length > MAX_MESSAGE_LENGTH
                           ? "border-red-500"
                           : ""
-                      }`}
+                    }`}
                     maxLength={MAX_MESSAGE_LENGTH + 50}
                     disabled={
                       chatMode === "dm" && (!selectedFriendId || isChatLocked)
@@ -1376,12 +1423,13 @@ export default function SocialHub() {
                   />
                   {chatInput.length > 0 && (
                     <span
-                      className={`shrink-0 text-xs tabular-nums whitespace-nowrap ${chatInput.trim().length > MAX_MESSAGE_LENGTH
+                      className={`shrink-0 text-xs tabular-nums whitespace-nowrap ${
+                        chatInput.trim().length > MAX_MESSAGE_LENGTH
                           ? "text-red-400 font-bold"
                           : chatInput.trim().length > MAX_MESSAGE_LENGTH * 0.9
                             ? "text-yellow-400"
                             : "text-gray-500"
-                        }`}
+                      }`}
                     >
                       {chatInput.trim().length}/{MAX_MESSAGE_LENGTH}
                     </span>
@@ -1404,20 +1452,21 @@ export default function SocialHub() {
                           sendGameInvite();
                         }
                       }}
-                      className={`p-2 rounded-md transition-colors text-white disabled:opacity-50 ${pendingInviteId === Number(selectedFriendId)
+                      className={`p-2 rounded-md transition-colors text-white disabled:opacity-50 ${
+                        pendingInviteId === Number(selectedFriendId)
                           ? "bg-red-500 hover:bg-red-600 animate-pulse"
                           : "bg-orange-600 hover:bg-orange-700"
-                        }`}
+                      }`}
                       disabled={
                         chatMode !== "dm" ||
                         !selectedFriendId ||
                         isChatLocked ||
-                        friends.find((x) => x.id === selectedFriendId)?.status ===
-                        "offline"
+                        friends.find((x) => x.id === selectedFriendId)
+                          ?.status === "offline"
                       }
                       title={
-                        friends.find((x) => x.id === selectedFriendId)?.status ===
-                          "offline"
+                        friends.find((x) => x.id === selectedFriendId)
+                          ?.status === "offline"
                           ? "User is offline"
                           : pendingInviteId === Number(selectedFriendId)
                             ? "Cancel Invite"
