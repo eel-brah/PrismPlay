@@ -23,7 +23,7 @@ import {
   apiRemoveFriend,
   apiAddFriend,
 } from "../api";
-import { getPresenceSocket } from "@/presenceSocket";
+import { getPresenceSocket, connectPresence } from "@/presenceSocket";
 
 type TabKey = "friends" | "chat";
 
@@ -124,7 +124,7 @@ export default function SocialHub() {
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
   const [dmSearch, setDmSearch] = useState("");
   const [chatInput, setChatInput] = useState("");
-  const MAX_MESSAGE_LENGTH = 2000;
+  const MAX_MESSAGE_LENGTH = 141;
 
   const channels = useMemo(() => ["general"], []);
   const [selectedChannel, setSelectedChannel] = useState<string>(channels[0]);
@@ -291,7 +291,7 @@ export default function SocialHub() {
         const me = await apiGetMe(token);
         setMyUserId(me.id);
         await reload();
-        const ps = getPresenceSocket();
+        const ps = connectPresence(token);
         if (!ps) return;
 
         ps.on("presence:snapshot", applySnapshot);
