@@ -245,7 +245,7 @@ Offline Pong Modes (moel-fat): Local multiplayer, AI opponent with adjustable di
 Agario (eel-brah): Real-time multiplayer, rooms, history, leaderboards, spectator mode
 Social Hub (): Friends, friend requests, blocking, chat (DMs, channels), online status
 Game Statistics (): Player stats, match history, leaderboards
-Customization (): Game themes, avatar upload
+Customization (moel-fat): Game themes, avatar upload
 Spectator Mode (): For Agario
 Privacy Policy & Terms of Service (): Dedicated pages
 Database (): MariaDB with Prisma ORM
@@ -278,12 +278,24 @@ web      | Implement spectator mode for games. | 1
 
 ## Individual Contributions
 
-- <meol-fat>: - Dev
-
-Owned features: Pong (local multiplay) matchmaking reconect history leaderboard Oauth(google)
-Key modules claimed:
-Main files/areas: /src /frontend(component/pong* - game/pong* - utils) , /backend(server/socket pong.ts pongserver.ts - module/pong) , /shared/pong\* , psirma
-Notable problems solved: (e.g., race condition, websocket disconnect handling, Prisma migration issue)
+- <meol-fat>:
+Contributions:
+    - pong: Real-time multiplayer, local play, history, leaderboard, Reconnect Handling.
+    - OAuth (Google):  
+claimed modules:
+    -Web-based game (Pong)
+    - Remote players
+    - Multiplayer game
+    - OAuth (Google):
+    - Game statistics and match history
+    - Game customization options 
+    - ORM (Prisma)
+    - Frameworks backend
+Notable problems solved:
+    - Race conditions in matchmaking:
+    - websocket reconnection
+    - WebSocket disconnects & reconnection
+    - Prisma migration/runtime issues
 
 - <muel-bak>: - Frontend
 
