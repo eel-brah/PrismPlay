@@ -277,7 +277,7 @@ Room History (eel-brah - muel-bak): Agario rooms history
 
 ## Modules (points)
 Category | Module | Points
----      | ----------- | --26--
+---      | ----------- | --25--
 Web      | Frameworks frontend+backend | 2
 Web      | Real-time features (WebSockets / Socket.IO) | 2
 Web      | Allow users to interact with other users | 2
@@ -353,24 +353,38 @@ Notable problems solved:
 
 <mboughra>:
 Contributions:
-- Real-time chat (Global channels and private DMs)
-- Friend and block system
-- Live typing indicators and unread message receipts
-- Private game matchmaking (secure 1v1 lobby invites)
-- Database schema design and queries using Prisma
+    - Real-time chat (Global channels and private DMs)
+    - Friend and block system
+    - Live typing indicators and unread message receipts
+    - Private game matchmaking (secure 1v1 lobby invites)
+    - Database schema design and queries using Prisma
 claimed modules:
-- User interaction
-- Frameworks backend
-- Frameworks Frontend
-- Advanced chat features
-- ORM (Prisma)
+    - User interaction
+    - Frameworks backend
+    - Frameworks Frontend
+    - Advanced chat features
+    - ORM (Prisma)
 Notable problems solved:
-- Game invite race conditions and spam
-- Frontend/backend message validation mismatches
+    - Game invite race conditions and spam
+    - Frontend/backend message validation mismatches
 
-<Member C>: …
-
-(Include concrete features + files/components owned.)
+<amokhtar>:
+Contributions:
+    - User interaction
+    - add remove friends 
+    - update profile 
+    - user managment
+    - jwt auth
+    - Database schema design and queries using Prisma
+claimed modules:
+    - Allow users to interact with other users
+    - Standard user management and authentication.
+    - Frameworks backend
+    - Frameworks Frontend
+    - ORM (Prisma)
+Notable problems solved:
+    - race conditions and spam
+    - 
 
 ## Resources
 
