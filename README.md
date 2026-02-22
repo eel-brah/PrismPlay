@@ -257,23 +257,23 @@ Room History: Agar.io rooms history
 
 ## Modules (points)
 Category | Module | Points
---- | ----------- | --26--
-Web | Frameworks frontend+backend | 2
-Web | Real-time features (WebSockets / Socket.IO) | 2
-Web | Allow users to interact with other users | 2
-web | Standard user management and authentication. | 2
-Gaming | Remote players (real-time multiplayer + reconnection) | 2
-Gaming |  Multiplayer game (more than two players). | 2 
-gaming | Add another game with user history and matchmaking. | 2
-AI | AI Opponent (human-like, beatable) | 2
-web |  Introduce an AI Opponent for games. | 2
-Gaming | Web-based game (Pong) | 2
-Web | ORM (Prisma) | 1
-Gaming |  Game statistics and match history | 1
-web | Implement remote authentication with OAuth 2.0  | 1
-web | Advanced chat features | 1
-web | Game customization options. | 1
-web | Implement spectator mode for games. | 1
+---      | ----------- | --26--
+Web      | Frameworks frontend+backend | 2
+Web      | Real-time features (WebSockets / Socket.IO) | 2
+Web      | Allow users to interact with other users | 2
+web      | Standard user management and authentication. | 2
+Gaming   | Remote players (real-time multiplayer + reconnection) | 2
+Gaming   |  Multiplayer game (more than two players). | 2 
+gaming   | Add another game with user history and matchmaking. | 2
+AI       | AI Opponent (human-like, beatable) | 2
+web      |  Introduce an AI Opponent for games. | 2
+Gaming   | Web-based game (Pong) | 2
+Web      | ORM (Prisma) | 1
+Gaming   |  Game statistics and match history | 1
+web      | Implement remote authentication with OAuth 2.0  | 1
+web      | Advanced chat features | 1
+web      | Game customization options. | 1
+web      | Implement spectator mode for games. | 1
 <!-- web | Full compatibility with at least 2 additional browsers | 1  #check check -->
 
 
