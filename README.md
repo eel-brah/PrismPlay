@@ -286,7 +286,14 @@ Key modules claimed:
 Main files/areas: /src /frontend(component/pong* - game/pong* - utils) , /backend(server/socket pong.ts pongserver.ts - module/pong) , /shared/pong\* , psirma
 Notable problems solved: (e.g., race condition, websocket disconnect handling, Prisma migration issue)
 
-- <Member B>: …
+### - <mboughra B>: - Dev 
+
+**Owned features:** Real-time chat (Global & DMs), Friend/block system, Typing indicators, Unread receipts, Private game matchmaking
+**Key modules claimed:** User Interaction, Advanced Chat features
+**Main files/areas:** `/src/frontend/component/SocialHub.tsx`, `/src/backend/server/socket/chatHandler.ts`, prisma
+**Notable problems solved:** invite race conditions/spam, frontend/backend message validation mismatch
+
+
 - <Member C>: …
 - <Member D>: …
 
