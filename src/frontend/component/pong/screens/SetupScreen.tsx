@@ -4,6 +4,7 @@ import type { AiPos } from "@/game/pong/types";
 import type { GameColors, PlayerProfile } from "@/game/pong/models";
 import { BALL_COLORS, THEMES } from "@/game/pong/visuals";
 import PlayerSetupCard from "../components/PlayerSetupCard";
+import { useEffect } from "react";
 
 export default function SetupScreen({
   isSingle,
@@ -32,10 +33,32 @@ export default function SetupScreen({
   onStart: () => void;
 }) {
   const [showBallColors, setShowBallColors] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const leftNameValid = leftPlayer?.name?.trim().length > 0;
+  const rightNameValid = rightPlayer?.name?.trim().length > 0;
+  const canStart =
+    (!isSingle && leftNameValid && rightNameValid) ||
+    (isSingle &&
+      ((aiPos === "right" && leftNameValid) ||
+        (aiPos === "left" && rightNameValid)));
+
+  useEffect(() => {
+    if (!canStart) {
+      setError("Please enter a name for each player.");
+    } else {
+      setError(null);
+    }
+  }, [leftPlayer.name, rightPlayer.name, canStart]);
+
+  const handleStart = () => {
+    if (!canStart) return;
+    setError(null);
+    onStart();
+  };
 
   return (
     <div className="h-full min-h-0 w-full max-w-6xl mx-auto px-6 flex flex-col justify-center text-white">
-
       <div className="text-center mb-10">
         <div className="text-sm tracking-widest text-purple-300 mb-1">
           MATCH CONFIGURATION
@@ -51,9 +74,7 @@ export default function SetupScreen({
       </div>
 
       <div className="grid lg:grid-cols-[1fr_320px] gap-10 items-start">
-
         <div className="flex flex-wrap justify-center gap-6">
-
           {(!isSingle || aiPos === "right") && (
             <PlayerSetupCard
               side="left"
@@ -69,11 +90,9 @@ export default function SetupScreen({
               setPlayer={setRightPlayer}
             />
           )}
-
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/[0.035] backdrop-blur-xl p-5 space-y-6">
-
           <div>
             <div className="text-[11px] text-gray-500 mb-2 tracking-wide">
               MAP THEME
@@ -91,9 +110,10 @@ export default function SetupScreen({
                     }
                     className={`
                       flex items-center gap-2 px-3 py-2 rounded-md border text-xs transition-all
-                      ${active
-                        ? "border-purple-400/60 bg-purple-500/15 text-white"
-                        : "border-white/10 bg-white/[0.02] text-gray-400 hover:bg-white/[0.05]"
+                      ${
+                        active
+                          ? "border-purple-400/60 bg-purple-500/15 text-white"
+                          : "border-white/10 bg-white/[0.02] text-gray-400 hover:bg-white/[0.05]"
                       }
                     `}
                   >
@@ -141,10 +161,11 @@ export default function SetupScreen({
                           });
                           setShowBallColors(false);
                         }}
-                        className={`w-7 h-7 rounded-full transition ${gameColors.ballColor === color.value
+                        className={`w-7 h-7 rounded-full transition ${
+                          gameColors.ballColor === color.value
                             ? "ring-2 ring-white scale-110"
                             : "hover:scale-110"
-                          }`}
+                        }`}
                         style={{ backgroundColor: color.value }}
                       />
                     ))}
@@ -154,8 +175,10 @@ export default function SetupScreen({
             </div>
           </div>
 
+          {error && (
+            <div className="text-red-400 text-sm text-center">{error}</div>
+          )}
           <div className="pt-4 border-t border-white/10 flex flex-col gap-3">
-
             <button
               onClick={onBack}
               className="py-2 rounded-md border border-white/10 bg-white/[0.02] hover:bg-white/[0.06] text-gray-300 hover:text-white transition"
@@ -164,14 +187,15 @@ export default function SetupScreen({
             </button>
 
             <button
-              onClick={onStart}
-              className="py-2 rounded-md bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 text-white font-medium shadow-lg transition"
+              onClick={handleStart}
+              disabled={!canStart}
+              className={`py-2 rounded-md bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 text-white font-medium shadow-lg transition
+                ${!canStart ? "opacity-50 cursor-not-allowed" : ""}
+              `}
             >
               Start Match
             </button>
-
           </div>
-
         </div>
       </div>
     </div>
