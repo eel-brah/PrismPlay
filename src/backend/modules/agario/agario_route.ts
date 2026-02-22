@@ -48,7 +48,6 @@ export async function agario_routes(server: FastifyInstance) {
   server.get<{ Querystring: RoomsHistoryQuery }>(
     "/history/rooms",
     { preHandler: [server.auth] },
-    //TODO: zod
     async (req) => {
       const q = req.query;
       return listRoomsHistoryDb(Number(q.take),Number(q.skip), q.onlyEnded);

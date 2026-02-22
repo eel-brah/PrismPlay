@@ -67,7 +67,6 @@ export function setGlobalErrorHandler(server: FastifyInstance) {
         }
       }
 
-      console.error(error);
       return rep.status(500).send({ message: "Internal server error" });
     },
   );

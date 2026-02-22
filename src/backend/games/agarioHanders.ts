@@ -197,11 +197,6 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
       });
     }
 
-    // summaries.sort((a, b) => {
-    //   if (a.status !== b.status) return a.status === "started" ? -1 : 1;
-    //   return b.playerCount - a.playerCount;
-    // });
-
     socket.emit("agario:rooms", summaries);
   });
 

@@ -47,13 +47,6 @@ export interface Mouse {
   y: number;
 }
 
-// export interface InputState {
-//   mouseX: number;
-//   mouseY: number;
-//   // seq: number;
-//   dt: number;
-// }
-
 export interface Virus {
   id: string;
   x: number;
@@ -133,12 +126,6 @@ export interface PlayerState {
   ejectRequested: boolean;
   virusEatTimes: number[];
 }
-// export itnerface  WorldHistory {
-//   playerName: string;
-//   maxMass: number;
-//   kills: number;
-//   durationMs: number;
-// };
 
 export type PublicUser = {
   id: number;

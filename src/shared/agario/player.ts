@@ -138,7 +138,6 @@ export class Player {
   get id(): string {
     return this._id;
   }
-  //TODO:
   set id(id: string) {
     this._id = id;
   }
@@ -319,7 +318,6 @@ export class Player {
     for (const eject of ejects) {
       const ejectRadius = radiusFromMass(eject.mass);
       for (const blob of blobs) {
-        //TODO: remove
         if (eject.ownerId === blob.id && eject.age < SELF_EJECT_GRACE) {
           continue;
         }
@@ -358,16 +356,8 @@ export class Player {
 
         if (odistance < br + orbRadius) {
           eatenOrbs.push(orb.id);
-
           blob.mass += orb.mass;
-
           if (blob.mass > MAXIMUM_MASS_LIMIT) blob.mass = MAXIMUM_MASS_LIMIT;
-          // const r = radiusFromMass(blob.mass);
-          // if (r > 200) {
-          // const cappedMass = Math.PI * 200 * 200;
-          // blob.mass = cappedMass;
-          // }
-
           break;
         }
       }

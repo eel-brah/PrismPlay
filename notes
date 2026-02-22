@@ -1,11 +1,2 @@
 pnpm prisma db push && pnpm prisma generate
-
 pnpm prisma migrate dev --name init
-
-react
-prisma
-websoket
-solidity
-
-
-pnpm prisma db push && pnpm prisma generate

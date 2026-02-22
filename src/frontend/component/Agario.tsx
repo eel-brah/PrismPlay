@@ -16,7 +16,6 @@ import { drawEjects, drawGrid, drawOrbs, drawPlayer, drawViruses, getOrCreateGue
 import { FinalLeaderboard, Leaderboard } from "./agario/LeaderBoard";
 import { FinalStatusOverlay } from "./agario/FinalStatusOverlay";
 import { TopStatusBar } from "./agario/RoomStatusBar";
-import { nanoid } from "nanoid"
 import { TOKEN_KEY } from "@/api";
 import { InputState } from "src/backend/modules/agario/agario_schema";
 import { useNavigate } from "react-router-dom";
@@ -56,6 +55,9 @@ const Agario = () => {
   const [hasJoined, setHasJoined] = useState(false);
   const [firstTime, setFirstTime] = useState(true);
 
+  // const inputSeqRef = useRef(0);
+  // const pendingInputsRef = useRef<InputState[]>([]);
+  // const lastProcessedSeqRef = useRef<number>(0);
 
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const finalLeaderboard = useRef<FinalLeaderboardEntry[]>([]);
@@ -128,7 +130,6 @@ const Agario = () => {
         y: canvas.height / 2,
       };
     }
-
 
     roomListInterval.current = setInterval(() => {
       if (!hasJoined) socket.emit("agario:list-rooms");
@@ -231,6 +232,8 @@ const Agario = () => {
       orbsRef.current = [];
       ejectsRef.current = [];
       virusesRef.current = [];
+      // pendingInputsRef.current = [];
+      // lastProcessedSeqRef.current = data.lastProcessedSeq;
 
       clearInterval(roomListInterval.current);
       roomListInterval.current = undefined;
@@ -251,8 +254,36 @@ const Agario = () => {
             playerRef.current.updateFromData(myData);
           }
 
+          // lastProcessedSeqRef.current = myData.lastProcessedSeq;
 
+          // const remainingInputs = pendingInputsRef.current.filter(
+          //   (input) => input.seq > myData.lastProcessedSeq
+          // );
+          // pendingInputsRef.current = remainingInputs;
 
+          // const player = playerRef.current;
+          // const orbs = orbsRef.current;
+          // const ejects = ejectsRef.current;
+          // if (player) {
+          // const viruses = virusesRef.current;
+          //   for (const input of remainingInputs) {
+          //     const mouse: Mouse = { x: input.mouseX, y: input.mouseY };
+          //     //player.update(input.dt, mouse, orbs, [], false);
+          //     const [eatenOrbs, eatenEjects] = player.update(input.dt, mouse, orbs, ejects, false);
+          //     if (eatenOrbs.length > 0) {
+          //       const eatenSet = new Set(eatenOrbs);
+          //       orbsRef.current = orbsRef.current.filter(
+          //         (o) => !eatenSet.has(o.id),
+          //       );
+          //     }
+          //     if (eatenEjects.length > 0) {
+          //       const eatenSet = new Set(eatenEjects);
+          //       ejectsRef.current = ejectsRef.current.filter(
+          //         (e) => !eatenSet.has(e.id),
+          //       );
+          //     }
+          //   }
+          // }
         }
 
         for (const [id, pData] of Object.entries(data.players)) {
@@ -356,6 +387,9 @@ const Agario = () => {
 
       const player = playerRef.current;
       const camera = cameraRef.current;
+      // const orbs = orbsRef.current;
+      // const ejects = ejectsRef.current;
+      // const viruses = virusesRef.current;
 
       if (!canvas || !player || !camera) return;
 
@@ -364,6 +398,21 @@ const Agario = () => {
         y: mouseRef.current.y + camera.y,
       };
 
+      // local prediction 
+      // player.update(dt, worldMouse, [], [], isDeadRef.current);
+      // const [eatenOrbs, eatenEjects] = player.update(dt, worldMouse, orbs, ejects, isDeadRef.current);
+      // if (eatenOrbs.length > 0) {
+      //   const eatenSet = new Set(eatenOrbs);
+      //   orbsRef.current = orbsRef.current.filter(
+      //     (o) => !eatenSet.has(o.id),
+      //   );
+      // }
+      // if (eatenEjects.length > 0) {
+      //   const eatenSet = new Set(eatenEjects);
+      //   ejectsRef.current = ejectsRef.current.filter(
+      //     (e) => !eatenSet.has(e.id),
+      //   );
+      // }
 
       if (isSpectatorRef.current || isDeadRef.current) player.update(dt, worldMouse, [], [], true);
 
@@ -372,11 +421,14 @@ const Agario = () => {
 
       if (isSpectatorRef.current || isDeadRef.current) return;
 
+      // inputSeqRef.current += 1;
       const input: InputState = {
         x: worldMouse.x,
         y: worldMouse.y,
+        // seq: inputSeqRef.current,
         dt,
       };
+      // pendingInputsRef.current.push(input);
       socket.emit("input", input);
     }
 
@@ -516,11 +568,9 @@ const Agario = () => {
 
   function clearing(mode = MAIN_MENU) {
     isDeadRef.current = false;
-
     setHasJoined(false);
     setRoomInfo(null);
     setLeaderboard([]);
-
     setMenuMode(mode);
     setRoomName("");
     roomNameRef.current = "";
@@ -528,7 +578,6 @@ const Agario = () => {
     setCreatedKey("");
     clearAlert();
   }
-
 
   useEffect(() => {
     const inMenu = !hasJoined || menuMode === MAIN_MENU;
@@ -673,7 +722,6 @@ const Agario = () => {
               </button>
             )}
           </div>
-
 
           {menuMode === "join" && (
             <div className="w-[540px] max-w-[92vw] p-5 bg-white/[0.05] backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_10px_60px_rgba(0,0,0,0.45)]">
@@ -982,142 +1030,137 @@ const Agario = () => {
             </div>
           )}
         </div>
-      )
-      }
+      )}
 
-      {
-        menuMode === "game over" && (
-          <div className="absolute inset-0 bg-black/70 flex flex-col justify-center items-center text-white z-50">
-            <div className="text-4xl mb-6">You Died</div>
+      {menuMode === "game over" && (
+        <div className="absolute inset-0 bg-black/70 flex flex-col justify-center items-center text-white z-50">
+          <div className="text-4xl mb-6">You Died</div>
 
-            <div className="flex gap-4">
-              <button
-                onClick={handleRespawn}
-                className="
+          <div className="flex gap-4">
+            <button
+              onClick={handleRespawn}
+              className="
                 px-6 py-3 rounded-lg font-semibold
                 bg-gradient-to-r from-purple-500 to-blue-500
                 text-white hover:brightness-110
                 hover:shadow-[0_0_30px_rgba(168,85,247,0.6)]
                 transition-all"
-              >
-                Respawn
-              </button>
+            >
+              Respawn
+            </button>
 
-              <button
-                onClick={() => {
-                  handleJoinRoom("join", true);
-                }}
-                className="
+            <button
+              onClick={() => {
+                handleJoinRoom("join", true);
+              }}
+              className="
                 px-6 py-3 rounded-lg font-semibold
                 bg-gradient-to-r from-purple-500 to-blue-500
                 text-white hover:brightness-110
                 hover:shadow-[0_0_30px_rgba(168,85,247,0.6)]
                 transition-all"
-              >
-                Spectate
-              </button>
+            >
+              Spectate
+            </button>
 
-              <button
-                onClick={() => { backToMainMenu(false); }}
-                className="px-6 py-3 bg-zinc-700 text-white rounded-md text-xl hover:bg-zinc-600 transition"
-              >
-                Back to Menu
-              </button>
-            </div>
+            <button
+              onClick={() => { backToMainMenu(false); }}
+              className="px-6 py-3 bg-zinc-700 text-white rounded-md text-xl hover:bg-zinc-600 transition"
+            >
+              Back to Menu
+            </button>
           </div>
-        )
-      }
+        </div>
+      )}
 
-      {
-        hasJoined && roomInfo?.status === "waiting" && (
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-40">
+      {hasJoined && roomInfo?.status === "waiting" && (
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-40">
 
-            <div className={`${glassPanel} p-7 w-[620px] max-w-[92vw] text-white`}>
+          <div className={`${glassPanel} p-7 w-[620px] max-w-[92vw] text-white`}>
 
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-2xl font-bold tracking-wide">
-                  {roomInfo.visibility === "private" ? "🔒" : "🌐"} {roomInfo.room}
-                </div>
-
-                <div className="text-sm text-purple-300 font-semibold">
-                  {roomInfo.players.length}/{roomInfo.maxPlayers} Players
-                </div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-2xl font-bold tracking-wide">
+                {roomInfo.visibility === "private" ? "🔒" : "🌐"} {roomInfo.room}
               </div>
 
-              <div className="text-gray-400 text-sm">
-                Match Duration: {roomInfo.durationMin} min
+              <div className="text-sm text-purple-300 font-semibold">
+                {roomInfo.players.length}/{roomInfo.maxPlayers} Players
               </div>
+            </div>
 
-              <div className="mt-6 text-center">
-                <div className="text-xl font-semibold text-white animate-pulse">
-                  Waiting for players...
-                </div>
-                <div className="text-gray-400 text-sm mt-1">
-                  Game will start once the host begins the match
+            <div className="text-gray-400 text-sm">
+              Match Duration: {roomInfo.durationMin} min
+            </div>
+
+            <div className="mt-6 text-center">
+              <div className="text-xl font-semibold text-white animate-pulse">
+                Waiting for players...
+              </div>
+              <div className="text-gray-400 text-sm mt-1">
+                Game will start once the host begins the match
+              </div>
+            </div>
+
+            {roomInfo.youAreHost && roomInfo.visibility === "private" && roomInfo.key && (
+              <div className="mt-5 text-center">
+                <div className="text-xs text-gray-400 mb-1">Invite Key</div>
+                <div className="font-mono tracking-widest text-lg text-purple-300 border border-purple-400/30 px-4 py-2 rounded-lg inline-block bg-purple-500/10">
+                  {roomInfo.key}
                 </div>
               </div>
+            )}
 
-              {roomInfo.youAreHost && roomInfo.visibility === "private" && roomInfo.key && (
-                <div className="mt-5 text-center">
-                  <div className="text-xs text-gray-400 mb-1">Invite Key</div>
-                  <div className="font-mono tracking-widest text-lg text-purple-300 border border-purple-400/30 px-4 py-2 rounded-lg inline-block bg-purple-500/10">
-                    {roomInfo.key}
+            <div className="mt-6">
+              <div className="text-sm text-gray-300 mb-2">Players</div>
+
+              <div className="max-h-[240px] overflow-auto space-y-2 pr-1">
+                {roomInfo.players.map((p) => (
+                  <div
+                    key={p.id}
+                    className={`${glowCard} px-4 py-2 flex justify-between items-center`}
+                  >
+                    <span className="font-medium text-gray-100">
+                      {p.name}
+                    </span>
+
+                    {p.id === roomInfo.hostId && (
+                      <span className={badge}>HOST</span>
+                    )}
                   </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 flex gap-3 items-center justify-between">
+
+              {roomInfo.youAreHost ? (
+                <button
+                  onClick={() => {
+                    socketRef.current?.emit("agario:start-room");
+                    clearAlert();
+                  }}
+                  className={accentBtn}
+                >
+                  Start Match
+                </button>
+              ) : (
+                <div className="text-gray-400 text-sm">
+                  Waiting for host to start…
                 </div>
               )}
 
-              <div className="mt-6">
-                <div className="text-sm text-gray-300 mb-2">Players</div>
-
-                <div className="max-h-[240px] overflow-auto space-y-2 pr-1">
-                  {roomInfo.players.map((p) => (
-                    <div
-                      key={p.id}
-                      className={`${glowCard} px-4 py-2 flex justify-between items-center`}
-                    >
-                      <span className="font-medium text-gray-100">
-                        {p.name}
-                      </span>
-
-                      {p.id === roomInfo.hostId && (
-                        <span className={badge}>HOST</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-6 flex gap-3 items-center justify-between">
-
-                {roomInfo.youAreHost ? (
-                  <button
-                    onClick={() => {
-                      socketRef.current?.emit("agario:start-room");
-                      clearAlert();
-                    }}
-                    className={accentBtn}
-                  >
-                    Start Match
-                  </button>
-                ) : (
-                  <div className="text-gray-400 text-sm">
-                    Waiting for host to start…
-                  </div>
-                )}
-
-                <button
-                  onClick={() => backToMainMenu(true)}
-                  className={dangerBtn}
-                >
-                  Leave
-                </button>
-
-              </div>
+              <button
+                onClick={() => backToMainMenu(true)}
+                className={dangerBtn}
+              >
+                Leave
+              </button>
 
             </div>
+
           </div>
-        )
-      }
+        </div>
+      )}
 
       {finalStatus && (
         <FinalStatusOverlay
@@ -1128,11 +1171,9 @@ const Agario = () => {
           }}
         />
       )}
-      {
-        hasJoined && roomInfo?.status === "started" && (
-          <Leaderboard leaderboard={leaderboard} />
-        )
-      }
+      {hasJoined && roomInfo?.status === "started" && (
+        <Leaderboard leaderboard={leaderboard} />
+      )}
 
       {hasJoined && roomInfo && roomInfo.status === "started" && (
         <TopStatusBar
@@ -1141,17 +1182,15 @@ const Agario = () => {
         />
       )}
 
-      {
-        menuMode === "leaderboard" && finalLeaderboard.current.length > 0 && (
-          <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50">
-            <FinalLeaderboard
-              leaderboard={finalLeaderboard.current}
-              durationMin={roomDuration}
-              backToMainMenu={backToMainMenu}
-            />
-          </div>
-        )
-      }
+      {menuMode === "leaderboard" && finalLeaderboard.current.length > 0 && (
+        <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50">
+          <FinalLeaderboard
+            leaderboard={finalLeaderboard.current}
+            durationMin={roomDuration}
+            backToMainMenu={backToMainMenu}
+          />
+        </div>
+      )}
 
       <canvas ref={canvasRef} id="agario" className="w-full h-full block" />
     </div >

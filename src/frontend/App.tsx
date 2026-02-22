@@ -220,28 +220,30 @@ export default function App() {
         />
 
         <div className="min-h-screen flex flex-col">
-          <div className={`flex-1 ${showFooter ? "pb-24" : ""}`}>
+          <div className={`flex-1 ${showFooter ? "pb-16" : ""}`}>
             <Outlet />
           </div>
+
           {showFooter && (
-            <footer className="fixed bottom-0 left-0 right-0 border-t border-white/10 bg-black/40 backdrop-blur-2xl">
-              <div className="mx-auto max-w-6xl px-4 sm:px-6 py-4 sm:py-6 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 text-xs sm:text-sm text-gray-400">
-                <div className="text-center sm:text-left">
-                  © {new Date().getFullYear()} PrismPlay. Play fair, stay
-                  connected.
+            <footer className="fixed bottom-0 left-0 right-0 border-t border-white/10 bg-black/40 backdrop-blur-xl">
+              <div className="mx-auto max-w-6xl px-4 py-2 flex items-center justify-between text-xs text-gray-400">
+                <div>
+                  © {new Date().getFullYear()} PrismPlay.
                 </div>
-                <div className="flex items-center gap-4">
+
+                <div className="flex items-center gap-3">
                   <Link
                     to="/privacy"
                     className="text-purple-300 hover:text-purple-200 transition"
                   >
-                    Privacy Policy
+                    Privacy
                   </Link>
+
                   <Link
                     to="/terms"
                     className="text-purple-300 hover:text-purple-200 transition"
                   >
-                    Terms of Service
+                    Terms
                   </Link>
                 </div>
               </div>
@@ -296,7 +298,7 @@ export default function App() {
               element={
                 bootingAuth ? (
                   <div className="min-h-screen flex items-center justify-center text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-                      Loading...
+                    Loading...
                   </div>
                 ) : isAuthed ? (
                   <div className={`min-h-screen ${topPaddingClass}`}>
@@ -477,15 +479,15 @@ export default function App() {
 
                       <Link
                         to="/agario"
-                      className="group text-left rounded-3xl border bg-white/[0.04] border-white/10 hover:border-blue-400/40 backdrop-blur-xl p-5 sm:p-7 shadow-xl hover:scale-[1.03] hover:border-blue-400/60 transition-all"
+                        className="group text-left rounded-3xl border bg-white/[0.04] border-white/10 hover:border-blue-400/40 backdrop-blur-xl p-5 sm:p-7 shadow-xl hover:scale-[1.03] hover:border-blue-400/60 transition-all"
                       >
                         <div className="flex items-center gap-5 mb-5">
-                        <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-purple-600/30 border border-purple-400/50 flex items-center justify-center text-2xl sm:text-3xl group-hover:scale-110 transition">
+                          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-purple-600/30 border border-purple-400/50 flex items-center justify-center text-2xl sm:text-3xl group-hover:scale-110 transition">
                             🔵
                           </div>
 
                           <div>
-                          <div className="text-xl sm:text-2xl font-semibold text-blue-300">
+                            <div className="text-xl sm:text-2xl font-semibold text-blue-300">
                               Agar Arena
                             </div>
                             <div className="text-gray-400 text-sm">

@@ -2,11 +2,9 @@ import { Server as SocketIOServer } from "socket.io";
 import { FastifyInstance } from "fastify";
 import { createGuestDb } from "../../modules/agario/agario_service.js";
 import { socketAuthSchema } from "../../modules/agario/agario_schema.js";
-import { World } from "../../../shared/agario/types.js";
 import { JwtPayload } from "../../modules/user/user_controller.js";
 import { agarioEngine } from "../../games/agarioEngine.js";
-import { activePlayers, agarioHandlers } from "../../games/agarioHanders.js";
-import { getIdentity, identityKey } from "../../games/agarioUtils.js";
+import { agarioHandlers } from "../../games/agarioHanders.js";
 
 export function init_agario(io: SocketIOServer, fastify: FastifyInstance) {
   const agario = io.of("/agario");
@@ -52,18 +50,6 @@ export function init_agario(io: SocketIOServer, fastify: FastifyInstance) {
   agarioEngine(fastify.log, agario);
   agario.on("connection", async (socket) => {
     fastify.log.info({ id: socket.id }, "socket connected");
-    //TODO: test this
-    // const ap = activePlayers.get(identityKey(getIdentity(socket)));
-    //
-    // if (socket.recovered) {
-    //   fastify.log.info({ id: socket.id }, "socket recovered");
-    //   if (ap?.timeoutId) {
-    //     clearTimeout(ap.timeoutId);
-    //     ap.timeoutId = undefined;
-    //     ap.disconnectedAt = undefined;
-    //   }
-    //   return;
-    // }
     await agarioHandlers(socket, fastify);
   });
 }

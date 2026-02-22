@@ -7,23 +7,22 @@ import {
 } from "fastify-type-provider-zod";
 import { NODE_ENV, SSL_CERT_PATH, SSL_KEY_PATH } from "./config.js";
 import multipart from "@fastify/multipart";
-import fastifyStatic from "@fastify/static";
-import path from "node:path";
 import staticPlugin from "./static.js";
 
-const logger = {
-  transport: {
-    target: "pino-pretty",
-    options: {
-      colorize: true,
-      translateTime: "HH:MM:ss.l",
-      ignore: "pid,hostname",
-    },
-  },
-};
+const logger =
+  NODE_ENV === "development"
+    ? {
+        transport: {
+          target: "pino-pretty",
+          options: {
+            colorize: true,
+            translateTime: "HH:MM:ss.l",
+            ignore: "pid,hostname",
+          },
+        },
+      }
+    : true;
 
-
-//TODO:
 if (!SSL_KEY_PATH || !SSL_CERT_PATH) {
   throw new Error("Missing SSL_KEY_PATH or SSL_CERT_PATH environment variable");
 }
@@ -33,22 +32,22 @@ const server = Fastify({
     key: fs.readFileSync(SSL_KEY_PATH),
     cert: fs.readFileSync(SSL_CERT_PATH),
   },
-  logger: NODE_ENV === "development" ? logger : true,
+  logger,
   disableRequestLogging: true,
 }).withTypeProvider<ZodTypeProvider>();
 
 export const http_server = Fastify({
-  logger: NODE_ENV === "development" ? logger : true,
+  logger,
   disableRequestLogging: true,
 });
-
-await server.register(staticPlugin);
 
 // Attach Zod validator/serializer
 server.setValidatorCompiler(validatorCompiler);
 server.setSerializerCompiler(serializerCompiler);
 
-server.register(multipart, {
+await server.register(staticPlugin);
+
+await server.register(multipart, {
   limits: {
     files: 1,
     fileSize: 2 * 1024 * 1024,

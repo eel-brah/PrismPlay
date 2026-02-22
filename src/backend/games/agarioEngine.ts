@@ -74,14 +74,11 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
   }
 
   function simulate(dt: number, world: World, tickNow: number) {
-    const started = world.meta.status === "started";
-
     const players = world.players;
     const orbs = world.orbs;
     const viruses = world.viruses;
     const ejects = world.ejects;
     const room = world.meta.room;
-    const allowSpectators = world.meta.allowSpectators;
 
     const ids = Object.keys(players);
 
@@ -157,13 +154,12 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
     for (const id of ids) {
       handleVirusCollisions(players[id], viruses);
     }
-    return handlePlayerCollisions(players, room, allowSpectators);
+    return handlePlayerCollisions(players, room);
   }
 
   function handlePlayerCollisions(
     players: Record<string, PlayerState>,
     room: string,
-    allowSpectators: boolean,
   ) {
     const ids = Object.keys(players);
     const removedPlayers = new Set<string>();
@@ -432,9 +428,6 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
     for (const [id, state] of Object.entries(world.players)) {
       serializedPlayers[id] = state.player.serialize();
       // serializedPlayers[id].lastProcessedSeq = state.input?.seq ?? 0;
-
-      // console.log(serializedPlayers[id]);
-      // console.log(serializedPlayers[id].blobs[0].mass);
     }
 
     io.to(room).emit("heartbeat", {
@@ -529,9 +522,7 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
         ensureOrbs(world.orbs);
         ensureViruses(world.viruses);
 
-        // TODO:
-        // void processDeaths(world, deaths);
-        await processDeaths(world, deaths);
+        void processDeaths(world, deaths);
       }
 
       for (const room of roomsToDelete) {

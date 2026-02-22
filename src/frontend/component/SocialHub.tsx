@@ -513,9 +513,7 @@ export default function SocialHub() {
             },
           );
         }
-      } catch (e) {
-        console.error("Init failed", e);
-      }
+      } catch (_) { }
     };
     init();
     return () => {
@@ -803,11 +801,10 @@ export default function SocialHub() {
                     setSelectedFriendId(null);
                   }
                 }}
-                className={`px-4 py-1 rounded-full text-sm transition-colors ${
-                  activeTab === key
+                className={`px-4 py-1 rounded-full text-sm transition-colors ${activeTab === key
                     ? "bg-blue-600 text-white"
                     : "text-gray-300 hover:bg-gray-800"
-                }`}
+                  }`}
               >
                 {key[0].toUpperCase() + key.slice(1)}
               </button>
@@ -838,11 +835,10 @@ export default function SocialHub() {
                   <button
                     key={t}
                     onClick={() => setFriendsSubTab(t)}
-                    className={`px-4 py-1 rounded-full text-sm transition-colors ${
-                      friendsSubTab === t
+                    className={`px-4 py-1 rounded-full text-sm transition-colors ${friendsSubTab === t
                         ? "bg-blue-600 text-white"
                         : "text-gray-300 hover:bg-gray-800"
-                    }`}
+                      }`}
                   >
                     {t === "friends" && `Friends (${friends.length})`}
                     {t === "requests" && `Requests (${requests.length})`}
@@ -868,9 +864,9 @@ export default function SocialHub() {
                           : f.status === "away"
                             ? { text: "Away", cls: "bg-yellow-600 text-black" }
                             : {
-                                text: "Offline",
-                                cls: "bg-gray-600 text-white",
-                              };
+                              text: "Offline",
+                              cls: "bg-gray-600 text-white",
+                            };
                     return (
                       <div
                         key={f.id}
@@ -930,11 +926,10 @@ export default function SocialHub() {
                                 sendGameInvite(f.id);
                               }
                             }}
-                            className={`p-2 rounded-md transition-colors text-white disabled:opacity-50 ${
-                              pendingInviteId === Number(f.id)
+                            className={`p-2 rounded-md transition-colors text-white disabled:opacity-50 ${pendingInviteId === Number(f.id)
                                 ? "bg-red-500 hover:bg-red-600 animate-pulse"
                                 : "bg-orange-600 hover:bg-orange-700"
-                            }`}
+                              }`}
                             disabled={
                               f.status === "offline" ||
                               (pendingInviteId !== null &&
@@ -1086,11 +1081,10 @@ export default function SocialHub() {
                           if (socketRef.current)
                             socketRef.current.emit("join_channel", c);
                         }}
-                        className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center gap-3 ${
-                          chatMode === "channel" && selectedChannel === c
+                        className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center gap-3 ${chatMode === "channel" && selectedChannel === c
                             ? "bg-blue-600/20 text-blue-100"
                             : "hover:bg-gray-800/60 text-gray-300"
-                        }`}
+                          }`}
                       >
                         <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 font-bold">
                           #
@@ -1157,11 +1151,10 @@ export default function SocialHub() {
                           <li key={f.id}>
                             <button
                               onClick={() => handleStartDirectMessage(f.id)}
-                              className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center gap-3 ${
-                                chatMode === "dm" && selectedFriendId === f.id
+                              className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center gap-3 ${chatMode === "dm" && selectedFriendId === f.id
                                   ? "bg-blue-600/20"
                                   : "hover:bg-gray-800/60"
-                              }`}
+                                }`}
                             >
                               {f.avatarUrl ? (
                                 <img
@@ -1213,13 +1206,13 @@ export default function SocialHub() {
                             ? { text: "Online", cls: "bg-green-600 text-white" }
                             : f.status === "in_game"
                               ? {
-                                  text: "In Game",
-                                  cls: "bg-blue-600 text-white",
-                                }
+                                text: "In Game",
+                                cls: "bg-blue-600 text-white",
+                              }
                               : {
-                                  text: "Away",
-                                  cls: "bg-yellow-600 text-black",
-                                };
+                                text: "Away",
+                                cls: "bg-yellow-600 text-black",
+                              };
                         return (
                           <div key={f.id} className="flex items-center gap-3">
                             {f.avatarUrl ? (
@@ -1278,9 +1271,9 @@ export default function SocialHub() {
                       new Date().toDateString() === date.toDateString();
                     const displayTime = isToday
                       ? date.toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
                       : date.toLocaleDateString();
                     const isMe = m.senderId === myUserId;
                     const isMyLastMessage =
@@ -1343,11 +1336,10 @@ export default function SocialHub() {
                         blockUser(selectedFriendId);
                       }
                     }}
-                    className={`shrink-0 p-2 rounded-md text-white disabled:opacity-50 transition-colors ${
-                      blockStatus.byMe
+                    className={`shrink-0 p-2 rounded-md text-white disabled:opacity-50 transition-colors ${blockStatus.byMe
                         ? "bg-green-600 hover:bg-green-700"
                         : "bg-red-600 hover:bg-red-700"
-                    }`}
+                      }`}
                     disabled={chatMode !== "dm" || !selectedFriendId}
                     title={blockStatus.byMe ? "Unblock User" : "Block User"}
                   >
@@ -1371,13 +1363,12 @@ export default function SocialHub() {
                           ? "You blocked this user. Unblock to chat."
                           : "Type your message..."
                     }
-                    className={`flex-1 min-w-[180px] px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none ${
-                      isChatLocked
+                    className={`flex-1 min-w-[180px] px-3 py-2 rounded-md bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 focus:outline-none ${isChatLocked
                         ? "cursor-not-allowed opacity-50 bg-gray-900"
                         : chatInput.trim().length > MAX_MESSAGE_LENGTH
                           ? "border-red-500"
                           : ""
-                    }`}
+                      }`}
                     maxLength={MAX_MESSAGE_LENGTH + 50}
                     disabled={
                       chatMode === "dm" && (!selectedFriendId || isChatLocked)
@@ -1385,13 +1376,12 @@ export default function SocialHub() {
                   />
                   {chatInput.length > 0 && (
                     <span
-                      className={`shrink-0 text-xs tabular-nums whitespace-nowrap ${
-                        chatInput.trim().length > MAX_MESSAGE_LENGTH
+                      className={`shrink-0 text-xs tabular-nums whitespace-nowrap ${chatInput.trim().length > MAX_MESSAGE_LENGTH
                           ? "text-red-400 font-bold"
                           : chatInput.trim().length > MAX_MESSAGE_LENGTH * 0.9
                             ? "text-yellow-400"
                             : "text-gray-500"
-                      }`}
+                        }`}
                     >
                       {chatInput.trim().length}/{MAX_MESSAGE_LENGTH}
                     </span>
@@ -1414,21 +1404,20 @@ export default function SocialHub() {
                           sendGameInvite();
                         }
                       }}
-                      className={`p-2 rounded-md transition-colors text-white disabled:opacity-50 ${
-                        pendingInviteId === Number(selectedFriendId)
+                      className={`p-2 rounded-md transition-colors text-white disabled:opacity-50 ${pendingInviteId === Number(selectedFriendId)
                           ? "bg-red-500 hover:bg-red-600 animate-pulse"
                           : "bg-orange-600 hover:bg-orange-700"
-                      }`}
+                        }`}
                       disabled={
                         chatMode !== "dm" ||
                         !selectedFriendId ||
                         isChatLocked ||
                         friends.find((x) => x.id === selectedFriendId)?.status ===
-                          "offline"
+                        "offline"
                       }
                       title={
                         friends.find((x) => x.id === selectedFriendId)?.status ===
-                        "offline"
+                          "offline"
                           ? "User is offline"
                           : pendingInviteId === Number(selectedFriendId)
                             ? "Cancel Invite"

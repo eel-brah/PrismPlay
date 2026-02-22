@@ -1,7 +1,8 @@
+correction sheet 
+
 complite readme.md 
 clean the code
 generate key for ssl inside docker 
-read subject and correction sheet 
 add the commits to the projet
 remove the console.err
 and log only what is needed 
