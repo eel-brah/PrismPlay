@@ -205,19 +205,8 @@ export default function PlayerProfile() {
     setEditAvatarFile(file);
     setEditAvatarPreview(preview);
     setEditError("");
-    // const reader = new FileReader();
-    // reader.onload = () => {
-    //   const url = typeof reader.result === "string" ? reader.result : "";
-    //   setEditAvatar(url);
-    //   setEditError("");
-    // };
-    // reader.readAsDataURL(file);
   };
   const saveProfile = async () => {
-    // const next = { ...user, username: editName, email: editEmail, avatarUrl: editAvatar || user.avatarUrl };
-    // setUser(next);
-    // localStorage.setItem("profile_data", JSON.stringify(next));
-    // setIsEditing(false);
     setEditErrorForm("");
     const token = getStoredToken();
     if (!token) return;
@@ -928,7 +917,7 @@ export function PublicPlayerProfile() {
         }
       } catch (e) {
         if (!cancelled) {
-          const status = e?.response?.status; // axios puts status here
+          const status = (e as any)?.response?.status;
           if (status === 404) {
             setNotFound(true);
             setError("");
@@ -936,7 +925,6 @@ export function PublicPlayerProfile() {
           } else {
             setError(e instanceof Error ? e.message : "Failed to load profile");
           }
-          // setError(e instanceof Error ? e.message : "Failed to load profile");
         }
       }
 

@@ -32,8 +32,6 @@ import {
   getStoredToken,
   storeToken,
   clearToken,
-  // apiPingMe,
-  // TOKEN_KEY,
 } from "./api";
 import AppBackground from "./component/Appbackground";
 import GlobalLeaderboard from "./component/GlobalLeaderboard";
@@ -45,7 +43,6 @@ import { TopBar } from "./component/TopBar";
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
-  // const [sessionMode, setSessionMode] = useState<"guest" | "user">("guest");
   const [token, setToken] = useState<string | null>(() => getStoredToken());
   const [bootingAuth, setBootingAuth] = useState(true);
   const [user, setUser] = useState<{
@@ -55,93 +52,12 @@ export default function App() {
     avatarUrl?: string | null;
   } | null>(null);
 
-  //CHECK TOKEN IF VALID
   const presenceRef = useRef<Socket | null>(null);
   const isAuthed = !bootingAuth && !!token;
 
-  // function saveProfileDataForPlayerProfile(user: {
-  //   username: string;
-  //   email: string;
-  //   avatarUrl?: string | null;
-  // }) {
-  //   // const raw = localStorage.getItem("profile_data");
-  //   let previous: any = {};
-  //   try {
-  //     previous = raw ? JSON.parse(raw) : {};
-  //   } catch { }
-
-  //   const next = {
-  //     ...previous,
-  //     username: user.username,
-  //     email: user.email,
-  //     avatarUrl: user.avatarUrl ?? previous.avatarUrl ?? "",
-  //   };
-
-  //   // localStorage.setItem("profile_data", JSON.stringify(next));
-  // }
-
-  // useEffect(() => {
-  //   if (!token) return;
-
-  //   const ping = async () => {
-  //     try {
-  //       await apiPingMe(token);
-  //     } catch {}
-  //   };
-
-  //   ping();
-
-  //   const id = window.setInterval(ping, 15_000);
-
-  //   const onVisibility = () => {
-  //     if (document.visibilityState === "visible") ping();
-  //   };
-  //   window.addEventListener("focus", ping);
-  //   document.addEventListener("visibilitychange", onVisibility);
-
-  //   return () => {
-  //     window.clearInterval(id);
-  //     window.removeEventListener("focus", ping);
-  //     document.removeEventListener("visibilitychange", onVisibility);
-  //   };
-  // }, [token]);
-
   useEffect(() => {
-    //     async function boot() {
-    //         const saved = getStoredToken();
 
-    //         if (!saved) {
-    //             setBootingAuth(false);
-    //             return;
-    //         }
-
-    //         try {
-    //             const me = await apiGetMe(saved);
-    //             setToken(saved);
-    //             setUser(me); // Store user data
-    //             saveProfileDataForPlayerProfile(me);
-    //         } catch (e: any) {
-    //             // token expired/invalid
-    //             const status = axios.isAxiosError(e) ? e.response?.status : undefined;
-    //             if (status === 401 || status === 403) {
-    //                 clearToken();
-    //                 setToken(null);
-    //                 setUser(null);
-    //             }
-    //             // clearToken();
-    //             // setToken(null);
-    //             // console.log("has been caled ", e);
-
-    //             // setSessionMode("guest");
-    //         } finally {
-    //             setBootingAuth(false);
-    //         }
-    //     }
-
-    //     boot();
-    // }, []);
     async function boot() {
-      // ── Handle OAuth redirect token ──
       const params = new URLSearchParams(window.location.search);
       const oauthToken = params.get("token");
       if (oauthToken) {
@@ -160,7 +76,6 @@ export default function App() {
         const me = await apiGetMe(saved);
         setToken(saved);
         setUser(me);
-        // saveProfileDataForPlayerProfile(me);
       } catch (e: any) {
         const status = axios.isAxiosError(e) ? e.response?.status : undefined;
         if (status === 401 || status === 403) {
@@ -189,7 +104,6 @@ export default function App() {
     ps.on("connect", () => console.log("presence connected from App", ps.id));
     ps.on("disconnect", () => console.log("presence disconnected from App"));
 
-    // Connect global chat socket (needs user id)
     if (user?.id) {
       connectChat(user.id);
     }
@@ -206,8 +120,6 @@ export default function App() {
     storeToken(data.accessToken);
     setToken(data.accessToken);
     setUser(data.user);
-    // setSessionMode("user");
-    // saveProfileDataForPlayerProfile(data.user);
 
     navigate("/home");
   }
@@ -218,7 +130,7 @@ export default function App() {
     password: string,
   ) {
     await apiRegister(username, email, password);
-    await handleLogin(email, password); // auto login
+    await handleLogin(email, password);
   }
 
   async function handleLogout() {
@@ -234,7 +146,6 @@ export default function App() {
     setToken(null);
     setUser(null);
     disconnectChat();
-    // setSessionMode("guest");
     navigate("/home");
   }
 

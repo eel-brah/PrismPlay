@@ -85,7 +85,6 @@ export const THEMES: GameTheme[] = [
   },
 ];
 
-// Color presets
 export const PADDLE_COLORS = [
   { name: "Blue", value: "#89b4fa" },
   { name: "Purple", value: "#cba6f7" },

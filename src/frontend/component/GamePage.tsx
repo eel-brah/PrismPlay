@@ -1,7 +1,7 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getStoredToken } from "../api";
-import OnlinePong from "./pong/OnlinePong/OnlinePong"; // Adjust path if needed
+import OnlinePong from "./pong/OnlinePong/OnlinePong";
 
 export default function GamePage() {
   const { gameId } = useParams();

@@ -68,12 +68,6 @@ export default function LoginForm({ onSubmit, onRegister }: Props) {
             />
           </div>
 
-          {/* <button
-            onClick={() => onSubmit(email, password)}
-            className="w-full mt-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-2.5 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
-          >
-            Login
-          </button> */}
           <button
             type="submit"
             disabled={loading}
@@ -90,15 +84,10 @@ export default function LoginForm({ onSubmit, onRegister }: Props) {
             <span className="text-xs text-gray-400">OR</span>
             <div className="h-px flex-1 bg-gray-700" />
           </div>
-          {/* <button
-              type="button"
-            onClick={() => onSubmit("google", "oauth")}
-            className="w-full bg-white text-gray-900 hover:bg-gray-100 border border-gray-300 py-2.5 rounded-lg font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
-          > */}
+
           <button
             type="button"
             onClick={() => {
-              // Redirect to your backend Google OAuth endpoint
               window.location.href = "/api/auth/google";
             }}
             className="w-full bg-white text-gray-900 hover:bg-gray-100 border border-gray-300 py-2.5 rounded-lg font-semibold transition-all shadow-lg flex items-center justify-center gap-2"

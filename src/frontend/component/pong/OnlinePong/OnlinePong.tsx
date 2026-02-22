@@ -180,7 +180,6 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
 
       setOpponentStatus("connected");
 
-      // Set stats from payload
       setMyStats(payload.playerStats);
       setOpponentStats(payload.opponentStats);
       setLoadingStats(false);
@@ -428,7 +427,6 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
     };
   }, []);
 
-  // --- Rendering loop --- //
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -530,7 +528,6 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
       ctx.fillRect(rightX, snap.right.y, 16, snap.right.height);
       ctx.shadowBlur = 0;
 
-      // ball
       ctx.shadowBlur = 20;
       ctx.shadowColor = "#f5e0dc";
       ctx.beginPath();
@@ -539,7 +536,6 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // score
       ctx.font = "bold 48px monospace";
       ctx.fillStyle = "#cdd6f4";
       ctx.fillText(snap.left.score.toString(), GAME_WIDTH / 4 - 12, 60);
@@ -598,20 +594,17 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
     setMyStats(undefined);
     setOpponentStats(undefined);
     setLoadingStats(true);
-    // Reconnect and join matchmaking again
     const socket = socketRef.current;
     if (socket) {
       socket.emit("match.join");
     }
   };
 
-  // Handler for leaving to games page
   const handleLeave = () => {
     setShowGameOverPopup(false);
     navigate("/games");
   };
 
-  // --- UI --- //
   return (
     <div
       className="fixed inset-0 z-[9999] flex flex-col p-4"
