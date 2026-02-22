@@ -752,6 +752,7 @@ export default function SocialHub() {
         }));
       }
     }
+    shouldScrollRef.current = true;
     setChatInput("");
   };
 
