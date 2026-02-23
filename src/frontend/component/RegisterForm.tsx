@@ -104,16 +104,6 @@ export default function RegisterForm({ onSubmit }: Props) {
             />
           </div>
 
-          {/* {error && (
-            <div className="text-red-400 text-sm">{error}</div>
-          )} */}
-          {/* 
-          <button
-            onClick={handleRegister}
-            className="w-full mt-2 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white py-2.5 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
-          >
-            Register
-          </button> */}
           <button
             type="submit"
             onClick={handleRegisterClick}

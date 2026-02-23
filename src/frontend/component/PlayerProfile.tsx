@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Trophy, Gamepad2, BarChart3 } from "lucide-react";
+import { Trophy, BarChart3 } from "lucide-react";
 import ErrorPage from "./ErrorPage";
 import {
   apiGetAchievements,

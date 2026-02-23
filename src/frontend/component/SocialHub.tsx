@@ -1,11 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, {
-  useMemo,
-  useRef,
-  useState,
-  useEffect,
-  useCallback,
-} from "react";
+import React, { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   MessageCircle,
@@ -30,7 +24,7 @@ import {
   apiRemoveFriend,
   apiAddFriend,
 } from "../api";
-import { connectPresence } from "@/presenceSocket";
+import {connectPresence } from "@/presenceSocket";
 
 type TabKey = "friends" | "chat";
 
@@ -177,7 +171,8 @@ export default function SocialHub() {
 
   const triggerToast = (msg: string) => {
     window.dispatchEvent(new CustomEvent("app_toast", { detail: msg }));
-  };
+};
+
 
   useEffect(() => {
     selectedFriendIdRef.current = selectedFriendId;
@@ -206,7 +201,7 @@ export default function SocialHub() {
       apiListFriends(token),
       apiIncomingRequests(token),
     ]);
-
+    
     setFriends(
       friendList.map((r) => ({
         id: String(r.friend.id),
@@ -217,7 +212,7 @@ export default function SocialHub() {
         status: "offline",
       })),
     );
-
+    
     setRequests(
       incomingRequest.map((r) => ({
         id: String(r.id),
@@ -227,6 +222,7 @@ export default function SocialHub() {
     );
     needsPresenceUpdate.current = true;
     emitPresenceSubscribe();
+    
   };
 
   const sendGameInvite = (friendId?: string) => {
@@ -291,12 +287,12 @@ export default function SocialHub() {
     }
   }, []);
 
-  useEffect(() => {
+     useEffect(() => {
     if (needsPresenceUpdate.current && presenceSocketRef.current) {
       presenceSocketRef.current.emit("presence:subscribe");
       needsPresenceUpdate.current = false;
     }
-  }, [friends, emitPresenceSubscribe]);
+  }, [friends, emitPresenceSubscribe]); 
   useEffect(() => {
     const init = async () => {
       const token = getStoredToken();
@@ -306,18 +302,18 @@ export default function SocialHub() {
         const me = await apiGetMe(token);
         setMyUserId(me.id);
         const ps = connectPresence(token);
-        if (ps) {
-          presenceSocketRef.current = ps;
-          if (!ps.connected) {
-            ps.connect();
-          }
-          ps.on("presence:snapshot", applySnapshot);
-          ps.on("presence:update", applyUpdate);
-          ps.on("connect", () => {
+        if (ps){
+            presenceSocketRef.current = ps;
+            if (!ps.connected) {
+                ps.connect();
+            }
+            ps.on("presence:snapshot", applySnapshot);
+            ps.on("presence:update", applyUpdate);
+             ps.on("connect", () => {
             emitPresenceSubscribe();
           });
           if (ps.connected) {
-            emitPresenceSubscribe();
+             emitPresenceSubscribe();
           }
         }
         await reload();
@@ -491,7 +487,7 @@ export default function SocialHub() {
           });
           s.on("chat_error", (message: string) => {
             triggerToast(message);
-          });
+          }); 
           s.on(
             "user_blocked",
             (data: { blockerId: number; blockedId: number }) => {
@@ -529,7 +525,7 @@ export default function SocialHub() {
             },
           );
         }
-      } catch {}
+      } catch{}
     };
     init();
     return () => {
@@ -539,7 +535,7 @@ export default function SocialHub() {
         ps.off("presence:update", applyUpdate);
         ps.off("connect");
       }
-      if (socketRef.current) {
+      if (socketRef.current){
         const s = socketRef.current;
         s.off("dm_previews");
         s.off("unread_counts");
@@ -633,14 +629,14 @@ export default function SocialHub() {
     }
   };
 
-  const acceptFriend = async (id: string) => {
+const acceptFriend = async (id: string) => {
     try {
       const token = getStoredToken();
       if (!token) return;
       await apiAcceptFriend(token, id);
       await reload();
     } catch (e) {
-      triggerToast(e instanceof Error ? e.message : "Failed to accept friend");
+        triggerToast(e instanceof Error ? e.message : "Failed to accept friend");
     }
   };
 
@@ -788,6 +784,7 @@ export default function SocialHub() {
 
   return (
     <div className="w-full h-full text-white flex flex-col">
+
       {/* Header Section */}
       <div className="max-w-6xl mx-auto px-6 pt-8 pb-4">
         <div className="text-center">
@@ -861,10 +858,10 @@ export default function SocialHub() {
                 ))}
               </div>
             </div>
-            {friendsSubTab === "friends" && (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {friends
+              {friendsSubTab === "friends" && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {friends
                     .filter((f) =>
                       f.name.toLowerCase().includes(friendSearch.toLowerCase()),
                     )
