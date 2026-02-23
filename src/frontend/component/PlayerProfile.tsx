@@ -143,6 +143,10 @@ function mapLeaderboardEntries(
   });
 }
 
+function triggerToast(message: string) {
+  window.dispatchEvent(new CustomEvent("app_toast", { detail: message }));
+}
+
 export default function PlayerProfile() {
   const [tab, setTab] = useState<Tab>("profile");
   const [user, setUser] = useState<User | null>(null);
@@ -221,7 +225,9 @@ export default function PlayerProfile() {
       try {
         await apiUpdateMe(token, data);
       } catch (e: any) {
-        setEditErrorForm(e.message ?? "Update failed");
+        const message = e?.message ?? "Update failed";
+        setEditErrorForm(message);
+        triggerToast(message);
         setIsEditing(true);
         return;
       }
@@ -230,7 +236,9 @@ export default function PlayerProfile() {
       try {
         await apiUploadAvatar(token, editAvatarFile);
       } catch (e: any) {
-        setEditError(e.message ?? "Update failed");
+        const message = e?.message ?? "Update failed";
+        setEditError(message);
+        triggerToast(message);
         setIsEditing(true);
         return;
       }
@@ -275,9 +283,10 @@ export default function PlayerProfile() {
         }
       } catch (err) {
         if (!cancelled) {
-          setHistoryError(
-            err instanceof Error ? err.message : "Failed to load match history",
-          );
+          const message =
+            err instanceof Error ? err.message : "Failed to load match history";
+          setHistoryError(message);
+          triggerToast(message);
         }
       } finally {
         if (!cancelled) {
@@ -314,6 +323,11 @@ export default function PlayerProfile() {
           setAgarPlayers(mapAgarPlayerRows(data));
         }
       } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to load Agar.io match history";
+        triggerToast(message);
       } finally {
         if (!cancelled) {
           setAgarPlayersFetched(true);
@@ -347,6 +361,11 @@ export default function PlayerProfile() {
           }));
         }
       } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to load Agar.io room history";
+        triggerToast(message);
       } finally {
       }
     };
@@ -387,6 +406,9 @@ export default function PlayerProfile() {
           [roomId]: leaderboard,
         }));
       } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to load leaderboard";
+        triggerToast(message);
       } finally {
       }
     };
@@ -417,8 +439,12 @@ export default function PlayerProfile() {
         const me = await apiGetMe(token);
         if (!cancelled) setUser(me);
       } catch (e) {
-        if (!cancelled)
-          setMeError(e instanceof Error ? e.message : "Failed to load profile");
+        if (!cancelled) {
+          const message =
+            e instanceof Error ? e.message : "Failed to load profile";
+          setMeError(message);
+          triggerToast(message);
+        }
       } finally {
         if (!cancelled) setMeLoading(false);
       }
@@ -453,9 +479,9 @@ export default function PlayerProfile() {
         if (!cancelled) setStats(data);
       } catch (e) {
         if (!cancelled) {
-          setStatsError(
-            e instanceof Error ? e.message : "Failed to load stats",
-          );
+          const message = e instanceof Error ? e.message : "Failed to load stats";
+          setStatsError(message);
+          triggerToast(message);
         }
       }
     };
@@ -480,9 +506,10 @@ export default function PlayerProfile() {
         if (!cancelled) setAchievements(data.achievements ?? []);
       } catch (e) {
         if (!cancelled) {
-          setAchievementsError(
-            e instanceof Error ? e.message : "Failed to load achievements",
-          );
+          const message =
+            e instanceof Error ? e.message : "Failed to load achievements";
+          setAchievementsError(message);
+          triggerToast(message);
         }
       }
     };
@@ -825,9 +852,10 @@ export function PublicPlayerProfile() {
       setIsFriend(true);
       setFriendPending(false);
     } catch (e) {
-      setFriendError(
-        e instanceof Error ? e.message : "Failed to accept request",
-      );
+      const message =
+        e instanceof Error ? e.message : "Failed to accept request";
+      setFriendError(message);
+      triggerToast(message);
     } finally {
       setFriendLoading(false);
     }
@@ -844,9 +872,10 @@ export function PublicPlayerProfile() {
       setIsFriend(false);
       setFriendPending(false);
     } catch (e) {
-      setFriendError(
-        e instanceof Error ? e.message : "Failed to decline request",
-      );
+      const message =
+        e instanceof Error ? e.message : "Failed to decline request";
+      setFriendError(message);
+      triggerToast(message);
     } finally {
       setFriendLoading(false);
     }
@@ -900,9 +929,10 @@ export function PublicPlayerProfile() {
           if (!cancelled) setStats(nextStats);
         } catch (e) {
           if (!cancelled) {
-            setStatsError(
-              e instanceof Error ? e.message : "Failed to load stats",
-            );
+            const message =
+              e instanceof Error ? e.message : "Failed to load stats";
+            setStatsError(message);
+            triggerToast(message);
           }
         }
         try {
@@ -910,9 +940,10 @@ export function PublicPlayerProfile() {
           if (!cancelled) setAchievements(nextAchievements.achievements ?? []);
         } catch (e) {
           if (!cancelled) {
-            setAchievementsError(
-              e instanceof Error ? e.message : "Failed to load achievements",
-            );
+            const message =
+              e instanceof Error ? e.message : "Failed to load achievements";
+            setAchievementsError(message);
+            triggerToast(message);
           }
         }
       } catch (e) {
@@ -923,7 +954,10 @@ export function PublicPlayerProfile() {
             setError("");
             setUser(null);
           } else {
-            setError(e instanceof Error ? e.message : "Failed to load profile");
+            const message =
+              e instanceof Error ? e.message : "Failed to load profile";
+            setError(message);
+            triggerToast(message);
           }
         }
       }
@@ -974,9 +1008,10 @@ export function PublicPlayerProfile() {
         }
       } catch (err) {
         if (!cancelled) {
-          setHistoryError(
-            err instanceof Error ? err.message : "Failed to load match history",
-          );
+          const message =
+            err instanceof Error ? err.message : "Failed to load match history";
+          setHistoryError(message);
+          triggerToast(message);
         }
       } finally {
         if (!cancelled) {
@@ -1013,6 +1048,11 @@ export function PublicPlayerProfile() {
           setAgarPlayers(mapAgarPlayerRows(data));
         }
       } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to load Agar.io match history";
+        triggerToast(message);
       } finally {
         if (!cancelled) {
           setAgarPlayersFetched(true);
@@ -1046,6 +1086,11 @@ export function PublicPlayerProfile() {
           }));
         }
       } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to load Agar.io room history";
+        triggerToast(message);
       } finally {
       }
     };
@@ -1086,6 +1131,9 @@ export function PublicPlayerProfile() {
           [roomId]: leaderboard,
         }));
       } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to load leaderboard";
+        triggerToast(message);
       } finally {
       }
     };
@@ -1136,9 +1184,10 @@ export function PublicPlayerProfile() {
         if (!cancelled) setFriendPending(pending);
       } catch (e) {
         if (!cancelled) {
-          setFriendError(
-            e instanceof Error ? e.message : "Failed to load friend status",
-          );
+          const message =
+            e instanceof Error ? e.message : "Failed to load friend status";
+          setFriendError(message);
+          triggerToast(message);
         }
       } finally {
         if (!cancelled) setFriendLoading(false);
@@ -1198,9 +1247,11 @@ export function PublicPlayerProfile() {
         e instanceof Error ? e.message : "Failed to update friend status";
       if (message.toLowerCase().includes("exist")) {
         setFriendPending(true);
+        triggerToast("Friend request already pending.");
         return;
       }
       setFriendError(message);
+      triggerToast(message);
     } finally {
       setFriendLoading(false);
     }
