@@ -135,7 +135,7 @@ CREATE TABLE `Message` (
     `chatId` INTEGER NULL,
     `channel` VARCHAR(191) NULL,
     `senderId` INTEGER NOT NULL,
-    `content` VARCHAR(191) NOT NULL,
+    `content` VARCHAR(2001) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `readAt` DATETIME(3) NULL,
 
