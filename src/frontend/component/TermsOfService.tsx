@@ -21,7 +21,8 @@ export default function TermsOfService() {
             </h2>
             <ul className="space-y-2 text-sm text-gray-300">
               <li>
-                Keep your login credentials secure and do not share your account.
+                Keep your login credentials secure and do not share your
+                account.
               </li>
               <li>
                 You are responsible for activity that occurs under your account.
@@ -69,22 +70,10 @@ export default function TermsOfService() {
           </section>
 
           <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-xl">
-            <h2 className="text-xl font-semibold text-white mb-3">
-              Termination
-            </h2>
-            <p className="text-sm text-gray-300 leading-relaxed">
-              We may suspend or terminate accounts that violate these terms or
-              harm the community. You may stop using PrismPlay at any time.
-            </p>
-          </section>
-
-          <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-xl">
-            <h2 className="text-xl font-semibold text-white mb-3">
-              Contact
-            </h2>
+            <h2 className="text-xl font-semibold text-white mb-3">Contact</h2>
             <p className="text-sm text-gray-300 leading-relaxed">
               Questions about these terms? Email us at
-              <span className="text-purple-300"> support@prismplay.app</span>.
+              <span className="text-purple-300"> amine.fathi@gmail.com</span>.
             </p>
           </section>
         </div>

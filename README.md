@@ -403,7 +403,7 @@ Notable problems solved:
 - https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial
 - https://docs.docker.com/
 - https://zod.dev/basics
-- https://github.com/fastify/fastify-jwt - https://www.jwt.io/introduction#when-to-use-json-web-tokens
+- https://github.com/fastify/fastify-jwt - https://www.jwt.io/introduction#when-to-use-json-web-tokenshttps://www.jwt.io/introduction#when-to-use-json-web-tokens
 
 ### AI Usage
 
