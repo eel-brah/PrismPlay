@@ -117,7 +117,6 @@ export default function SocialHub() {
   const [addUsername, setAddUsername] = useState("");
   const [addMsg, setAddMsg] = useState<string | null>(null);
   const [addErr, setAddErr] = useState<string | null>(null);
-  const [socialError, setSocialError] = useState<string | null>(null);
   const [addLoading, setAddLoading] = useState(false);
 
   const [chatMode, setChatMode] = useState<"channel" | "dm">("channel");
@@ -169,18 +168,15 @@ export default function SocialHub() {
 
   const [pendingInviteId, setPendingInviteId] = useState<number | null>(null);
 
-  const [notification, setNotification] = useState<string | null>(null);
-
   type PresencePayload = {
     userId: number;
     online: boolean;
     lastSeen: number | null;
   };
 
-  const showNotification = (message: string) => {
-    setNotification(message);
-    setTimeout(() => setNotification(null), 3000);
-  };
+  const triggerToast = (msg: string) => {
+    window.dispatchEvent(new CustomEvent("app_toast", { detail: msg }));
+};
 
 
   useEffect(() => {
@@ -485,25 +481,18 @@ export default function SocialHub() {
             }
           });
 
-          s.on("invite_error", (message: string) => {
+          s.on("invite_error", () => {
             setPendingInviteId(null);
-            showNotification(message);
           });
-
           s.on("invite_expired", () => {
             setPendingInviteId(null);
-            showNotification("Game invite expired.");
           });
-
           s.on("invite_declined", () => {
             setPendingInviteId(null);
-            showNotification("User declined your invitation.");
           });
-
           s.on("chat_error", (message: string) => {
-            showNotification(message);
-          });
-
+            triggerToast(message);
+          }); 
           s.on(
             "user_blocked",
             (data: { blockerId: number; blockedId: number }) => {
@@ -645,16 +634,14 @@ export default function SocialHub() {
     }
   };
 
-  const acceptFriend = async (id: string) => {
+const acceptFriend = async (id: string) => {
     try {
       const token = getStoredToken();
       if (!token) return;
       await apiAcceptFriend(token, id);
       await reload();
     } catch (e) {
-      setSocialError(
-        e instanceof Error ? e.message : "Failed to Remove Friend",
-      );
+        triggerToast(e instanceof Error ? e.message : "Failed to accept friend");
     }
   };
 
@@ -665,9 +652,7 @@ export default function SocialHub() {
       await apiDeclineFriend(token, id);
       await reload();
     } catch (e) {
-      setSocialError(
-        e instanceof Error ? e.message : "Failed to Remove Friend",
-      );
+      triggerToast(e instanceof Error ? e.message : "Failed to decline friend");
     }
   };
 
@@ -678,9 +663,7 @@ export default function SocialHub() {
       await apiRemoveFriend(token, id);
       await reload();
     } catch (e) {
-      setSocialError(
-        e instanceof Error ? e.message : "Failed to Remove Friend",
-      );
+      triggerToast(e instanceof Error ? e.message : "Failed to remove friend");
     }
   };
 
@@ -743,7 +726,7 @@ export default function SocialHub() {
     const text = chatInput.trim();
     if (!text) return;
     if (text.length > MAX_MESSAGE_LENGTH) {
-      showNotification(
+      triggerToast(
         `Message is too long (max ${MAX_MESSAGE_LENGTH} characters).`,
       );
       return;
@@ -806,20 +789,6 @@ export default function SocialHub() {
 
   return (
     <div className="w-full h-full text-white flex flex-col">
-      {/* Toast Notification */}
-      {notification && (
-        <div className="absolute top-28 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
-          <div className="bg-red-600 text-white px-6 py-3 rounded-full shadow-lg border border-red-400 flex items-center gap-3">
-            <span className="font-bold text-sm">{notification}</span>
-            <button
-              onClick={() => setNotification(null)}
-              className="hover:bg-red-700 rounded-full p-1"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Header Section */}
       <div className="max-w-6xl mx-auto px-6 pt-8 pb-4">
@@ -894,24 +863,10 @@ export default function SocialHub() {
                 ))}
               </div>
             </div>
-
-            {/* Friend List Grid */}
-            {friendsSubTab === "friends" && (
-              <>
-                {socialError && (
-                  <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex items-center justify-between">
-                    <span>{socialError}</span>
-                    <button
-                      type="button"
-                      onClick={() => setSocialError("")}
-                      className="ml-3 text-red-200/80 hover:text-red-100 underline"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                )}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {friends
+              {friendsSubTab === "friends" && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {friends
                     .filter((f) =>
                       f.name.toLowerCase().includes(friendSearch.toLowerCase()),
                     )
@@ -996,6 +951,7 @@ export default function SocialHub() {
                               }`}
                               disabled={
                                 f.status === "offline" ||
+                                isChatLocked ||
                                 (pendingInviteId !== null &&
                                   pendingInviteId !== Number(f.id))
                               }
@@ -1029,21 +985,8 @@ export default function SocialHub() {
               </>
             )}
 
-            {/* Friend Requests Grid */}
             {friendsSubTab === "requests" && (
               <>
-                {socialError && (
-                  <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex items-center justify-between">
-                    <span>{socialError}</span>
-                    <button
-                      type="button"
-                      onClick={() => setSocialError("")}
-                      className="ml-3 text-red-200/80 hover:text-red-100 underline"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {requests
                     .filter((r) =>
