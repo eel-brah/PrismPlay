@@ -112,7 +112,6 @@ export async function logoutHandler(req: FastifyRequest, rep: FastifyReply) {
 export async function getMeHandler(req: FastifyRequest, rep: FastifyReply) {
   const userId = req.user.id;
   const user = await findUserById(userId);
-  // console.log(Object.keys(user ?? {}), user);
   if (!user) return rep.code(404).send({ message: "User not found" });
 
   return rep.send(user);
@@ -260,7 +259,7 @@ export async function googleCallbackHandler(
   const { code } = req.query as { code?: string };
   if (!code) return rep.code(400).send({ message: "Missing code" });
 
-  // 1. Exchange code for tokens
+
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -279,7 +278,6 @@ export async function googleCallbackHandler(
   if (!tokenData.access_token)
     return rep.code(401).send({ message: "Google auth failed" });
 
-  // 2. Get user info from Google
   const userInfoRes = await fetch(
     "https://www.googleapis.com/oauth2/v2/userinfo",
     {
@@ -293,7 +291,7 @@ export async function googleCallbackHandler(
     picture: string;
   };
 
-  // 3. Find or create user in your DB
+
   const user = await findOrCreateGoogleUser({
     googleId: googleUser.id,
     email: googleUser.email,
@@ -301,12 +299,10 @@ export async function googleCallbackHandler(
     avatarUrl: googleUser.picture ?? "./uploads/avatars/default.png",
   });
 
-  // 4. Issue your JWT
   const accessToken = await rep.jwtSign({ id: user.id } satisfies JwtPayload, {
     sign: { expiresIn: "1d" },
   });
 
-  // 5. Redirect to frontend with token
   const frontendUrl =
     process.env.NODE_ENV === "development" ? "http://localhost:5173" : "";
 

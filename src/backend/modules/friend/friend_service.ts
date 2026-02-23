@@ -36,7 +36,6 @@ export async function IsFrienddPending(myUserId: number, userId: number) {
       status: "PENDING",
       OR: [
         { fromUserId: myUserId, toUserId: userId },
-        // { fromUserId: userId, toUserId: myUserId },
       ],
     },
     select: { id: true },
@@ -149,10 +148,6 @@ export async function declineFriendRequest(
   await prisma.friendRequest.delete({
     where: { id: requestId },
   });
-  // await prisma.friendRequest.update({
-  //   where: { id: requestId },
-  //   data: { status: "DECLINED", respondedAt: new Date() },
-  // });
 
   return { ok: true as const };
 }

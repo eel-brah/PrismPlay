@@ -99,7 +99,7 @@ export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
-// AUTH
+
 export async function apiRegister(
   username: string,
   email: string,
@@ -156,7 +156,7 @@ export async function apiLogout(token: string) {
   }
 }
 
-// USERS
+
 export async function apiGetMe(token: string) {
   try {
     const res = await api.get<User>("/users/me", withAuth(token));
@@ -230,7 +230,7 @@ export async function apiUploadAvatar(token: string, file: File) {
   }
 }
 
-// PONG
+
 export async function apiGetMatchHistory(token: string, playerId: number) {
   const res = await api.get<MatchHistoryResponse>(
     `/pong/matchs/history/${playerId}`,
@@ -257,7 +257,7 @@ export async function apiGetPongLeaderboard(
   return res.data;
 }
 
-// ACHIEVEMENTS
+
 export async function apiGetAchievements(token: string, playerId: number) {
   const res = await api.get<AchievementsResponse>(
     `/users/${playerId}/achievements`,
@@ -266,7 +266,7 @@ export async function apiGetAchievements(token: string, playerId: number) {
   return res.data;
 }
 
-// AGARIO
+
 export async function apiGetAgarioPlayerHistory(
   token: string,
   userId: number,
@@ -303,7 +303,7 @@ export async function apiGetAgarioRoomLeaderboard(
   return res.data;
 }
 
-// FRIENDS
+
 export async function apiListFriends(token: string) {
   try {
     const res = await api.get<FriendRow[]>("/friend/", withAuth(token));

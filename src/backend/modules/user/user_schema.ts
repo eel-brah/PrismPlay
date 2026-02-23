@@ -34,14 +34,13 @@ const userCore = {
   username: usernameSchema,
   email: emailSchema,
 };
-// check ...
+
 export const createUserSchema = z.object({
   ...userCore,
   password: passwordSchema,
   guestId: z.string().optional().nullable(),
 });
 const isoDateOrDate = z.union([z.iso.datetime(), z.date()]);
-// string .url is deprecated , need to change it
 export const userResponseSchema = z.object({
   id: z.number(),
   ...userCore,
