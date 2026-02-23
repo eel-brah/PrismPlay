@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect } from "react";
+import React, { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   MessageCircle,
@@ -157,6 +157,7 @@ export default function SocialHub() {
   const isChatLocked = blockStatus.byMe || blockStatus.byThem;
   const socketRef = useRef<Socket | null>(null);
   const presenceSocketRef = useRef<Socket | null>(null);
+  const needsPresenceUpdate = useRef(false);
   const chatIdByOther = useRef<Record<string, number>>({});
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const chatMessagesRef = useRef<HTMLDivElement | null>(null);
@@ -181,6 +182,12 @@ export default function SocialHub() {
     setTimeout(() => setNotification(null), 3000);
   };
 
+   useEffect(() => {
+    if (needsPresenceUpdate.current && presenceSocketRef.current) {
+      presenceSocketRef.current.emit("presence:subscribe");
+      needsPresenceUpdate.current = false;
+    }
+  }, [friends]); 
   useEffect(() => {
     selectedFriendIdRef.current = selectedFriendId;
   }, [selectedFriendId]);
@@ -227,9 +234,7 @@ export default function SocialHub() {
         avatarUrl: r.fromUser.avatarUrl ?? undefined,
       })),
     );
-    if (presenceSocketRef.current){
-      presenceSocketRef.current.emit("presence:subscribe");
-    }
+    needsPresenceUpdate.current = true;
     
   };
 
@@ -255,7 +260,7 @@ export default function SocialHub() {
     setPendingInviteId(null);
   };
 
-  const applySnapshot = (snapshot: PresencePayload[]) => {
+  const applySnapshot = useCallback((snapshot: PresencePayload[]) => {
     const byId = new Map(snapshot.map((x) => [x.userId, x]));
     setFriends((prev) =>
       prev.map((f) => {
@@ -270,9 +275,9 @@ export default function SocialHub() {
         };
       }),
     );
-  };
+  }, []);
 
-  const applyUpdate = (p: PresencePayload) => {
+  const applyUpdate = useCallback((p: PresencePayload) => {
     setFriends((prev) =>
       prev.map((f) => {
         if (Number(f.id) !== p.userId) return f;
@@ -285,7 +290,7 @@ export default function SocialHub() {
         };
       }),
     );
-  };
+  }, []);
 
   useEffect(() => {
     const init = async () => {
