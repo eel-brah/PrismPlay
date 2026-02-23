@@ -313,7 +313,8 @@ const OnlinePong: React.FC<OnlinePongProps> = ({
     });
 
     socket.on("match.error", (data: { message: string }) => {
-      console.warn("Match warning:", data.message);
+      console.log("Match :", data.message);
+
       navigate("/social");
     });
 
