@@ -151,7 +151,6 @@ export default function PlayerProfile() {
   const [tab, setTab] = useState<Tab>("profile");
   const [user, setUser] = useState<User | null>(null);
   const [meLoading, setMeLoading] = useState(true);
-  const [meError, setMeError] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
@@ -430,7 +429,6 @@ export default function PlayerProfile() {
 
     const loadMe = async () => {
       setMeLoading(true);
-      setMeError("");
 
       try {
         const token = getStoredToken();
@@ -442,7 +440,6 @@ export default function PlayerProfile() {
         if (!cancelled) {
           const message =
             e instanceof Error ? e.message : "Failed to load profile";
-          setMeError(message);
           triggerToast(message);
         }
       } finally {
@@ -520,7 +517,6 @@ export default function PlayerProfile() {
     };
   }, [user]);
   if (meLoading) return <div></div>;
-  if (meError) return <div>{meError}</div>;
   if (!user) return null;
   const gamesPlayed = stats?.totalGames ?? 0;
   const wins = stats?.wins ?? 0;
