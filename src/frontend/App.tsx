@@ -101,8 +101,6 @@ export default function App() {
 
     const ps = connectPresence(token);
 
-    ps.on("connect", () => console.log("presence connected from App", ps.id));
-    ps.on("disconnect", () => console.log("presence disconnected from App"));
 
     if (user?.id) {
       connectChat(user.id);

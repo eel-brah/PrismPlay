@@ -156,6 +156,7 @@ export default function SocialHub() {
   });
   const isChatLocked = blockStatus.byMe || blockStatus.byThem;
   const socketRef = useRef<Socket | null>(null);
+  const presenceSocketRef = useRef<Socket | null>(null);
   const chatIdByOther = useRef<Record<string, number>>({});
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const chatMessagesRef = useRef<HTMLDivElement | null>(null);
@@ -207,7 +208,7 @@ export default function SocialHub() {
       apiListFriends(token),
       apiIncomingRequests(token),
     ]);
-
+    
     setFriends(
       friendList.map((r) => ({
         id: String(r.friend.id),
@@ -218,7 +219,7 @@ export default function SocialHub() {
         status: "offline",
       })),
     );
-
+    
     setRequests(
       incomingRequest.map((r) => ({
         id: String(r.id),
@@ -226,6 +227,10 @@ export default function SocialHub() {
         avatarUrl: r.fromUser.avatarUrl ?? undefined,
       })),
     );
+    if (presenceSocketRef.current){
+      presenceSocketRef.current.emit("presence:subscribe");
+    }
+    
   };
 
   const sendGameInvite = (friendId?: string) => {
@@ -290,15 +295,13 @@ export default function SocialHub() {
       try {
         const me = await apiGetMe(token);
         setMyUserId(me.id);
-        await reload();
         const ps = connectPresence(token);
-        if (!ps) return;
-
-        ps.on("presence:snapshot", applySnapshot);
-        ps.on("presence:update", applyUpdate);
-
-        ps.emit("presence:subscribe");
-
+        if (ps){
+            presenceSocketRef.current = ps;
+            ps.on("presence:snapshot", applySnapshot);
+            ps.on("presence:update", applyUpdate);
+        }
+        await reload();
         if (!socketRef.current) {
           const s = getChatSocket();
           if (!s) return;
@@ -518,7 +521,7 @@ export default function SocialHub() {
     };
     init();
     return () => {
-      const ps = getPresenceSocket();
+      const ps = presenceSocketRef.current;
       if (ps) {
         ps.off("presence:snapshot", applySnapshot);
         ps.off("presence:update", applyUpdate);
