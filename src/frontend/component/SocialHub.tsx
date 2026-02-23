@@ -931,6 +931,7 @@ const acceptFriend = async (id: string) => {
                               }`}
                               disabled={
                                 f.status === "offline" ||
+                                isChatLocked ||
                                 (pendingInviteId !== null &&
                                   pendingInviteId !== Number(f.id))
                               }
