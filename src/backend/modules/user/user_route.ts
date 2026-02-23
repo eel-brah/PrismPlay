@@ -49,7 +49,7 @@ export async function authRoutes(server: FastifyInstance) {
     handler: logoutHandler,
   });
 
-  // Google OAuth
+
   server.get("/google", { handler: googleRedirectHandler });
   server.get("/google/callback", { handler: googleCallbackHandler });
 }

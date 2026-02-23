@@ -100,7 +100,7 @@ export async function updateUserById(id: number, data: UpdateUserBody) {
     });
   } catch (err: unknown) {
     if (err instanceof Prisma.PrismaClientKnownRequestError) {
-      if (err.code === "P2025") return null; // not found
+      if (err.code === "P2025") return null;
     }
     throw err;
   }
@@ -199,11 +199,8 @@ export async function findOrCreateGoogleUser(input: {
   username: string;
   avatarUrl: string;
 }) {
-  // Try to find by googleId first
   let user = await prisma.user.findUnique({ where: { googleId: input.googleId }, select: safeSelect });
   if (user) return user;
-
-  // Try to find by email (link existing account)
   const existing = await prisma.user.findUnique({ where: { email: input.email } });
   if (existing) {
     user = await prisma.user.update({
@@ -214,8 +211,7 @@ export async function findOrCreateGoogleUser(input: {
     return user;
   }
 
-  // Create new user — ensure unique username
-  // let username = input.username.replace(/\s+/g, "_");
+
   let username = input.username.replace(/[^a-zA-Z0-9]/g, "");
   const taken = await prisma.user.findUnique({ where: { username } });
   if (taken) username = `${username}_${Date.now()}`;

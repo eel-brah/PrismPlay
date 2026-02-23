@@ -182,12 +182,7 @@ export default function SocialHub() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-   useEffect(() => {
-    if (needsPresenceUpdate.current && presenceSocketRef.current) {
-      presenceSocketRef.current.emit("presence:subscribe");
-      needsPresenceUpdate.current = false;
-    }
-  }, [friends]); 
+
   useEffect(() => {
     selectedFriendIdRef.current = selectedFriendId;
   }, [selectedFriendId]);
@@ -235,6 +230,7 @@ export default function SocialHub() {
       })),
     );
     needsPresenceUpdate.current = true;
+    emitPresenceSubscribe();
     
   };
 
@@ -292,6 +288,20 @@ export default function SocialHub() {
     );
   }, []);
 
+  const emitPresenceSubscribe = useCallback(() => {
+    if (presenceSocketRef.current) {
+      presenceSocketRef.current.emit("presence:subscribe");
+    } else {
+      needsPresenceUpdate.current = true;
+    }
+  }, []);
+
+     useEffect(() => {
+    if (needsPresenceUpdate.current && presenceSocketRef.current) {
+      presenceSocketRef.current.emit("presence:subscribe");
+      needsPresenceUpdate.current = false;
+    }
+  }, [friends, emitPresenceSubscribe]); 
   useEffect(() => {
     const init = async () => {
       const token = getStoredToken();
@@ -303,8 +313,17 @@ export default function SocialHub() {
         const ps = connectPresence(token);
         if (ps){
             presenceSocketRef.current = ps;
+            if (!ps.connected) {
+                ps.connect();
+            }
             ps.on("presence:snapshot", applySnapshot);
             ps.on("presence:update", applyUpdate);
+             ps.on("connect", () => {
+            emitPresenceSubscribe();
+          });
+          if (ps.connected) {
+             emitPresenceSubscribe();
+          }
         }
         await reload();
         if (!socketRef.current) {
@@ -530,6 +549,7 @@ export default function SocialHub() {
       if (ps) {
         ps.off("presence:snapshot", applySnapshot);
         ps.off("presence:update", applyUpdate);
+        ps.off("connect");
       }
       if (socketRef.current){
         const s = socketRef.current;
