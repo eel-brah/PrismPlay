@@ -24,7 +24,6 @@ RUN npm install -g pnpm
 
 COPY package.json pnpm-lock.yaml ./
 
-# add openssl for cert generation
 RUN apk add --no-cache openssl
 
 RUN pnpm install --prod --frozen-lockfile

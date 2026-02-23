@@ -1,13 +1,10 @@
- .env
 node_modules
 dist
 mytodo.txt
 prisma/dev.db
-.vscode
 data/dev.db
-prisma/data/*
-.env
 uploads/*
+.vscode
+.env
 !./uploads/avatars/default.png
-Mehdi_notes.txt
-Mehdi_chat_system.txt
+
