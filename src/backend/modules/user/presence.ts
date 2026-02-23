@@ -4,7 +4,7 @@ import prisma from "../../../backend/utils/prisma.js";
 
 type PresencePayload = { userId: number; online: boolean; lastSeen: number | null };
 
-const time_before = 2000;
+const time_before = 6000;
 const userSockets = new Map<number, Set<string>>();
 const offlineTimers = new Map<number, NodeJS.Timeout>();
 
