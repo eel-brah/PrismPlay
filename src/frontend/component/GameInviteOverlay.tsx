@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { getChatSocket, getChatUserId } from "@/chatSocket";

@@ -7,7 +7,7 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     ports:
-      - "3307:3306"
+      - "3306:3306"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
@@ -26,7 +26,7 @@ services:
     env_file:
       - .env.production
     volumes:
-      - ssl_data:/ft_transcendence/config:rw
+      - ssl_data:/ft_transcendence/config
       - ./uploads:/ft_transcendence/uploads
     depends_on:
       mariadb:
