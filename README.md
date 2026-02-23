@@ -314,7 +314,7 @@ claimed modules:
 Notable problems solved:
     - Race conditions in matchmaking:
     - websocket reconnection
-    - WebSocket disconnects & reconnection
+    - WebSocket disconnects
     - Prisma migration/runtime issues
 
 - <muel-bak>: - Frontend
@@ -384,7 +384,8 @@ claimed modules:
     - ORM (Prisma)
 Notable problems solved:
     - race conditions and spam
-    - 
+    - websocket reconnection
+    - hard to think of edge of web dev
 
 ## Resources
 
@@ -402,6 +403,7 @@ Notable problems solved:
 - https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial
 - https://docs.docker.com/
 - https://zod.dev/basics
+- https://github.com/fastify/fastify-jwt - https://www.jwt.io/introduction#when-to-use-json-web-tokens
 
 ### AI Usage
 
