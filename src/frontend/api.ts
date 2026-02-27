@@ -99,7 +99,6 @@ export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
-
 export async function apiRegister(
   username: string,
   email: string,
@@ -156,7 +155,6 @@ export async function apiLogout(token: string) {
   }
 }
 
-
 export async function apiGetMe(token: string) {
   try {
     const res = await api.get<User>("/users/me", withAuth(token));
@@ -184,19 +182,11 @@ export async function apiGetUserById(token: string, userId: string | number) {
 }
 
 export async function apiGetUserByUsername(token: string, username: string) {
-  try {
-    const res = await api.get<PublicUser>(
-      `/users/username/${encodeURIComponent(username)}`,
-      withAuth(token),
-    );
-    return res.data;
-  } catch (e: unknown) {
-    if (axios.isAxiosError(e)) {
-      const serverMsg = (e.response?.data as any)?.message;
-      throw new Error(serverMsg ?? e.message ?? "Reuqest failed");
-    }
-    throw new Error("Reuqest failed");
-  }
+  const res = await api.get<PublicUser>(
+    `/users/username/${encodeURIComponent(username)}`,
+    withAuth(token),
+  );
+  return res.data;
 }
 
 export async function apiUpdateMe(
@@ -230,7 +220,6 @@ export async function apiUploadAvatar(token: string, file: File) {
   }
 }
 
-
 export async function apiGetMatchHistory(token: string, playerId: number) {
   const res = await api.get<MatchHistoryResponse>(
     `/pong/matchs/history/${playerId}`,
@@ -257,7 +246,6 @@ export async function apiGetPongLeaderboard(
   return res.data;
 }
 
-
 export async function apiGetAchievements(token: string, playerId: number) {
   const res = await api.get<AchievementsResponse>(
     `/users/${playerId}/achievements`,
@@ -265,7 +253,6 @@ export async function apiGetAchievements(token: string, playerId: number) {
   );
   return res.data;
 }
-
 
 export async function apiGetAgarioPlayerHistory(
   token: string,
@@ -302,7 +289,6 @@ export async function apiGetAgarioRoomLeaderboard(
   );
   return res.data;
 }
-
 
 export async function apiListFriends(token: string) {
   try {
@@ -417,7 +403,6 @@ export async function apiAddFriend(token: string, username: string) {
     throw new Error("Send Reuqest Failed");
   }
 }
-
 
 export async function apiGetGlobalLeaderboard(token: string) {
   const res = await api.get("/agario/leaderboard/global", withAuth(token));
