@@ -19,13 +19,6 @@ PrismPlay offers a modern take on the classic Pong, featuring both local AI oppo
 * **Skill-based Bouncing**: The ball's reflection angle changes based on where it hits the paddle (top, center, or bottom), allowing for strategic "angled" shots.
 * **High-Speed Fairness**: The engine uses **Swept Collision Detection** to prevent the ball from "tunneling" through paddles at high velocities.
 
-### Modes
-
-* **Online Multiplayer**: Matchmaking system with server-authoritative physics (60 ticks per second) to prevent cheating.
-* **Local/AI Mode**: Features an AI opponent that predicts ball trajectories and simulates human-like reaction delays and errors.
-* **Disconnection Handling**: If a player loses connection, the game pauses with a "grace period" timer, allowing them to reconnect before forfeiting.
-
----
 
 ## 🦠 Game 2: Agario-style Arena
 
