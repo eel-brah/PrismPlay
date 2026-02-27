@@ -3,7 +3,7 @@ services:
     image: mariadb:11
     container_name: mariadb
     env_file:
-      - .env.production
+      - .env
     volumes:
       - db_data:/var/lib/mysql
     ports:
@@ -24,7 +24,7 @@ services:
       - "9443:9443"
       - "9000:9000"
     env_file:
-      - .env.production
+      - .env
     volumes:
       - ssl_data:/ft_transcendence/config
       - ./uploads:/ft_transcendence/uploads
