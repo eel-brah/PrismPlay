@@ -60,6 +60,7 @@ A massive multiplayer survival arena where players compete to become the largest
 ```bash
 # 1. Clone the repository
 git clone https://github.com/eel-brah/PrismPlay.git
+
 # 2. Setup environment variables
 cp .env.example .env
 
