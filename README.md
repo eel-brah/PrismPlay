@@ -2,15 +2,22 @@
 
 PrismPlay is a high-performance, full-stack web application featuring real-time multiplayer games, a social hub, and a comprehensive player statistics system. Developed as part of the 42 curriculum, the platform offers a seamless experience for both competitive online play and casual offline practice.
 
+![App Screenshot](./images/2.png)
+
 ## 🚀 Overview
 
 PrismPlay is built with a server-authoritative architecture to ensure fair play and real-time synchronization. It features two primary game modes: **Advanced Pong** and an **Agar.io-style Arena**.
 
 * **Tech Stack:** React, TypeScript, Fastify, Socket.IO, MariaDB, and Prisma ORM.
 
+
+![App Screenshot](./images/3.png)
+
 ## 🏓 Game 1: Advanced Pong
 
 PrismPlay offers a modern take on the classic Pong, featuring both local AI opponent and a robust online multiplayer system.
+
+![App Screenshot](./images/4.png)
 
 ### Game Rules & Mechanics
 
@@ -24,6 +31,8 @@ PrismPlay offers a modern take on the classic Pong, featuring both local AI oppo
 
 A massive multiplayer survival arena where players compete to become the largest cell on the leaderboard.
 
+![App Screenshot](./images/6.png)
+
 ### Game Rules & Mechanics
 
 * **Objective**: Consume smaller orbs and players to gain mass while avoiding larger predators.
@@ -34,6 +43,8 @@ A massive multiplayer survival arena where players compete to become the largest
 * **Mass Decay**: To keep the game balanced, larger players lose mass over time at a rate of 0.2% of their mass per second (This mean if didn't consume anything you would lose half your mass in 5 minutes and 47 seconds). Players who eat too many viruses (More then 1 in 1 minute) receive a "mass-decay penalty" (up to 6x).
 
 ### Features
+
+![App Screenshot](./images/5.png)
 
 * **Room Management**: Support for public and private rooms with host migration (if the creator leaves, a new host is assigned).
 * **Spectator Mode**: Watch live matches without participating.
