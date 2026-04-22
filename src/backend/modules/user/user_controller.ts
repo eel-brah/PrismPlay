@@ -300,7 +300,7 @@ export async function googleCallbackHandler(
   });
 
   const accessToken = await rep.jwtSign({ id: user.id } satisfies JwtPayload, {
-    sign: { expiresIn: "1d" },
+    sign: { expiresIn: "7d" },
   });
 
   const frontendUrl =
