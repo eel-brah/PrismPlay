@@ -233,9 +233,10 @@ export function AgarioHistory({
                               >
                                 <div>{pl.rank}</div>
                                 <div
-                                  onClick={() =>
-                                    navigate(`/profile/${pl.name}`)
-                                  }
+                                  onClick={() => {
+                                    const name = pl.trueName ?? pl.name
+                                    navigate(`/profile/${name}`)
+                                  }}
                                   className="cursor-pointer hover:text-blue-400"
                                 >
                                   {pl.type === "user" && pl.trueName

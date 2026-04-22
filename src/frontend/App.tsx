@@ -266,7 +266,7 @@ export default function App() {
               path="/home"
               element={
                 <div
-                  className={`${topPaddingClass} flex items-center justify-center`}
+                  className={`${topPaddingClass} flex items-center justify-center lg:fixed lg:inset-0 lg:overflow-hidden`}
                 >
                   <HomePage
                     onPlay={() => navigate("/games")}
@@ -331,7 +331,7 @@ export default function App() {
             <Route
               path="/login/form"
               element={
-                <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-6">
+                <div className={`${topPaddingClass} min-h-[calc(100vh-4rem)] flex items-center justify-center px-6`}>
                   <div className="w-full max-w-5xl grid md:grid-cols-2 gap-10 items-center">
                     <div className="hidden md:block text-white">
                       <h1 className="text-4xl font-bold mb-4">Welcome Back</h1>
@@ -375,7 +375,7 @@ export default function App() {
             <Route
               path="/register"
               element={
-                <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-6">
+                <div className={`${topPaddingClass} min-h-[calc(100vh-4rem)] flex items-center justify-center px-6 lg:h-[calc(100vh-4rem)] lg:overflow-hidden`}>
                   <div className="w-full max-w-5xl grid md:grid-cols-2 gap-10 items-center">
                     <div className="hidden md:block text-white">
                       <h1 className="text-4xl font-bold mb-4">
@@ -430,7 +430,7 @@ export default function App() {
 
                       {!isAuthed && (
                         <div className="mt-4 text-sm text-yellow-300 bg-yellow-500/10 border border-yellow-500/30 inline-block px-4 py-2 rounded-lg">
-                          Guest mode: Online ranking and social features disabled
+                          Log in to unlock ranking and social features
                         </div>
                       )}
                     </div>
