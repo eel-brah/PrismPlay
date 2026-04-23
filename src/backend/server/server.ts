@@ -1,11 +1,10 @@
 import Fastify from "fastify";
-import fs from "fs";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import {
   serializerCompiler,
   validatorCompiler,
 } from "fastify-type-provider-zod";
-import { NODE_ENV, SSL_CERT_PATH, SSL_KEY_PATH } from "./config.js";
+import { NODE_ENV} from "./config.js";
 import multipart from "@fastify/multipart";
 import staticPlugin from "./static.js";
 
@@ -23,23 +22,10 @@ const logger =
       }
     : true;
 
-if (!SSL_KEY_PATH || !SSL_CERT_PATH) {
-  throw new Error("Missing SSL_KEY_PATH or SSL_CERT_PATH environment variable");
-}
-
 const server = Fastify({
-  https: {
-    key: fs.readFileSync(SSL_KEY_PATH),
-    cert: fs.readFileSync(SSL_CERT_PATH),
-  },
   logger,
   disableRequestLogging: true,
 }).withTypeProvider<ZodTypeProvider>();
-
-export const http_server = Fastify({
-  logger,
-  disableRequestLogging: true,
-});
 
 // Attach Zod validator/serializer
 server.setValidatorCompiler(validatorCompiler);

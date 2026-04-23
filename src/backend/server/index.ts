@@ -1,4 +1,4 @@
-import server, { http_server } from "./server.js";
+import server  from "./server.js";
 import { setGlobalErrorHandler } from "./errorHandler.js";
 import { registerRoutes } from "./routes.js";
 import { setupAuth } from "./auth.js";
@@ -19,12 +19,11 @@ await loggingHook(server);
 server.register(socketPlugin);
 
 // Register routes
-registerRoutes(server, http_server);
+registerRoutes(server);
 
 async function main() {
   try {
     await server.listen({ port: PORT, host: IP });
-    await http_server.listen({ port: HTTP_PORT, host: IP });
   } catch (err) {
     server.log.error(err);
     process.exit(1);
