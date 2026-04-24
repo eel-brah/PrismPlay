@@ -55,3 +55,6 @@ export const SPLIT_LAUNCH_SPEED = 700;
 export const SPLIT_FRICTION = 3;
 
 export const GUEST_ID = "guestId";
+
+export const TICK_RATE = 50;
+export const FRAME_MS = 1000 / TICK_RATE;

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import { DEFAULT_ROOM, MAP_HEIGHT, MAP_WIDTH, MAX_MINUTES, MAX_PLAYERS_PER_ROOM, MIN_MINUTES, MIN_PLAYERS_PER_ROOM } from "@/../shared/agario/config";
+import { DEFAULT_ROOM, FRAME_MS, MAP_HEIGHT, MAP_WIDTH, MAX_MINUTES, MAX_PLAYERS_PER_ROOM, MIN_MINUTES, MIN_PLAYERS_PER_ROOM } from "@/../shared/agario/config";
 import { Player } from "@/../shared/agario/player";
 import {
   Eject,
@@ -82,6 +82,7 @@ const Agario = () => {
   const roomStartedAt = useRef<number>(0);
   const roomListInterval = useRef<NodeJS.Timeout | undefined>(undefined)
 
+  const lastInputSend = useRef(0);
 
   const setTopBarVisible = useTopBar();
 
@@ -153,6 +154,8 @@ const Agario = () => {
     socket.on("agario:room-info", (info: RoomInfo) => {
       setRoomInfo(info);
       roomStatusRef.current = info.status;
+      clearInterval(roomListInterval.current);
+      roomListInterval.current = undefined;
     });
 
     socket.on("agario:room-players", (data: { players: LobbyPlayer[]; hostId: string; spectatorCount: number }) => {
@@ -421,6 +424,7 @@ const Agario = () => {
 
       if (isSpectatorRef.current || isDeadRef.current) return;
 
+
       // inputSeqRef.current += 1;
       const input: InputState = {
         x: worldMouse.x,
@@ -428,8 +432,12 @@ const Agario = () => {
         // seq: inputSeqRef.current,
         dt,
       };
-      // pendingInputsRef.current.push(input);
-      socket.emit("input", input);
+
+      const now = performance.now();
+      if (now - lastInputSend.current >= FRAME_MS) {
+        socket.emit("input", input);
+        lastInputSend.current = now;
+      }
     }
 
     function draw() {

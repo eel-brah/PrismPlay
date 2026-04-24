@@ -1,5 +1,6 @@
 import {
   DEFAULT_ROOM,
+  FRAME_MS,
   MAP_HEIGHT,
   MAP_WIDTH,
   MAX_BLOBS_PER_PLAYER,
@@ -8,6 +9,7 @@ import {
   MAXIMUM_MASS_LIMIT,
   ORB_GROWTH_RATE,
   ORB_MAX_MASS,
+  TICK_RATE,
   VIRUS_BASE_MASS,
   VIRUS_EAT_MIN_MASS,
   VIRUS_EAT_THRESHOLD,
@@ -40,7 +42,6 @@ import {
 import { FastifyBaseLogger } from "fastify";
 import { randomOrb, randomViruses, removeActivePlayer } from "./agarioUtils.js";
 
-const TICK_RATE = 50;
 const TICK_DT = 1 / TICK_RATE;
 
 const SINGLE_EAT_FACTOR = 1.25;
@@ -72,6 +73,31 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
     const required = attackerBlobs === 1 ? SINGLE_EAT_FACTOR : SPLIT_EAT_FACTOR;
     return attacker.mass >= defender.mass * required;
   }
+  const VIEWPORT_MARGIN = 300;
+
+  function getCulledState(world: World, socketId: string) {
+    const state = world.players[socketId];
+    if (!state) return null;
+    const cx = state.player.x;
+    const cy = state.player.y;
+
+    const hw = 960 + VIEWPORT_MARGIN;
+    const hh = 540 + VIEWPORT_MARGIN;
+
+    const inView = (x: number, y: number) =>
+      x > cx - hw && x < cx + hw && y > cy - hh && y < cy + hh;
+
+    const players: Record<string, PlayerData> = {};
+    for (const [id, s] of Object.entries(world.players)) {
+      if (inView(s.player.x, s.player.y)) players[id] = s.player.serialize();
+    }
+    return {
+      players,
+      orbs: world.orbs.filter((o) => inView(o.x, o.y)),
+      ejects: world.ejects.filter((e) => inView(e.x, e.y)),
+      viruses: world.viruses.filter((v) => inView(v.x, v.y)),
+    };
+  }
 
   function simulate(dt: number, world: World, tickNow: number) {
     const players = world.players;
@@ -82,6 +108,8 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
 
     const ids = Object.keys(players);
 
+    const eatenOrbIds = new Set<string>();
+    const eatenEjectsIds =  new Set<string>();
     for (const id of ids) {
       const state = players[id];
       const p = state.player;
@@ -101,29 +129,36 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
       }
 
       const [eatenOrbs, eatenEjects] = p.update(dt, mouse, orbs, ejects);
+      eatenOrbs.forEach((id) => eatenOrbIds.add(id));
+      eatenEjects.forEach((id) => eatenEjectsIds.add(id));
       state.maxMass = Math.max(state.maxMass, state.player.getTotalMass());
 
-      if (eatenOrbs.length > 0) {
-        for (const orbId of eatenOrbs) {
-          const idx = orbs.findIndex((o) => o.id === orbId);
-          if (idx !== -1) {
-            orbs.splice(idx, 1);
-          }
-        }
-      }
-      if (eatenEjects.length > 0) {
-        for (const ejectId of eatenEjects) {
-          const idx = ejects.findIndex((e) => e.id === ejectId);
-          if (idx !== -1) {
-            ejects.splice(idx, 1);
-          }
-        }
-      }
+      // if (eatenOrbs.length > 0) {
+      //   for (const orbId of eatenOrbs) {
+      //     const idx = orbs.findIndex((o) => o.id === orbId);
+      //     if (idx !== -1) {
+      //       orbs.splice(idx, 1);
+      //     }
+      //   }
+      // }
+      // if (eatenEjects.length > 0) {
+      //   for (const ejectId of eatenEjects) {
+      //     const idx = ejects.findIndex((e) => e.id === ejectId);
+      //     if (idx !== -1) {
+      //       ejects.splice(idx, 1);
+      //     }
+      //   }
+      // }
       state.maxMass = Math.max(state.maxMass, state.player.getTotalMass());
 
       updateVirusPenalty(state, tickNow);
     }
-
+    if (eatenOrbIds.size) {
+      world.orbs = world.orbs.filter((o) => !eatenOrbIds.has(o.id));
+    }
+    if (eatenEjectsIds.size) {
+      world.ejects = world.ejects.filter((e) => !eatenEjectsIds.has(e.id));
+    }
     for (const e of ejects) {
       e.age += dt;
       e.x += e.vx * dt;
@@ -422,21 +457,21 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
     }
   }
 
-  function broadcastState(room: string, world: World) {
-    const serializedPlayers: Record<string, PlayerData> = {};
-
-    for (const [id, state] of Object.entries(world.players)) {
-      serializedPlayers[id] = state.player.serialize();
-      // serializedPlayers[id].lastProcessedSeq = state.input?.seq ?? 0;
-    }
-
-    io.to(room).emit("heartbeat", {
-      players: serializedPlayers,
-      orbs: world.orbs,
-      ejects: world.ejects,
-      viruses: world.viruses,
-    });
-  }
+  // function broadcastState(room: string, world: World) {
+  //   const serializedPlayers: Record<string, PlayerData> = {};
+  //
+  //   for (const [id, state] of Object.entries(world.players)) {
+  //     serializedPlayers[id] = state.player.serialize();
+  //     // serializedPlayers[id].lastProcessedSeq = state.input?.seq ?? 0;
+  //   }
+  //
+  //   io.to(room).emit("heartbeat", {
+  //     players: serializedPlayers,
+  //     orbs: world.orbs,
+  //     ejects: world.ejects,
+  //     viruses: world.viruses,
+  //   });
+  // }
 
   function updateVirusPenalty(state: PlayerState, now: number) {
     while (
@@ -454,7 +489,6 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
   let lastTime = Date.now();
   let accumulator = 0;
 
-  const FRAME_MS = 1000 / TICK_RATE;
   const MAX_CATCHUP_STEPS = 5;
 
   async function gameLoop() {
@@ -537,9 +571,17 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
       steps++;
     }
 
-    for (const [room, world] of worldByRoom) {
-      if (world.meta.status !== "started") continue;
-      broadcastState(room, world);
+    // for (const [room, world] of worldByRoom) {
+    //   if (world.meta.status !== "started") continue;
+    //   broadcastState(room, world);
+    // }
+    for (const [id, socket] of io.sockets) {
+      const room = socket.data.room;
+      if (!room) continue;
+      const world = worldByRoom.get(room);
+      if (!world || world.meta.status !== "started") continue;
+      const payload = getCulledState(world, id);
+      if (payload) socket.emit("heartbeat", payload);
     }
 
     const elapsed = Date.now() - frameStart;
