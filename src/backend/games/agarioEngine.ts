@@ -89,7 +89,10 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
 
     const players: Record<string, PlayerData> = {};
     for (const [id, s] of Object.entries(world.players)) {
-      if (inView(s.player.x, s.player.y)) players[id] = s.player.serialize();
+      if (inView(s.player.x, s.player.y)) {
+        players[id] = s.player.serialize();
+        players[id].lastProcessedSeq = state.input?.seq ?? 0;
+      }
     }
     return {
       players,
@@ -109,7 +112,7 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
     const ids = Object.keys(players);
 
     const eatenOrbIds = new Set<string>();
-    const eatenEjectsIds =  new Set<string>();
+    const eatenEjectsIds = new Set<string>();
     for (const id of ids) {
       const state = players[id];
       const p = state.player;

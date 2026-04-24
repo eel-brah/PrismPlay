@@ -15,6 +15,7 @@ export const inputSchema = z.object({
   x: z.number(),
   y: z.number(),
   dt: z.number(),
+  seq: z.number(),
 });
 
 export const createRoomSchema = z.object({

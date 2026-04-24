@@ -55,9 +55,9 @@ const Agario = () => {
   const [hasJoined, setHasJoined] = useState(false);
   const [firstTime, setFirstTime] = useState(true);
 
-  // const inputSeqRef = useRef(0);
-  // const pendingInputsRef = useRef<InputState[]>([]);
-  // const lastProcessedSeqRef = useRef<number>(0);
+  const inputSeqRef = useRef(0);
+  const pendingInputsRef = useRef<InputState[]>([]);
+  const lastProcessedSeqRef = useRef<number>(0);
 
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const finalLeaderboard = useRef<FinalLeaderboardEntry[]>([]);
@@ -235,8 +235,8 @@ const Agario = () => {
       orbsRef.current = [];
       ejectsRef.current = [];
       virusesRef.current = [];
-      // pendingInputsRef.current = [];
-      // lastProcessedSeqRef.current = data.lastProcessedSeq;
+      pendingInputsRef.current = [];
+      lastProcessedSeqRef.current = data ? data.lastProcessedSeq : 0;
 
       clearInterval(roomListInterval.current);
       roomListInterval.current = undefined;
@@ -257,36 +257,36 @@ const Agario = () => {
             playerRef.current.updateFromData(myData);
           }
 
-          // lastProcessedSeqRef.current = myData.lastProcessedSeq;
+          lastProcessedSeqRef.current = myData.lastProcessedSeq;
 
-          // const remainingInputs = pendingInputsRef.current.filter(
-          //   (input) => input.seq > myData.lastProcessedSeq
-          // );
-          // pendingInputsRef.current = remainingInputs;
+          const remainingInputs = pendingInputsRef.current.filter(
+            (input) => input.seq > myData.lastProcessedSeq
+          );
+          pendingInputsRef.current = remainingInputs;
 
-          // const player = playerRef.current;
-          // const orbs = orbsRef.current;
-          // const ejects = ejectsRef.current;
-          // if (player) {
-          // const viruses = virusesRef.current;
-          //   for (const input of remainingInputs) {
-          //     const mouse: Mouse = { x: input.mouseX, y: input.mouseY };
-          //     //player.update(input.dt, mouse, orbs, [], false);
-          //     const [eatenOrbs, eatenEjects] = player.update(input.dt, mouse, orbs, ejects, false);
-          //     if (eatenOrbs.length > 0) {
-          //       const eatenSet = new Set(eatenOrbs);
-          //       orbsRef.current = orbsRef.current.filter(
-          //         (o) => !eatenSet.has(o.id),
-          //       );
-          //     }
-          //     if (eatenEjects.length > 0) {
-          //       const eatenSet = new Set(eatenEjects);
-          //       ejectsRef.current = ejectsRef.current.filter(
-          //         (e) => !eatenSet.has(e.id),
-          //       );
-          //     }
-          //   }
-          // }
+          const player = playerRef.current;
+          const orbs = orbsRef.current;
+          const ejects = ejectsRef.current;
+          if (player) {
+            // const viruses = virusesRef.current;
+            for (const input of remainingInputs) {
+              const mouse: Mouse = { x: input.x, y: input.y };
+              // player.update(input.dt, mouse, orbs, [], false);
+              const [eatenOrbs, eatenEjects] = player.update(input.dt, mouse, orbs, ejects, false);
+              if (eatenOrbs.length > 0) {
+                const eatenSet = new Set(eatenOrbs);
+                orbsRef.current = orbsRef.current.filter(
+                  (o) => !eatenSet.has(o.id),
+                );
+              }
+              if (eatenEjects.length > 0) {
+                const eatenSet = new Set(eatenEjects);
+                ejectsRef.current = ejectsRef.current.filter(
+                  (e) => !eatenSet.has(e.id),
+                );
+              }
+            }
+          }
         }
 
         for (const [id, pData] of Object.entries(data.players)) {
@@ -390,9 +390,9 @@ const Agario = () => {
 
       const player = playerRef.current;
       const camera = cameraRef.current;
-      // const orbs = orbsRef.current;
-      // const ejects = ejectsRef.current;
-      // const viruses = virusesRef.current;
+      const orbs = orbsRef.current;
+      const ejects = ejectsRef.current;
+      const viruses = virusesRef.current;
 
       if (!canvas || !player || !camera) return;
 
@@ -402,20 +402,20 @@ const Agario = () => {
       };
 
       // local prediction 
-      // player.update(dt, worldMouse, [], [], isDeadRef.current);
-      // const [eatenOrbs, eatenEjects] = player.update(dt, worldMouse, orbs, ejects, isDeadRef.current);
-      // if (eatenOrbs.length > 0) {
-      //   const eatenSet = new Set(eatenOrbs);
-      //   orbsRef.current = orbsRef.current.filter(
-      //     (o) => !eatenSet.has(o.id),
-      //   );
-      // }
-      // if (eatenEjects.length > 0) {
-      //   const eatenSet = new Set(eatenEjects);
-      //   ejectsRef.current = ejectsRef.current.filter(
-      //     (e) => !eatenSet.has(e.id),
-      //   );
-      // }
+      player.update(dt, worldMouse, [], [], isDeadRef.current);
+      const [eatenOrbs, eatenEjects] = player.update(dt, worldMouse, orbs, ejects, isDeadRef.current);
+      if (eatenOrbs.length > 0) {
+        const eatenSet = new Set(eatenOrbs);
+        orbsRef.current = orbsRef.current.filter(
+          (o) => !eatenSet.has(o.id),
+        );
+      }
+      if (eatenEjects.length > 0) {
+        const eatenSet = new Set(eatenEjects);
+        ejectsRef.current = ejectsRef.current.filter(
+          (e) => !eatenSet.has(e.id),
+        );
+      }
 
       if (isSpectatorRef.current || isDeadRef.current) player.update(dt, worldMouse, [], [], true);
 
@@ -425,11 +425,11 @@ const Agario = () => {
       if (isSpectatorRef.current || isDeadRef.current) return;
 
 
-      // inputSeqRef.current += 1;
+      inputSeqRef.current += 1;
       const input: InputState = {
         x: worldMouse.x,
         y: worldMouse.y,
-        // seq: inputSeqRef.current,
+        seq: inputSeqRef.current,
         dt,
       };
 
