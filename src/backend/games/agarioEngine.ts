@@ -489,13 +489,13 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
     );
   }
 
-  let lastTime = Date.now();
+  let lastTime = performance.now();
   let accumulator = 0;
 
   const MAX_CATCHUP_STEPS = 5;
 
   async function gameLoop() {
-    const frameStart = Date.now();
+    const frameStart = performance.now();
 
     let frameDt = (frameStart - lastTime) / 1000;
     lastTime = frameStart;
@@ -508,7 +508,7 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
     while (accumulator >= TICK_DT && steps < MAX_CATCHUP_STEPS) {
       const roomsToDelete: string[] = [];
       const roomFinalizationJobs: Promise<void>[] = [];
-      const tickNow = Date.now();
+      const tickNow = performance.now();
 
       for (const [room, world] of worldByRoom) {
         if (world.meta.status !== "started") continue;

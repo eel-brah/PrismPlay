@@ -54,6 +54,7 @@ const Agario = () => {
   const roomNameRef = useRef<string>("");
   const [hasJoined, setHasJoined] = useState(false);
   const [firstTime, setFirstTime] = useState(true);
+  const hasJoinedRef = useRef(false);
 
   const inputSeqRef = useRef(0);
   const pendingInputsRef = useRef<InputState[]>([]);
@@ -133,7 +134,7 @@ const Agario = () => {
     }
 
     roomListInterval.current = setInterval(() => {
-      if (!hasJoined) socket.emit("agario:list-rooms");
+      if (!hasJoinedRef.current) socket.emit("agario:list-rooms");
     }, 1000);
     socket.emit("agario:list-rooms");
 
@@ -186,7 +187,7 @@ const Agario = () => {
 
       clearInterval(roomListInterval.current)
       roomListInterval.current = setInterval(() => {
-        if (!hasJoined) socket.emit("agario:list-rooms");
+        if (!hasJoinedRef.current) socket.emit("agario:list-rooms");
       }, 1000);
     });
 
@@ -202,7 +203,7 @@ const Agario = () => {
 
       clearInterval(roomListInterval.current)
       roomListInterval.current = setInterval(() => {
-        if (!hasJoined) socket.emit("agario:list-rooms");
+        if (!hasJoinedRef.current) socket.emit("agario:list-rooms");
       }, 1000);
     });
 
@@ -228,6 +229,7 @@ const Agario = () => {
       isDeadRef.current = false;
       setMenuMode(roomNameRef.current);
       setHasJoined(true);
+      hasJoinedRef.current = true;
       setFirstTime(false);
       clearAlert();
 
@@ -271,7 +273,6 @@ const Agario = () => {
             // const viruses = virusesRef.current;
             for (const input of remainingInputs) {
               const mouse: Mouse = { x: input.x, y: input.y };
-              // player.update(input.dt, mouse, orbs, [], false);
               const [eatenOrbs, eatenEjects] = player.update(input.dt, mouse, orbs, ejects, false);
               if (eatenOrbs.length > 0) {
                 const eatenSet = new Set(eatenOrbs);
@@ -402,7 +403,6 @@ const Agario = () => {
       };
 
       // local prediction 
-      player.update(dt, worldMouse, [], [], isDeadRef.current);
       const [eatenOrbs, eatenEjects] = player.update(dt, worldMouse, orbs, ejects, isDeadRef.current);
       if (eatenOrbs.length > 0) {
         const eatenSet = new Set(eatenOrbs);
@@ -433,6 +433,7 @@ const Agario = () => {
         dt,
       };
 
+      pendingInputsRef.current.push(input);
       const now = performance.now();
       if (now - lastInputSend.current >= FRAME_MS) {
         socket.emit("input", input);
@@ -577,6 +578,7 @@ const Agario = () => {
   function clearing(mode = MAIN_MENU) {
     isDeadRef.current = false;
     setHasJoined(false);
+    hasJoinedRef.current = false;
     setRoomInfo(null);
     setLeaderboard([]);
     setMenuMode(mode);
