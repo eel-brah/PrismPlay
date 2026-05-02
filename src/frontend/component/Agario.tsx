@@ -120,16 +120,19 @@ const Agario = () => {
 
     function initCam() {
       if (!canvas || !playerRef.current) return;
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+
       cameraRef.current = {
-        x: playerRef.current.x - canvas.width / 2,
-        y: playerRef.current.y - canvas.height / 2,
-        width: canvas.width,
-        height: canvas.height,
+        x: playerRef.current.x - width / 2,
+        y: playerRef.current.y - height / 2,
+        width,
+        height,
       };
 
       mouseRef.current = {
-        x: canvas.width / 2,
-        y: canvas.height / 2,
+        x: width / 2,
+        y: height / 2,
       };
     }
 
@@ -335,8 +338,8 @@ const Agario = () => {
       const cam = cameraRef.current;
       if (!cam || !canvas || !playerRef.current) return;
 
-      cam.width = canvas.width;
-      cam.height = canvas.height;
+      cam.width = canvas.clientWidth;
+      cam.height = canvas.clientHeight;
       cam.x = playerRef.current.x - cam.width / 2;
       cam.y = playerRef.current.y - cam.height / 2;
     }
