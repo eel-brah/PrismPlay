@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import { DEFAULT_ROOM, FRAME_MS, MAP_HEIGHT, MAP_WIDTH, MAX_MINUTES, MAX_PLAYERS_PER_ROOM, MIN_MINUTES, MIN_PLAYERS_PER_ROOM } from "@/../shared/agario/config";
+import { DEFAULT_ROOM, FRAME_MS, MAP_HEIGHT, MAP_WIDTH, MAX_MINUTES, MAX_PLAYERS_PER_ROOM, MIN_MINUTES, MIN_PLAYERS_PER_ROOM, TICK_RATE } from "@/../shared/agario/config";
 import { Player } from "@/../shared/agario/player";
 import {
   Eject,
@@ -267,26 +267,9 @@ const Agario = () => {
           pendingInputsRef.current = remainingInputs;
 
           const player = playerRef.current;
-          const orbs = orbsRef.current;
-          const ejects = ejectsRef.current;
           if (player) {
-            // const viruses = virusesRef.current;
-            for (const input of remainingInputs) {
-              const mouse: Mouse = { x: input.x, y: input.y };
-              const [eatenOrbs, eatenEjects] = player.update(input.dt, mouse, orbs, ejects, false);
-              if (eatenOrbs.length > 0) {
-                const eatenSet = new Set(eatenOrbs);
-                orbsRef.current = orbsRef.current.filter(
-                  (o) => !eatenSet.has(o.id),
-                );
-              }
-              if (eatenEjects.length > 0) {
-                const eatenSet = new Set(eatenEjects);
-                ejectsRef.current = ejectsRef.current.filter(
-                  (e) => !eatenSet.has(e.id),
-                );
-              }
-            }
+            for (const input of remainingInputs)
+              player.update(input.dt, { x: input.x, y: input.y }, [], [], false);
           }
         }
 
@@ -402,7 +385,7 @@ const Agario = () => {
         y: mouseRef.current.y + camera.y,
       };
 
-      // local prediction 
+      // local prediction
       const [eatenOrbs, eatenEjects] = player.update(dt, worldMouse, orbs, ejects, isDeadRef.current);
       if (eatenOrbs.length > 0) {
         const eatenSet = new Set(eatenOrbs);
@@ -433,11 +416,16 @@ const Agario = () => {
         dt,
       };
 
-      pendingInputsRef.current.push(input);
       const now = performance.now();
       if (now - lastInputSend.current >= FRAME_MS) {
+        pendingInputsRef.current.push(input);
         socket.emit("input", input);
         lastInputSend.current = now;
+      }
+
+      const MAX_PENDING = TICK_RATE * 2;
+      if (pendingInputsRef.current.length > MAX_PENDING) {
+        pendingInputsRef.current = pendingInputsRef.current.slice(-MAX_PENDING);
       }
     }
 
@@ -635,10 +623,10 @@ const Agario = () => {
 
       <div className="absolute inset-0 -z-50 bg-[#0f101f]" />
 
-      <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full 
+      <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full
         bg-purple-600/20 blur-[140px] -z-50" />
 
-      <div className="absolute -bottom-40 -left-40 w-[600px] h-[600px] rounded-full 
+      <div className="absolute -bottom-40 -left-40 w-[600px] h-[600px] rounded-full
         bg-blue-600/20 blur-[140px] -z-50" />
 
       <div className="absolute inset-0 -z-50

@@ -76,10 +76,10 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
   const VIEWPORT_MARGIN = 300;
 
   function getCulledState(world: World, socketId: string) {
-    const state = world.players[socketId];
-    if (!state) return null;
-    const cx = state.player.x;
-    const cy = state.player.y;
+    const viewerState = world.players[socketId];
+    if (!viewerState) return null;
+    const cx = viewerState.player.x;
+    const cy = viewerState.player.y;
 
     const hw = 960 + VIEWPORT_MARGIN;
     const hh = 540 + VIEWPORT_MARGIN;
@@ -91,7 +91,8 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
     for (const [id, s] of Object.entries(world.players)) {
       if (inView(s.player.x, s.player.y)) {
         players[id] = s.player.serialize();
-        players[id].lastProcessedSeq = state.input?.seq ?? 0;
+        if (id === socketId)
+          players[id].lastProcessedSeq = viewerState.input?.seq ?? 0;
       }
     }
     return {
@@ -587,7 +588,7 @@ export function agarioEngine(logger: FastifyBaseLogger, io: Namespace) {
       if (payload) socket.emit("heartbeat", payload);
     }
 
-    const elapsed = Date.now() - frameStart;
+    const elapsed = performance.now() - frameStart;
     setTimeout(gameLoop, Math.max(0, FRAME_MS - elapsed));
   }
 
