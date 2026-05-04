@@ -2,10 +2,16 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import tailwindcss from "@tailwindcss/vite";
+import babel from '@rolldown/plugin-babel'
+import { reactCompilerPreset } from '@vitejs/plugin-react'
 
 export default defineConfig({
   root: path.resolve(__dirname, "src/frontend"),
-  plugins: [tailwindcss(), react()],
+  plugins: [
+    tailwindcss(),
+    react(),
+    babel({ presets: [reactCompilerPreset()] }),
+  ],
   server: {
     port: 5173,
     proxy: {
