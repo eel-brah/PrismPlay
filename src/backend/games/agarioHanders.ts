@@ -46,6 +46,7 @@ import {
 export const worldByRoom = new Map<string, World>();
 export const activePlayers = new Map<string, ActivePlayer>();
 export const MIN_SECOND_TO_STORE = 3;
+export const spectatorCameras = new Map<string, { x: number; y: number }>();
 
 async function startRoom(world: World) {
   if (world.meta.status === "started") return;
@@ -302,6 +303,10 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
 
     const identity = getIdentity(socket);
     socket.data.identity = identity;
+    socket.data.viewport = {
+      width: payload.width,
+      height: payload.height,
+    };
 
     await joinRoom(socket, world, roomName, data.name, data.spectator);
 
@@ -448,15 +453,33 @@ export async function agarioHandlers(socket: Socket, fastify: FastifyInstance) {
     broadcastPlayers(socket.nsp, room, world);
   }
 
+  socket.on(
+    "agario:set-viewport",
+    (size: { width: number; height: number }) => {
+      socket.data.viewport = {
+        width: size.width,
+        height: size.height,
+      };
+    },
+  );
   socket.on("input", (input: InputState) => {
-    const ctx = getCtx(socket);
-    if (!ctx) return;
-    if (ctx.world.meta.spectators.has(socket.id)) return;
-    if (ctx.world.meta.status !== "started") return;
+    const room = socket.data.room as string | undefined;
+    if (!room) return null;
+    const world = worldByRoom.get(room);
+    if (!world) return null;
+
+    if (world.meta.status !== "started") return;
+    if (world.meta.spectators.has(socket.id)) {
+      spectatorCameras.set(socket.id, { x: input.x, y: input.y });
+      return;
+    }
+
+    const state = world.players[socket.id];
+    if (!state) return null;
 
     const parsed = inputSchema.safeParse(input);
     if (!parsed.success) return;
-    ctx.state.input = parsed.data;
+    state.input = parsed.data;
   });
 
   socket.on("split", () => {

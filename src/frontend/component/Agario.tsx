@@ -123,6 +123,8 @@ const Agario = () => {
       const width = canvas.clientWidth;
       const height = canvas.clientHeight;
 
+      socketRef.current?.emit("agario:set-viewport", { width, height });
+
       cameraRef.current = {
         x: playerRef.current.x - width / 2,
         y: playerRef.current.y - height / 2,
@@ -338,6 +340,11 @@ const Agario = () => {
       const cam = cameraRef.current;
       if (!cam || !canvas || !playerRef.current) return;
 
+      socketRef.current?.emit("agario:set-viewport", {
+        width: canvas.clientWidth,
+        height: canvas.clientHeight
+      });
+
       cam.width = canvas.clientWidth;
       cam.height = canvas.clientHeight;
       cam.x = playerRef.current.x - cam.width / 2;
@@ -388,28 +395,40 @@ const Agario = () => {
         y: mouseRef.current.y + camera.y,
       };
 
-      // local prediction
-      const [eatenOrbs, eatenEjects] = player.update(dt, worldMouse, orbs, ejects, isDeadRef.current);
-      if (eatenOrbs.length > 0) {
-        const eatenSet = new Set(eatenOrbs);
-        orbsRef.current = orbsRef.current.filter(
-          (o) => !eatenSet.has(o.id),
-        );
-      }
-      if (eatenEjects.length > 0) {
-        const eatenSet = new Set(eatenEjects);
-        ejectsRef.current = ejectsRef.current.filter(
-          (e) => !eatenSet.has(e.id),
-        );
-      }
-
-      if (isSpectatorRef.current || isDeadRef.current) player.update(dt, worldMouse, [], [], true);
-
       camera.x = player.x - camera.width / 2;
       camera.y = player.y - camera.height / 2;
 
-      if (isSpectatorRef.current || isDeadRef.current) return;
+      if (isSpectatorRef.current || isDeadRef.current) {
+        if (isSpectatorRef.current) {
+          const input: InputState = {
+            x: worldMouse.x,
+            y: worldMouse.y,
+            seq: 0,
+            dt,
+          };
 
+          socket.emit("input", input);
+        }
+        player.update(dt, worldMouse, [], [], true);
+        return;
+      }
+      else {
+        // local prediction
+        const [eatenOrbs, eatenEjects] = player.update(dt, worldMouse, orbs, ejects, isDeadRef.current);
+        if (eatenOrbs.length > 0) {
+          const eatenSet = new Set(eatenOrbs);
+          orbsRef.current = orbsRef.current.filter(
+            (o) => !eatenSet.has(o.id),
+          );
+        }
+        if (eatenEjects.length > 0) {
+          const eatenSet = new Set(eatenEjects);
+          ejectsRef.current = ejectsRef.current.filter(
+            (e) => !eatenSet.has(e.id),
+          );
+        }
+
+      }
 
       inputSeqRef.current += 1;
       const input: InputState = {
@@ -532,7 +551,7 @@ const Agario = () => {
     roomNameRef.current = room;
 
     if (mode === "join") {
-      socket.emit("agario:join-room", { name, room, key: joinKey.trim() || undefined, spectator });
+      socket.emit("agario:join-room", { name, room, key: joinKey.trim() || undefined, spectator, width: canvasRef.current?.clientWidth ?? MAP_WIDTH, height: canvasRef.current?.clientHeight ?? MAP_HEIGHT });
     } else {
       socket.emit("agario:create-room", {
         name,
@@ -554,7 +573,7 @@ const Agario = () => {
 
     let room = roomNameRef.current.trim();
     if (room.length === 0) room = DEFAULT_ROOM;
-    socket.emit("agario:join-room", { name: playerName, room, key: joinKey.trim() || undefined, spectator: false });
+    socket.emit("agario:join-room", { name: playerName, room, key: joinKey.trim() || undefined, spectator: false, width: canvasRef.current?.clientWidth ?? MAP_WIDTH, height: canvasRef.current?.clientHeight ?? MAP_HEIGHT });
   }
 
   function backToMainMenu(leave: boolean = false) {

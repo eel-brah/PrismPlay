@@ -32,6 +32,8 @@ export const joinRoomSchema = z.object({
   name: z.string(),
   key: z.string().optional(),
   spectator: z.boolean(),
+  width: z.number(),
+  height: z.number(),
 });
 
 export type JoinRoomPayload = z.infer<typeof joinRoomSchema>;
